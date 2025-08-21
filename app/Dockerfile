@@ -1,3 +1,23 @@
+############################################
+# Node stage: build CSS (Tailwind + daisyUI)
+############################################
+FROM node:20-alpine AS node-builder
+WORKDIR /app
+
+# copy package.json (and package-lock.json if present)
+COPY package.json ./
+# copy tailwind config and css input file(s)
+COPY tailwind.config.js ./
+COPY static/css ./static/css
+
+# install node deps and build the css once
+RUN npm install --silent
+# build minified css (tailwind-build script from your package.json)
+RUN npm run tailwind-build
+
+RUN echo "DEBUG:"
+RUN npm run tailwind-build && ls -la ./static/css
+
 # syntax=docker/dockerfile:1.7
 # This Dockerfile was modified from the following article: 
 # https://medium.com/@hmbarotov/dockerizing-django-with-uv-postgres-and-redis-e1dd9abe9640
@@ -15,7 +35,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
 # install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends netcat-traditional
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    netcat-traditional \
+    curl \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # install uv inside Docker
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -40,6 +64,10 @@ RUN chmod +x /app/entrypoint.sh
 
 # copy project
 COPY . .
+
+# Copy the pre-built tailwind output.css from node-builder (if it exists)
+# this will overwrite whatever is in /app/static/css/output.css
+COPY --from=node-builder /app/static/css/output.css /app/static/css/output.css
 
 # run entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]

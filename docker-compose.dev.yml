@@ -1,14 +1,22 @@
-# docker-compose.dev.yml
 services:
   db:
     image: postgres:17
     environment:
-      # TODO: Cambiar
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  node:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./app:/app:delegated
+    command: sh -c "npm ci --silent || npm install --silent; npm run tailwind-watch"
+    env_file:
+      - ./.env.dev
+
   web:
     build: ./app
     command: uv run manage.py runserver 0.0.0.0:8000
@@ -18,7 +26,11 @@ services:
       - 8000:8000
     env_file:
       - ./.env.dev
+    environment:
+      - WAIT_FOR_CSS=1
     depends_on:
       - db
+      - node
+
 volumes:
   postgres_data:
