@@ -1,0 +1,8 @@
+@import "tailwindcss" source(none);
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* DaisyUI plugin is loaded by importing the bundled JS plugin (see DaisyUI docs) */
+@import "./daisyui.js";
+@source "../../templates";

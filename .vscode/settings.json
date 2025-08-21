@@ -1,0 +1,35 @@
+{
+    // Interpreter: prefer workspace .venv; developers on Windows should select the interpreter once if needed.
+    // NOTE: Some versions of the Python extension use `python.defaultInterpreterPath`.
+    // If that doesn't work in your environment, select the interpreter via Command Palette.
+    "python.defaultInterpreterPath": "${workspaceFolder}/app/.venv/bin/python",
+    // Linting and formatting
+    "ruff.lint.enable": true,
+    // Ruff is used for formatting via code actions. We trigger fixAll on save.
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "never",
+        "source.fixAll.ruff": "never",
+        "source.organizeImports": "always"
+    },
+    "editor.formatOnSave": true,
+    // Pyright (via Pylance) type checking mode. 'basic' is a good default.
+    "python.analysis.typeCheckingMode": "standard",
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.useLibraryCodeForTypes": true,
+    // Testing (pytest)
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    // Optional: linting/formatting excludes
+    "files.exclude": {
+        "**/.venv": true,
+        "**/.git": true,
+        "node_modules": true
+    },
+    // Editor suggestions for Python
+    "python.languageServer": "Pylance",
+    "python.analysis.typeEvaluation.deprecateTypingAliases": true,
+    "python.analysis.typeEvaluation.enableReachabilityAnalysis": true
+}
