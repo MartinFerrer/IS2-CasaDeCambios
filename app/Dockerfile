@@ -19,7 +19,7 @@ RUN echo "DEBUG:"
 RUN npm run tailwind-build && ls -la ./static/css
 
 # syntax=docker/dockerfile:1.7
-# This Dockerfile was modified from the following article: 
+# This Dockerfile was modified from the following article:
 # https://medium.com/@hmbarotov/dockerizing-django-with-uv-postgres-and-redis-e1dd9abe9640
 # Base image: Python slim bookworm
 FROM python:3.13-slim-bookworm AS base
@@ -57,17 +57,21 @@ RUN --mount=type=cache,target=/root/.cache \
     --frozen \
     --no-install-project
 
-# copy entrypoint.sh
-COPY ./entrypoint.sh .
-RUN sed -i "s/\r$//g" /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+# The following two steps are crucial and MUST come after all
+# other file copying to ensure permissions are set correctly.
 
-# copy project
+# copy the entire project into the image
 COPY . .
 
 # Copy the pre-built tailwind output.css from node-builder (if it exists)
 # this will overwrite whatever is in /app/static/css/output.css
 COPY --from=node-builder /app/static/css/output.css /app/static/css/output.css
+
+# Fix line endings and add execute permissions to entrypoint.sh.
+# This is the final step for the entrypoint file to ensure it's not
+# overwritten by a subsequent COPY command.
+RUN sed -i "s/\r$//g" /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # run entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
