@@ -43,7 +43,33 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "apps.presentacion",
+    ######EMPIEZA COMENTARIO DE LA PARTE DE AUTENTICACIÓN Y SEGURIDAD#########################################################inicio borrado1
+    # Add 'allauth' and its dependencies for authentication
+    #en particular: 'django-allauth', 'allauth', 'allauth.account', 'allauth.socialaccount'(se puede quitar), 'accounts' (después hay que agregar lo de autentication backends que está más abajo),
+###########################################fin borrado1
 ]
+
+##########################################################inicio borrado2
+'''
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",  # Default backend
+    "allauth.account.auth_backends.AuthenticationBackend",  # Allauth backend]
+'''
+    # This allows you to use Django's default authentication alongside Allauth.
+'''
+SITE_ID = 1  # Default site ID for Allauth, can be changed later if needed
+ACCOUNT_EMAIL_REQUIRED = True  # Require email for account creation
+ACCOUNT_USERNAME_REQUIRED = False  # PARA USAR EMAIL COMO USUARIO
+ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use email for authentication
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"  # si o si email verification
+ACCOUNT_ADAPTER = "allauth.account.adapter.DefaultAccountAdapter"  # Default adapter for Allauth
+LOGIN_REDIRECT_URL = "/DASHBOARD/"  # Redirect URL after login (O AL MENU PRINCIPAL QUE HAY QUE HACER LUEGO...)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"  # Use SMTP for sending emails (ESTA OPCION ES PARA EL REAL, PRODUCCIÓN)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # Use console for development (para desarrollo, para ver los emails en la consola)
+#AGREGAR URLS DE DJANGO ALLAUTH EN EL urls.py
+'''
+#DESPUÉS DE ESTO: la IA dice: migraciones: docker-compose run web python manage.py makemigrations && migrate, no pillo...
+### TERMINA COMENTARIO DE LA PARTE DE AUTENTICACIÓN Y SEGURIDAD###################################################fin borrado2
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
