@@ -27,11 +27,12 @@
         "**/.venv": true,
         "**/.git": true,
         "node_modules": true
-    },    
+    },
     // Use LF for eol in all files
     "files.eol": "\n",
     // Editor suggestions for Python
     "python.languageServer": "Pylance",
     "python.analysis.typeEvaluation.deprecateTypingAliases": true,
-    "python.analysis.typeEvaluation.enableReachabilityAnalysis": true
+    "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
+    "makefile.configureOnOpen": false
 }

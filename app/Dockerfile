@@ -1,24 +1,5 @@
-############################################
-# Node stage: build CSS (Tailwind + daisyUI)
-############################################
-FROM node:20-alpine AS node-builder
-WORKDIR /app
-
-# copy package.json (and package-lock.json if present)
-COPY package.json ./
-# copy tailwind config and css input file(s)
-COPY tailwind.config.js ./
-COPY static/css ./static/css
-
-# install node deps and build the css once
-RUN npm install --silent
-# build minified css (tailwind-build script from your package.json)
-RUN npm run tailwind-build
-
-RUN echo "DEBUG:"
-RUN npm run tailwind-build && ls -la ./static/css
-
 # syntax=docker/dockerfile:1.7
+
 # This Dockerfile was modified from the following article: 
 # https://medium.com/@hmbarotov/dockerizing-django-with-uv-postgres-and-redis-e1dd9abe9640
 # Base image: Python slim bookworm
@@ -34,7 +15,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
-# install system dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-traditional \
     curl \
@@ -57,17 +38,24 @@ RUN --mount=type=cache,target=/root/.cache \
     --frozen \
     --no-install-project
 
-# copy entrypoint.sh
+# Copy entrypoint.sh and make it executable
 COPY ./entrypoint.sh .
 RUN sed -i "s/\r$//g" /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# copy project
+# Download tailwind binary directly 
+ADD https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 /app/static/css/tailwindcss 
+RUN chmod +x /app/static/css/tailwindcss
+
+# Copy project
 COPY . .
 
-# Copy the pre-built tailwind output.css from node-builder (if it exists)
-# this will overwrite whatever is in /app/static/css/output.css
-COPY --from=node-builder /app/static/css/output.css /app/static/css/output.css
+# Compile CSS at build time and fail if output.css missing
+RUN /app/static/css/tailwindcss \
+    -i /app/static/css/input.css \
+    -o /app/static/css/output.css \
+    --minify 
+RUN test -f /app/static/css/output.css
 
 # run entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
