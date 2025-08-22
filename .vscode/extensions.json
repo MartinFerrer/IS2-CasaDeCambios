@@ -1,0 +1,24 @@
+{
+  // Recommended VSCode extensions for this Python/Django project
+  "recommendations": [
+    // --- Python core development ---
+    "ms-python.python", // Python language support
+    "ms-python.vscode-pylance", // Fast type checking / IntelliSense
+    "charliermarsh.ruff", // Ruff for linting + formatting
+    "njpwerner.autodocstring", // Generate Python docstrings quickly
+    "ms-python.debugpy", // Debugging support for Python
+    // --- Web & backend ---
+    "ms-azuretools.vscode-docker", // Manage Docker containers for dev/test
+    "ms-vscode-remote.remote-containers", // Dev containers integration
+    "bradlc.vscode-tailwindcss", // Tailwind highlighting
+    // --- Git / collaboration ---
+    "eamodio.gitlens", // Git history & insights
+    "github.copilot", // AI code suggestions
+    "github.copilot-chat", // AI pair programming & Q&A
+    "github.vscode-github-actions", // GitHub Actions CI/CD integration
+    // --- Configuration / infra ---
+    "redhat.vscode-yaml", // YAML support (for CI/CD, configs)
+    "tamasfe.even-better-toml", // TOML support (pyproject.toml editing)
+    "ms-vscode.makefile-tools" // Makefile support
+  ]
+}

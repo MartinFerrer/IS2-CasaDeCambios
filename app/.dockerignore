@@ -1,0 +1,25 @@
+# .dockerignore
+# node things
+node_modules
+npm-debug.log
+yarn-error.log
+
+# python things
+.venv
+venv
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# git / system
+.git
+.gitignore
+.DS_Store
+.vscode
+.idea
+
+# docker build artifacts / local logs
+/dist
+/build
