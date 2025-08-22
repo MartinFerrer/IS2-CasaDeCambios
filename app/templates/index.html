@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Global Exchange — Home</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+</head>
+
+<body class="bg-gray-50">
+    <header class="p-4 bg-white shadow">
+        <div class="container mx-auto">
+            <h1 class="text-2xl font-bold">Global Exchange</h1>
+        </div>
+    </header>
+    <main class="container mx-auto p-4">
+        <section class="bg-white rounded-lg shadow p-4">
+            <h2 class="text-xl font-semibold mb-4">Sample rates chart</h2>
+            <div id="chart" style="height:400px;"></div>
+        </section>
+    </main>
+
+    <!-- Minimal Plotly client: only small snippet, data produced server-side -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        (function () {
+            const graph = {{ graphJSON| safe
+        }};
+        Plotly.newPlot('chart', graph.data, graph.layout || {});
+      }) ();
+    </script>
+</body>
+
+<!-- DaisyUI test components -->
+<div class="p-6 space-y-6">
+    <button class="btn btn-primary">Hello daisyUI</button>
+
+    <!-- Badge -->
+    <div>
+        <span class="badge badge-secondary">New</span>
+        <span class="badge badge-accent">Hot</span>
+    </div>
+
+    <!-- Alert -->
+    <div class="alert alert-info">
+        <span>ℹ️ This is a daisyUI info alert.</span>
+    </div>
+
+    <!-- Card -->
+    <div class="card w-80 bg-base-100 shadow-xl">
+        <figure><img src="https://picsum.photos/400/200" alt="Demo image" /></figure>
+        <div class="card-body">
+            <h2 class="card-title">DaisyUI Card</h2>
+            <p>Testing card with image, title, and actions.</p>
+            <div class="card-actions justify-end">
+                <button class="btn btn-primary">Accept</button>
+                <button class="btn btn-outline">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collapse -->
+    <div class="collapse bg-base-200">
+        <input type="checkbox" />
+        <div class="collapse-title text-lg font-medium">Click to expand</div>
+        <div class="collapse-content">
+            <p>DaisyUI collapsible content works!</p>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div role="tablist" class="tabs tabs-bordered">
+        <a role="tab" class="tab tab-active">Tab 1</a>
+        <a role="tab" class="tab">Tab 2</a>
+        <a role="tab" class="tab">Tab 3</a>
+    </div>
+
+    <!-- Modal (trigger + content) -->
+    <button class="btn" onclick="my_modal.showModal()">Open Modal</button>
+    <dialog id="my_modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Hello!</h3>
+            <p class="py-4">This is a daisyUI modal example.</p>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn">Close</button>
+                </form>
+            </div>
+        </div>
+    </dialog>
+</div>
+
+</html>
