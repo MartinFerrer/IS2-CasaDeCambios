@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- DaisyUI CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen">
+    <!-- Header con navegación simple -->
+    <header class="bg-blue-600 text-white shadow-lg p-4">
+        <div class="container mx-auto flex flex-wrap justify-between items-center">
+            <!-- Logo / Título -->
+            <div class="flex items-center">
+                <a href="{% url 'panel_inicio' %}" class="text-xl font-bold">Panel Admin</a>
+            </div>
+            
+            <!-- Navegación -->
+            <nav class="flex items-center space-x-6">
+                <a href="{% url 'panel_inicio' %}" class="hover:text-blue-200 transition-colors">Inicio</a>
+                <a href="{% url 'usuario_listar' %}" class="hover:text-blue-200 transition-colors">Usuarios</a>
+                <a href="{% url 'rol_listar' %}" class="hover:text-blue-200 transition-colors">Roles</a>
+
+                <!-- Usuario y Logout -->
+                <div class="dropdown dropdown-end ml-6">
+                    <label tabindex="0" class="btn btn-ghost btn-circle avatar">
+                        <div class="w-10 rounded-full bg-blue-300 flex items-center justify-center">
+                            <span class="text-lg font-bold text-white">{{ request.user.nombre|default:'U'|first|upper }}</span>
+                        </div>
+                    </label>
+                    <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-blue-800">
+                        <li class="p-2 border-b border-gray-200">
+                            <span class="font-semibold">{{ request.user.nombre|default:'Usuario' }}</span>
+                            <span class="text-xs">{{ request.user.email|default:'Sin email' }}</span>
+                        </li>
+                        <li><a>Mi Perfil</a></li>
+                        <li><a href="{% url 'panel_inicio' %}" class="text-red-500">Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-800">Lista de Usuarios</h1>
+            <!-- Botón que abre el modal -->
+            <button class="btn btn-primary" onclick="document.getElementById('modal_crear_usuario').showModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Crear Usuario
+            </button>
+            
+            <!-- Modal para crear usuario -->
+            <dialog id="modal_crear_usuario" class="modal">
+                <div class="modal-box w-11/12 max-w-2xl">
+                    <form method="dialog">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                    <h3 class="font-bold text-lg text-blue-700 mb-4">Crear Nuevo Usuario</h3>
+
+                    <form method="post" action="{% url 'usuario_crear' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Nombre</span>
+                                </label>
+                                <input type="text" name="nombre" placeholder="Nombre completo" class="input input-bordered" required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Email</span>
+                                </label>
+                                <input type="email" name="email" placeholder="correo@ejemplo.com" class="input input-bordered" required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Contraseña</span>
+                                </label>
+                                <input type="password" name="password" placeholder="Contraseña" class="input input-bordered" required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Rol</span>
+                                </label>
+                                <select name="rol" class="select select-bordered w-full">
+                                    <option value="" disabled selected>Selecciona un rol</option>
+                                    {% for rol in roles %}
+                                    <option value="{{ rol.id }}">{{ rol.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="form-control col-span-2">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">Usuario activo</span>
+                                    <input type="checkbox" name="activo" class="toggle toggle-primary" checked />
+                                </label>
+                            </div>
+                        </div>
+                        <div class="modal-action mt-4">
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                            <button type="button" class="btn" onclick="document.getElementById('modal_crear_usuario').close()">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </dialog>
+        </div>
+
+        <div class="overflow-x-auto">
+            <div class="card bg-white shadow-xl">
+                <div class="card-body">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th class="bg-blue-100">ID</th>
+                                <th class="bg-blue-100">Nombre</th>
+                                <th class="bg-blue-100">Email</th>
+                                <th class="bg-blue-100">Rol</th>
+                                <th class="bg-blue-100">Estado</th>
+                                <th class="bg-blue-100 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr class="hover">
+                                <td>{{ usuario.id }}</td>
+                                <td>{{ usuario.nombre }}</td>
+                                <td>{{ usuario.email|default:"-" }}</td>
+                                <td>{{ usuario.rol|default:"Sin rol" }}</td>
+                                <td>
+                                    {% if usuario.activo %}
+                                    <div class="badge badge-success">Activo</div>
+                                    {% else %}
+                                    <div class="badge badge-error">Inactivo</div>
+                                    {% endif %}
+                                </td>
+                                <td class="flex justify-center space-x-2">
+                                    <a class="btn btn-sm btn-info" onclick="document.getElementById('modal_editar_usuario_{{ usuario.id }}').showModal()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </a>
+                                        {% comment %} modal_editar_usuario_{{ usuario.id }} para diferenciar entre modales de cada usuario {% endcomment %}
+                                        <dialog id="modal_editar_usuario_{{ usuario.id }}" class="modal">
+                                            <div class="modal-box w-11/12 max-w-2xl">
+                                                <form method="dialog">
+                                                    <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="document.getElementById('modal_editar_usuario_{{ usuario.id }}').close()">✕</button>
+                                                </form>
+                                                <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Usuario</h3>
+                                                <form method="post" action="{% url 'usuario_editar' usuario.id %}" class="space-y-4">
+                                                    {% csrf_token %}
+                                                    <div class="grid grid-cols-2 gap-4">
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">Nombre</span>
+                                                            </label>
+                                                            <input type="text" name="nombre" value="{{ usuario.nombre }}" class="input input-bordered" required />
+                                                        </div>
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">Email</span>
+                                                            </label>
+                                                            <input type="email" name="email" value="{{ usuario.email }}" class="input input-bordered" required />
+                                                        </div>
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">Contraseña</span>
+                                                            </label>
+                                                            <input type="password" name="password" value="{{ usuario.password }}" class="input input-bordered" required />
+                                                        </div>
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">Rol</span>
+                                                            </label>
+                                                            <select name="rol" class="select select-bordered w-full">
+                                                                <option value="" disabled>Selecciona un rol</option>
+                                                                {% for rol in roles %}
+                                                                <option value="{{ rol.id }}" {% if usuario.rol.id == rol.id %}selected{% endif %}>{{ rol.nombre }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                        
+                                                        <div class="form-control col-span-2">
+                                                            <label class="label cursor-pointer">
+                                                                <span class="label-text">Usuario activo</span>
+                                                                <input type="checkbox" name="activo" class="toggle toggle-primary" {% if usuario.activo %}checked{% endif %} />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-action mt-4">
+                                                        <button type="submit" class="btn btn-primary">Guardar</button>
+                                                        <button type="button" class="btn" onclick="document.getElementById('modal_editar_usuario_{{ usuario.id }}').close()">Cancelar</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </dialog>
+                                    <a class="btn btn-sm btn-error" onclick="document.getElementById('modal_eliminar_usuario_{{ usuario.id }}').showModal()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </a>
+                                    <dialog id="modal_eliminar_usuario_{{ usuario.id }}" class="modal">
+                                        <div class="modal-box w-11/12 max-w-md">
+                                            <form method="dialog">
+                                                <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="document.getElementById('modal_eliminar_usuario_{{ usuario.id }}').close()">✕</button>
+                                            </form>
+                                            <h3 class="font-bold text-lg text-red-600 mb-4">¿Eliminar Usuario?</h3>
+                                            <p class="mb-6 text-gray-700">¿Estás seguro que deseas eliminar al usuario <span class="font-semibold">{{ usuario.nombre }}</span>? Esta acción no se puede deshacer.</p>
+                                            <form method="post" action="{% url 'usuario_eliminar' usuario.id %}">
+                                                {% csrf_token %}
+                                                <div class="modal-action mt-4 flex justify-end space-x-2">
+                                                    <button type="submit" class="btn btn-error">Eliminar</button>
+                                                    <button type="button" class="btn" onclick="document.getElementById('modal_eliminar_usuario_{{ usuario.id }}').close()">Cancelar</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </dialog>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">No hay usuarios registrados</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer footer-center p-4 bg-blue-600 text-white mt-8">
+        <div>
+            <p>Copyright © {{ year|default:2025 }} - Panel Admin</p>
+        </div>
+    </footer>
+</body>
+</html>

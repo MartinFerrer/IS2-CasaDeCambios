@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- DaisyUI CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-gray-300 min-h-screen">
+    <header class="py-6 bg-blue-600 shadow-lg">
+        <h1 class="text-3xl text-center text-white font-bold">Menú Principal</h1>
+    </header>
+    <main class="flex flex-col items-center justify-center mt-12">
+        
+        <div class="card w-full max-w-md bg-white shadow-xl mx-4 sm:mx-0">
+            <div class="card-body">
+                <h2 class="card-title text-blue-700">Gestionar...</h2>
+                <ul class="menu menu-vertical rounded-box">
+                    <li>
+                        <a href="{% url 'usuario_listar' %}" class="btn btn-outline btn-primary w-full my-2">
+                            Usuarios
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'rol_listar' %}" class="btn btn-outline btn-secondary w-full my-2">
+                            Roles
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+    <footer class="mt-16 text-center text-gray-500">&copy; {{ year|default:2025 }} Global Exchange</footer>
+</body>
+</html>

@@ -22,4 +22,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Enrutar rutas de la app presentacion
     path("", include("apps.presentacion.urls")),
+    path("panel_admin/", include("apps.panel_admin.urls")),
 ]
