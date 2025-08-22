@@ -1,0 +1,14 @@
+{
+    "name": "global_exchange",
+    "private": true,
+    "devDependencies": {
+        "@tailwindcss/cli": "^4.1.5",
+        "tailwindcss": "^4.1.5",
+        "daisyui": "^5.0.35"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "tailwind-build": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify",
+        "tailwind-watch": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch"
+    }
+}
