@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Sistema Global Exchange"
 readme = "README.md"
 requires-python = ">=3.13"
-authors = [{ name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" }
+authors = [{ name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" },
             { name = "Fabrizio Daisuke Kawabata Miyamoto" , email = "fabrizziokawabata@fpuna.edu.py"},
             { name = "Atilio Sebastián Paredes Pérez", email = "atilioparedes973@fpuna.edu.py"},
             { name = "Ian Alexander Torres Marecos", email = "iantorressm@fpuna.edu.py"},
