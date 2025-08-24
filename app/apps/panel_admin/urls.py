@@ -11,4 +11,11 @@ urlpatterns = [
     path("roles/crear/", views.rol_create, name="rol_crear"),
     path("roles/<int:pk>/editar/", views.rol_edit, name="rol_editar"),
     path("roles/<int:pk>/eliminar/", views.rol_delete, name="rol_eliminar"),
+    path("clientes/", views.cliente_list, name="cliente_listar"),
+    path("clientes/crear/", views.cliente_create, name="cliente_crear"),
+    path("clientes/<int:pk>/editar/", views.cliente_edit, name="cliente_editar"),
+    path("clientes/<int:pk>/eliminar/", views.cliente_delete, name="cliente_eliminar"),
+    path("asociar/", views.asociar_cliente_usuario_form, name="asociar_cliente_usuario_form"),
+    path('asociar/<int:usuario_id>/', views.asociar_cliente_usuario_post, name='asociar_cliente_usuario_post'),
+    path('desasociar/<int:usuario_id>/', views.desasociar_cliente_usuario, name='desasociar_cliente_usuario'),
 ]
