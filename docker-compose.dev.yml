@@ -21,5 +21,17 @@ services:
     depends_on:
       - db
 
+# Nuevo servicios para tests
+  test:
+    build: ./app
+    command: pytest
+    working_dir: /app
+    volumes:
+      - ./app/:/app/
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
