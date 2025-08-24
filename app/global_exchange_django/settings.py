@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "apps.presentacion",
+    "apps.panel_admin",
 ]
 
 MIDDLEWARE = [
@@ -60,7 +61,12 @@ ROOT_URLCONF = "global_exchange_django.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [
+            BASE_DIR / "templates",
+            BASE_DIR / "apps" / "presentacion" / "templates",
+            BASE_DIR / "apps" / "panel_admin" / "templates",
+            # Add more app template directories here as needed
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

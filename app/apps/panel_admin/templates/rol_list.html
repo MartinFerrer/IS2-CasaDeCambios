@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lista de Roles</title>
+</head>
+<body>
+    <header>
+        <h1>Lista de Roles</h1>
+        <nav>
+            <ul>
+                <li><a href="{% url 'rol_crear' %}">Crear Rol</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rol in roles %}
+                <tr>
+                    <td>{{ rol.id }}</td>
+                    <td>{{ rol.nombre }}</td>
+                    <td>
+                        <a href="{% url 'rol_editar' rol.id %}">Editar</a>
+                        <a href="{% url 'rol_eliminar' rol.id %}">Eliminar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>
