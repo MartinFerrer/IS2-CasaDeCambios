@@ -126,12 +126,11 @@
                                 <label class="label">
                                     <span class="label-text">Tipo de Cliente</span>
                                 </label>
-                                <select name="tipo_cliente" class="select select-bordered w-full">
-                                    <option value="" disabled selected>Selecciona un tipo</option>
-                                    {% for tipo in tipos_cliente %}
-                                    <option value="{{ tipo.id }}">{{ tipo }}</option>
-                                    {% endfor %}
-                                </select>
+                                    <select name="tipo_cliente" class="select select-bordered w-full" required>
+                                        {% for tipo in tipos_cliente %}
+                                        <option value="{{ tipo.id }}">{{ tipo }}</option>
+                                        {% endfor %}
+                                    </select>
                             </div>
                             <div class="form-control">
                                 <label class="label">
@@ -235,7 +234,8 @@
                                                                 <span class="label-text">Tipo de Cliente</span>
                                                             </label>
                                                             <select name="tipo_cliente" class="select select-bordered w-full">
-                                                                <option value="" disabled>Selecciona un tipo</option>
+                                                                <select name="tipo_cliente" class="select select-bordered w-full" required>
+                                                                <option value="" disabled selected hidden>Selecciona un tipo</option>
                                                                 {% for tipo in tipos_cliente %}
                                                                 <option value="{{ tipo.id }}" {% if cliente.tipo_cliente.id == tipo.id %}selected{% endif %}>{{ tipo }}</option>
                                                                 {% endfor %}
