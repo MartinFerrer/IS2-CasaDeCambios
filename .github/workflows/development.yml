@@ -1,1 +1,90 @@
 # TODO: Popular con CI/CD para PR en rama desarrollo
+# This workflow is responsible for building the Sphinx documentation and
+# publishing it to GitHub Pages.
+
+name: Build and Publish Documentation
+
+# Define when the workflow should run.
+on:
+  push:
+    # Trigger the workflow on pushes to the 'develop' branch.
+    branches: [ develop ]
+  pull_request:
+    # Also trigger on pull requests to 'develop' for testing.
+    branches: [ develop ]
+
+# A workflow run is made up of one or more jobs.
+jobs:
+  build_and_deploy_docs:
+    # The name of this job.
+    name: Build and Deploy Documentation
+    # The type of machine to run the job on.
+    runs-on: ubuntu-latest
+
+    # Set permissions for the job to allow it to write to the repository.
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    # Steps represent a sequence of tasks that will be executed as part of the job.
+    steps:
+      - name: Checkout repository
+        # This action checks out your repository under $GITHUB_WORKSPACE,
+        # so your workflow can access it.
+        uses: actions/checkout@v3
+
+      - name: Set up Python environment
+        # This action sets up a Python environment for the job.
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11' # Use the same Python version as your project.
+
+      - name: Install dependencies
+        # Install project dependencies, including Sphinx and its extensions.
+        # This uses uv, the fast package installer.
+        run: |
+          pip install uv
+          cd app
+          uv sync --extra dev
+          cd .. # Navigate back to the project root
+
+      - name: Build documentation
+        # This step runs the Sphinx command to build the documentation.
+        # We navigate into the `app` directory to run the uv command, and then
+        # run the sphinx-build command from the project root.
+        run: |
+          cd app
+          uv run --extra dev sphinx-build -b html ..\docs ..\docs\_build/html
+          # The documentation is built into the `docs/_build/html` directory.
+          # The path is relative to the project root.
+          echo "Documentation build completed successfully."
+
+      - name: Upload documentation artifact
+        # This step uploads the generated documentation as an artifact.
+        # This artifact will be used by the GitHub Pages deployment job.
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: docs/_build/html # Path to the generated HTML documentation.
+
+  # The 'deploy' job is responsible for publishing the documentation to GitHub Pages.
+  deploy_docs:
+    name: Deploy Docs to GitHub Pages
+    # The 'deploy' job depends on the 'build' job finishing successfully.
+    needs: build_and_deploy_docs
+    # Set permissions for the deployment.
+    permissions:
+      pages: write      # Required to deploy to GitHub Pages
+      id-token: write   # Required to authenticate with GitHub Pages
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        # The 'deploy-pages' action is a built-in action for GitHub Pages deployment.
+        id: deployment
+        uses: actions/deploy-pages@v3
