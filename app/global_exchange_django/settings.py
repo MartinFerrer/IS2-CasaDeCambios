@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "apps.presentacion",
+    "temporary_test_app", #para test inicial de pruebas unitarias
 ]
 
 MIDDLEWARE = [
