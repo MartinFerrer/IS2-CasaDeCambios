@@ -1,13 +1,19 @@
 Project Modules
 ===============
 
-.. automodule:: global_exchange_django.models
+.. automodule:: clientes.models
    :members:
 
-.. automodule:: global_exchange_django.views
+.. automodule:: clientes.views
    :members:
 
-.. automodule:: global_exchange_django.serializers
+.. automodule:: clientes.serializers
+   :members:
+
+.. automodule:: apps.presentacion.models
+   :members:
+
+.. automodule:: apps.presentacion.views
    :members:
 
 .. el comando "..automodule:: global_exchange_django.<file_name> hay que agregar para 
