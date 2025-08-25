@@ -3,12 +3,21 @@
 
 import os
 import sys
+import django
 
 # Add the project's source code directory to the path so Sphinx can find it.
 # The 'docs' directory is one level deep, so we go up one level ('..') and
 # then into the 'app' directory.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Set the Django settings module environment variable
+os.environ['DJANGO_SETTINGS_MODULE'] = 'global_exchange_django.settings'
+
+# This call is crucial! It initializes Django's app registry and settings.
+# it tells the sphinx tool to load the django framework and its settings so it can understand the code
+# in the models and views
+django.setup()
 # -- Project information -----------------------------------------------------
 
 
