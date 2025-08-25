@@ -15,6 +15,8 @@ dependencies = [
     "gunicorn==23.0",
     "dj-database-url",        # parse DATABASE_URL easily
     "python-dotenv",          # load .env in dev if desired
+    "pytest>=8.4.1",
+    "pytest-django>=4.11.1",
 ]
 
 [project.optional-dependencies]

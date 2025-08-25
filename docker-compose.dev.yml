@@ -9,10 +9,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   web:
-    build: 
-      context: ./app
-      dockerfile: Dockerfile.dev
-    command: sh -c "npm run tailwind-dev & uv run python manage.py runserver 0.0.0.0:8000" #se agregó la palabra python
+    build: ./app
+    command: sh -c "uv run python manage.py runserver 0.0.0.0:8000"
     working_dir: /app
     # volumes: TODO: montar entorno desarrollador, watch
     #   - ./app/:/app/
@@ -26,7 +24,7 @@ services:
 # Nuevo servicios para tests
   test:
     build: ./app
-    command: uv run python -m pytest #usar uv run y python -m pytest que trata a pytest como un módulo
+    command: uv run python -m pytest
     working_dir: /app
     # volumes:
     #   - ./app/:/app/
