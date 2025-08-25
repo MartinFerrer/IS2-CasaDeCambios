@@ -7,7 +7,7 @@ import sys
 # Add the project's source code directory to the path so Sphinx can find it.
 # The 'docs' directory is one level deep, so we go up one level ('..') and
 # then into the 'app' directory.
-sys.path.insert(0, os.path.abspath('../app'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
 # -- Project information -----------------------------------------------------
 
