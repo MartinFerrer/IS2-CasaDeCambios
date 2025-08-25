@@ -14,6 +14,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 # Set the Django settings module environment variable
 os.environ['DJANGO_SETTINGS_MODULE'] = 'global_exchange_django.settings'
 os.environ['SECRET_KEY'] = 'a_fake_secret_key_for_sphinx'
+# This is another key fix for the Sphinx build. It provides a dummy list of
+# allowed hosts to prevent the ImproperlyConfigured exception.
+os.environ['ALLOWED_HOSTS'] = 'localhost'
+
 # This call is crucial! It initializes Django's app registry and settings.
 # it tells the sphinx tool to load the django framework and its settings so it can understand the code
 # in the models and views
