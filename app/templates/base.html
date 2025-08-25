@@ -1,0 +1,23 @@
+{# templates/base.html #}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Mi Aplicación{% endblock %}</title>
+
+  <!-- global css - Tailwind/daisy output -->
+  <link rel="stylesheet" href="{% static 'css/output.css' %}">
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  {% include "includes/header.html" %}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  {% include "includes/footer.html" %}
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

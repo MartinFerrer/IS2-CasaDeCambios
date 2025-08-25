@@ -8,7 +8,7 @@ authors = [{ name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" }]
 
 # Runtime dependencies
 dependencies = [
-    "Django==5.2.5",
+    "django==5.2.5",
     "django-environ>=0.12.0",
     "psycopg[binary]",
     "plotly==6.3.0",

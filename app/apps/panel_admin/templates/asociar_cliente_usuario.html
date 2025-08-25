@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Usuarios</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- DaisyUI CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
 </head>
+
 <body class="bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen">
     <!-- Header con navegación simple -->
     <header class="bg-blue-600 text-white shadow-lg p-4">
@@ -17,12 +16,14 @@
             <div class="flex items-center">
                 <a href="{% url 'panel_inicio' %}" class="text-xl font-bold">Panel Admin</a>
             </div>
-            
+
             <!-- Botón menú para móviles -->
             <div class="lg:hidden">
                 <button class="btn btn-ghost" onclick="document.getElementById('sidebar_menu').showModal()">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
             </div>
@@ -33,15 +34,18 @@
                 <a href="{% url 'usuario_listar' %}" class="hover:text-blue-200 transition-colors">Usuarios</a>
                 <a href="{% url 'rol_listar' %}" class="hover:text-blue-200 transition-colors">Roles</a>
                 <a href="{% url 'cliente_listar' %}" class="hover:text-blue-200 transition-colors">Clientes</a>
-                <a href="{% url 'asociar_cliente_usuario_form' %}" class="hover:text-blue-200 transition-colors">Asociar Cliente a Usuario</a>
+                <a href="{% url 'asociar_cliente_usuario_form' %}" class="hover:text-blue-200 transition-colors">Asociar
+                    Cliente a Usuario</a>
                 <!-- Usuario y Logout -->
                 <div class="dropdown dropdown-end ml-6">
                     <label tabindex="0" class="btn btn-ghost btn-circle avatar">
                         <div class="w-10 rounded-full bg-blue-300 flex items-center justify-center">
-                            <span class="text-lg font-bold text-white">{{ request.user.nombre|default:'U'|first|upper }}</span>
+                            <span class="text-lg font-bold text-white">{{ request.user.nombre|default:'U'|first|upper
+                                }}</span>
                         </div>
                     </label>
-                    <ul tabindex="0" class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-blue-800">
+                    <ul tabindex="0"
+                        class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-blue-800">
                         <li class="p-2 border-b border-gray-200">
                             <span class="font-semibold">{{ request.user.nombre|default:'Usuario' }}</span>
                             <span class="text-xs">{{ request.user.email|default:'Sin email' }}</span>
@@ -55,31 +59,39 @@
         <!-- Sidebar para móviles -->
         <dialog id="sidebar_menu" class="modal">
             <div class="modal-box w-full max-w-xs p-0 rounded-lg shadow-lg">
-            <form method="dialog">
-                <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="document.getElementById('sidebar_menu').close()">✕</button>
-            </form>
-            <nav class="menu p-4 text-blue-800">
-                <a href="{% url 'panel_inicio' %}" class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Inicio</a>
-                <a href="{% url 'usuario_listar' %}" class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Usuarios</a>
-                <a href="{% url 'rol_listar' %}" class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Roles</a>
-                <a href="{% url 'cliente_listar' %}" class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Clientes</a>
-                <a href="{% url 'asociar_cliente_usuario_form' %}" class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Asociar Cliente a Usuario</a>
-                <div class="border-t my-3"></div>
-                <div class="mb-3 flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center">
-                    <span class="text-base font-bold text-white">{{ request.user.nombre|default:'U'|first|upper }}</span>
-                </div>
-                <div>
-                    <span class="font-semibold block">{{ request.user.nombre|default:'Usuario' }}</span>
-                    <span class="text-xs block">{{ request.user.email|default:'Sin email' }}</span>
-                </div>
-                </div>
-                <a href="#" class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Mi Perfil</a>
-                <a href="{% url 'panel_inicio' %}" class="block py-2 px-3 rounded text-red-500 hover:bg-red-100 transition">Cerrar Sesión</a>
-            </nav>
+                <form method="dialog">
+                    <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="document.getElementById('sidebar_menu').close()">✕</button>
+                </form>
+                <nav class="menu p-4 text-blue-800">
+                    <a href="{% url 'panel_inicio' %}"
+                        class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Inicio</a>
+                    <a href="{% url 'usuario_listar' %}"
+                        class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Usuarios</a>
+                    <a href="{% url 'rol_listar' %}"
+                        class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Roles</a>
+                    <a href="{% url 'cliente_listar' %}"
+                        class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Clientes</a>
+                    <a href="{% url 'asociar_cliente_usuario_form' %}"
+                        class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Asociar Cliente a Usuario</a>
+                    <div class="border-t my-3"></div>
+                    <div class="mb-3 flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-300 flex items-center justify-center">
+                            <span class="text-base font-bold text-white">{{ request.user.nombre|default:'U'|first|upper
+                                }}</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold block">{{ request.user.nombre|default:'Usuario' }}</span>
+                            <span class="text-xs block">{{ request.user.email|default:'Sin email' }}</span>
+                        </div>
+                    </div>
+                    <a href="#" class="mb-3 block py-2 px-3 rounded hover:bg-blue-100 transition">Mi Perfil</a>
+                    <a href="{% url 'panel_inicio' %}"
+                        class="block py-2 px-3 rounded text-red-500 hover:bg-red-100 transition">Cerrar Sesión</a>
+                </nav>
             </div>
         </dialog>
-        </header>
+    </header>
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-blue-800">Asociar Cliente a Usuario</h1>
@@ -113,50 +125,69 @@
                                     {% endif %}
                                 </td>
                                 <td class="flex justify-center space-x-2">
-                                    <button class="btn btn-sm btn-info" onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').showModal()">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    <button class="btn btn-sm btn-info"
+                                        onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').showModal()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
                                         Ver Clientes Asociados
                                     </button>
-                                    <button class="btn btn-sm btn-success" onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').showModal()" {% if not usuario.clientes_disponibles %}disabled{% endif %}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    <button class="btn btn-sm btn-success"
+                                        onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').showModal()"
+                                        {% if not usuario.clientes_disponibles %}disabled{% endif %}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
                                         </svg>
                                         Asociar Cliente
                                     </button>
-                                    <button class="btn btn-sm btn-error" onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').showModal()" {% if not usuario.clientes_asociados %}disabled{% endif %}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                    <button class="btn btn-sm btn-error"
+                                        onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').showModal()"
+                                        {% if not usuario.clientes_asociados %}disabled{% endif %}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M20 12H4" />
                                         </svg>
                                         Desasociar Cliente
                                     </button>
                                     <dialog id="modal_asociar_cliente_{{ usuario.id }}" class="modal">
                                         <div class="modal-box w-11/12 max-w-2xl">
                                             <form method="dialog">
-                                                <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">✕</button>
+                                                <button type="button"
+                                                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                    onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">✕</button>
                                             </form>
-                                            <h3 class="font-bold text-lg text-blue-700 mb-4">Asociar Cliente a {{ usuario.nombre }}</h3>
-                                            <form method="post" action="{% url 'asociar_cliente_usuario_post' usuario_id=usuario.id %}">
+                                            <h3 class="font-bold text-lg text-blue-700 mb-4">Asociar Cliente a {{
+                                                usuario.nombre }}</h3>
+                                            <form method="post"
+                                                action="{% url 'asociar_cliente_usuario_post' usuario_id=usuario.id %}">
                                                 {% csrf_token %}
                                                 <div class="form-control">
                                                     <label class="label">
                                                         <span class="label-text">Selecciona un cliente: </span>
                                                     </label>
-                                                    <select name="cliente_id" class="select select-bordered w-full" {% if not usuario.clientes_disponibles %}disabled{% endif %}>
+                                                    <select name="cliente_id" class="select select-bordered w-full" {%
+                                                        if not usuario.clientes_disponibles %}disabled{% endif %}>
                                                         {% if usuario.clientes_disponibles %}
-                                                            {% for cliente in usuario.clientes_disponibles %}
-                                                                <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
-                                                            {% endfor %}
+                                                        {% for cliente in usuario.clientes_disponibles %}
+                                                        <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+                                                        {% endfor %}
                                                         {% else %}
-                                                            <option disabled selected>No hay clientes disponibles para asociar</option>
+                                                        <option disabled selected>No hay clientes disponibles para
+                                                            asociar</option>
                                                         {% endif %}
                                                     </select>
                                                 </div>
                                                 <div class="modal-action mt-4">
                                                     <button type="submit" class="btn btn-success">Asociar</button>
-                                                    <button type="button" class="btn" onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">Cancelar</button>
+                                                    <button type="button" class="btn"
+                                                        onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">Cancelar</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -164,9 +195,12 @@
                                     <dialog id="modal_ver_clientes_{{ usuario.id }}" class="modal">
                                         <div class="modal-box w-11/12 max-w-2xl">
                                             <form method="dialog">
-                                                <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').close()">✕</button>
+                                                <button type="button"
+                                                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                    onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').close()">✕</button>
                                             </form>
-                                            <h3 class="font-bold text-lg text-blue-700 mb-4">Clientes asociados a {{ usuario.nombre }}</h3>
+                                            <h3 class="font-bold text-lg text-blue-700 mb-4">Clientes asociados a {{
+                                                usuario.nombre }}</h3>
                                             <div class="overflow-x-auto">
                                                 <table class="table table-zebra w-full">
                                                     <thead>
@@ -185,7 +219,8 @@
                                                         </tr>
                                                         {% empty %}
                                                         <tr>
-                                                            <td colspan="4" class="text-center py-4">No hay clientes asociados</td>
+                                                            <td colspan="4" class="text-center py-4">No hay clientes
+                                                                asociados</td>
                                                         </tr>
                                                         {% endfor %}
                                                     </tbody>
@@ -196,28 +231,35 @@
                                     <dialog id="modal_desasociar_clientes_{{ usuario.id }}" class="modal">
                                         <div class="modal-box w-11/12 max-w-2xl">
                                             <form method="dialog">
-                                                <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">✕</button>
+                                                <button type="button"
+                                                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                    onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">✕</button>
                                             </form>
-                                            <h3 class="font-bold text-lg text-red-600 mb-4">Desasociar Cliente a {{ usuario.nombre }}</h3>
-                                            <form method="post" action="{% url 'desasociar_cliente_usuario' usuario_id=usuario.id %}">
+                                            <h3 class="font-bold text-lg text-red-600 mb-4">Desasociar Cliente a {{
+                                                usuario.nombre }}</h3>
+                                            <form method="post"
+                                                action="{% url 'desasociar_cliente_usuario' usuario_id=usuario.id %}">
                                                 {% csrf_token %}
                                                 <div class="form-control">
                                                     <label class="label">
                                                         <span class="label-text">Selecciona un cliente: </span>
                                                     </label>
-                                                    <select name="cliente_id" class="select select-bordered w-full" {% if not usuario.clientes_asociados %}disabled{% endif %}>
+                                                    <select name="cliente_id" class="select select-bordered w-full" {%
+                                                        if not usuario.clientes_asociados %}disabled{% endif %}>
                                                         {% if usuario.clientes_asociados %}
-                                                            {% for cliente in usuario.clientes_asociados %}
-                                                                <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
-                                                            {% endfor %}
+                                                        {% for cliente in usuario.clientes_asociados %}
+                                                        <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+                                                        {% endfor %}
                                                         {% else %}
-                                                            <option disabled selected>No hay clientes disponibles para desasociar</option>
+                                                        <option disabled selected>No hay clientes disponibles para
+                                                            desasociar</option>
                                                         {% endif %}
                                                     </select>
                                                 </div>
                                                 <div class="modal-action mt-4">
                                                     <button type="submit" class="btn btn-error">Desasociar</button>
-                                                    <button type="button" class="btn" onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">Cancelar</button>
+                                                    <button type="button" class="btn"
+                                                        onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">Cancelar</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -235,11 +277,12 @@
             </div>
         </div>
     </div>
-    
+
     <footer class="footer footer-center p-4 bg-blue-600 text-white mt-8">
         <div>
             <p>Copyright © {{ year|default:2025 }} - Panel Admin</p>
         </div>
     </footer>
 </body>
+
 </html>

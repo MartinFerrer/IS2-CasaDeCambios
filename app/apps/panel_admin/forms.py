@@ -1,22 +1,32 @@
+"""Clases de Formularios para la aplicación de panel administrativo."""
+
 from django import forms
-from .models import Usuario, Rol, Cliente
+
+from .models import Cliente, Rol, Usuario
+
 
 class UsuarioForm(forms.ModelForm):
+    """Formulario de Usuario."""
+
     class Meta:
+        """Meta clase conteniendo los campos del formulario de usuario."""
+
         model = Usuario
-        fields = ['nombre', 'email', 'password', 'rol', 'activo']
+        fields = ["nombre", "email", "password", "rol", "activo"]
         widgets = {
-            'password': forms.PasswordInput(),
+            "password": forms.PasswordInput(),
+            "rol": forms.Select(),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['rol'].queryset = Rol.objects.all()
+
 
 class ClienteForm(forms.ModelForm):
+    """Formulario de Cliente."""
+
     class Meta:
+        """Meta clase conteniendo los campos del formulario de cliente."""
+
         model = Cliente
-        fields = ['ruc', 'nombre', 'email', 'telefono', 'direccion', 'tipo_cliente']
+        fields = ["ruc", "nombre", "email", "telefono", "direccion", "tipo_cliente"]
         widgets = {
-            'tipo_cliente': forms.Select(),
+            "tipo_cliente": forms.Select(),
         }

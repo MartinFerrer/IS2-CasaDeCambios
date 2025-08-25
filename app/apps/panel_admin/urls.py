@@ -1,4 +1,11 @@
+"""
+Configuración de URLs para la aplicación panel_admin.
+
+Define rutas para la gestión de usuarios, roles, clientes y operaciones de asociación.
+"""
+
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -16,6 +23,6 @@ urlpatterns = [
     path("clientes/<int:pk>/editar/", views.cliente_edit, name="cliente_editar"),
     path("clientes/<int:pk>/eliminar/", views.cliente_delete, name="cliente_eliminar"),
     path("asociar/", views.asociar_cliente_usuario_form, name="asociar_cliente_usuario_form"),
-    path('asociar/<int:usuario_id>/', views.asociar_cliente_usuario_post, name='asociar_cliente_usuario_post'),
-    path('desasociar/<int:usuario_id>/', views.desasociar_cliente_usuario, name='desasociar_cliente_usuario'),
+    path("asociar/<int:usuario_id>/", views.asociar_cliente_usuario_post, name="asociar_cliente_usuario_post"),
+    path("desasociar/<int:usuario_id>/", views.desasociar_cliente_usuario, name="desasociar_cliente_usuario"),
 ]

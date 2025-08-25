@@ -11,7 +11,7 @@
         "source.fixAll.ruff": "never",
         "source.organizeImports": "always"
     },
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     // Pyright (via Pylance) type checking mode. 'basic' is a good default.
     "python.analysis.typeCheckingMode": "standard",
     "python.analysis.autoSearchPaths": true,
