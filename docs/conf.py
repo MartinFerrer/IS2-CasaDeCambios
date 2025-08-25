@@ -9,7 +9,6 @@ import django
 # The 'docs' directory is one level deep, so we go up one level ('..') and
 # then into the 'app' directory.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Set the Django settings module environment variable
 os.environ['DJANGO_SETTINGS_MODULE'] = 'global_exchange_django.settings'
