@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.tauser",
     "apps.transacciones",
     "apps.usuarios",
+    "temporary_test_app", #para test inicial de pruebas unitarias
 ]
 
 MIDDLEWARE = [
