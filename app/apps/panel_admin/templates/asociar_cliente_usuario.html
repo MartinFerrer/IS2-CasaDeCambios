@@ -1,14 +1,11 @@
 {# apps/panel_admin/templates/panel_admin/asociar_cliente_usuario.html #}
 {% extends "base.html" %}
-
 {% block title %}Asociar Cliente a Usuario{% endblock %}
 {% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
-
 {# Usamos header específico para admin #}
 {% block header %}
-  {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin.html" %}
 {% endblock %}
-
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
@@ -30,161 +27,189 @@
                         </thead>
                         <tbody>
                             {% for usuario in usuarios %}
-                            <tr class="hover">
-                                <td>{{ usuario.id }}</td>
-                                <td>{{ usuario.nombre }}</td>
-                                <td>{{ usuario.email|default:"-" }}</td>
-                                <td>{{ usuario.rol|default:"Sin rol" }}</td>
-                                <td>
-                                    {% if usuario.activo %}
-                                    <div class="badge badge-success">Activo</div>
-                                    {% else %}
-                                    <div class="badge badge-error">Inactivo</div>
-                                    {% endif %}
-                                </td>
-                                <td class="flex justify-center space-x-2">
-                                    <button class="btn btn-sm btn-info"
-                                        onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').showModal()">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                        Ver Clientes Asociados
-                                    </button>
-                                    <button class="btn btn-sm btn-success"
-                                        onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').showModal()"
-                                        {% if not usuario.clientes_disponibles %}disabled{% endif %}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        Asociar Cliente
-                                    </button>
-                                    <button class="btn btn-sm btn-error"
-                                        onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').showModal()"
-                                        {% if not usuario.clientes_asociados %}disabled{% endif %}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M20 12H4" />
-                                        </svg>
-                                        Desasociar Cliente
-                                    </button>
-                                    <dialog id="modal_asociar_cliente_{{ usuario.id }}" class="modal">
-                                        <div class="modal-box w-11/12 max-w-2xl">
-                                            <form method="dialog">
-                                                <button type="button"
-                                                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                                                    onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">✕</button>
-                                            </form>
-                                            <h3 class="font-bold text-lg text-blue-700 mb-4">Asociar Cliente a {{
-                                                usuario.nombre }}</h3>
-                                            <form method="post"
-                                                action="{% url 'asociar_cliente_usuario_post' usuario_id=usuario.id %}">
-                                                {% csrf_token %}
-                                                <div class="form-control">
-                                                    <label class="label">
-                                                        <span class="label-text">Selecciona un cliente: </span>
-                                                    </label>
-                                                    <select name="cliente_id" class="select select-bordered w-full" 
-                                                    {% if not usuario.clientes_disponibles %}disabled{% endif %}>
-                                                        {% if usuario.clientes_disponibles %}
-                                                            {% for cliente in usuario.clientes_disponibles %}
-                                                                <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
-                                                            {% endfor %}
-                                                        {% else %}
-                                                            <option disabled selected>No hay clientes disponibles para asociar</option>
-                                                        {% endif %}
-                                                    </select>
-                                                </div>
-                                                <div class="modal-action mt-4">
-                                                    <button type="submit" class="btn btn-success">Asociar</button>
-                                                    <button type="button" class="btn"
-                                                        onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">Cancelar</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </dialog>
-                                    <dialog id="modal_ver_clientes_{{ usuario.id }}" class="modal">
-                                        <div class="modal-box w-11/12 max-w-2xl">
-                                            <form method="dialog">
-                                                <button type="button"
-                                                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                                                    onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').close()">✕</button>
-                                            </form>
-                                            <h3 class="font-bold text-lg text-blue-700 mb-4">Clientes asociados a {{
-                                                usuario.nombre }}</h3>
-                                            <div class="overflow-x-auto">
-                                                <table class="table table-zebra w-full">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>ID</th>
-                                                            <th>Nombre</th>
-                                                            <th>Tipo</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for cliente in usuario.clientes.all %}
-                                                        <tr>
-                                                            <td>{{ cliente.id }}</td>
-                                                            <td>{{ cliente.nombre }}</td>
-                                                            <td>{{ cliente.tipo_cliente }}</td>
-                                                        </tr>
-                                                        {% empty %}
-                                                        <tr>
-                                                            <td colspan="4" class="text-center py-4">No hay clientes
-                                                                asociados</td>
-                                                        </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
+                                <tr class="hover">
+                                    <td>{{ usuario.id }}</td>
+                                    <td>{{ usuario.nombre }}</td>
+                                    <td>{{ usuario.email|default:"-" }}</td>
+                                    <td>{{ usuario.rol|default:"Sin rol" }}</td>
+                                    <td>
+                                        {% if usuario.activo %}
+                                            <div class="badge badge-success">Activo</div>
+                                        {% else %}
+                                            <div class="badge badge-error">Inactivo</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="flex justify-center space-x-2">
+                                        <button class="btn btn-sm btn-info"
+                                                onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').showModal()">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-4 w-4"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            Ver Clientes Asociados
+                                        </button>
+                                        <button class="btn btn-sm btn-success"
+                                                onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').showModal()"
+                                                {% if not usuario.clientes_disponibles %}disabled{% endif %}>
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-4 w-4"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            Asociar Cliente
+                                        </button>
+                                        <button class="btn btn-sm btn-error"
+                                                onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').showModal()"
+                                                {% if not usuario.clientes_asociados %}disabled{% endif %}>
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-4 w-4"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                            </svg>
+                                            Desasociar Cliente
+                                        </button>
+                                        <dialog id="modal_asociar_cliente_{{ usuario.id }}" class="modal">
+                                            <div class="modal-box w-11/12 max-w-2xl">
+                                                <form method="dialog">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                            onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">
+                                                        ✕
+                                                    </button>
+                                                </form>
+                                                <h3 class="font-bold text-lg text-blue-700 mb-4">
+                                                    Asociar Cliente a {{
+                                                    usuario.nombre }}
+                                                </h3>
+                                                <form method="post"
+                                                      action="{% url 'asociar_cliente_usuario_post' usuario_id=usuario.id %}">
+                                                    {% csrf_token %}
+                                                    <div class="form-control">
+                                                        <label class="label">
+                                                            <span class="label-text">Selecciona un cliente:</span>
+                                                        </label>
+                                                        <select name="cliente_id"
+                                                                class="select select-bordered w-full"
+                                                                {% if not usuario.clientes_disponibles %}disabled{% endif %}>
+                                                            {% if usuario.clientes_disponibles %}
+                                                                {% for cliente in usuario.clientes_disponibles %}
+                                                                    <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+                                                                {% endfor %}
+                                                            {% else %}
+                                                                <option disabled selected>No hay clientes disponibles para asociar</option>
+                                                            {% endif %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="modal-action mt-4">
+                                                        <button type="submit" class="btn btn-success">Asociar</button>
+                                                        <button type="button"
+                                                                class="btn"
+                                                                onclick="document.getElementById('modal_asociar_cliente_{{ usuario.id }}').close()">
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </form>
                                             </div>
-                                        </div>
-                                    </dialog>
-                                    <dialog id="modal_desasociar_clientes_{{ usuario.id }}" class="modal">
-                                        <div class="modal-box w-11/12 max-w-2xl">
-                                            <form method="dialog">
-                                                <button type="button"
-                                                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                                                    onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">✕</button>
-                                            </form>
-                                            <h3 class="font-bold text-lg text-red-600 mb-4">Desasociar Cliente a {{
-                                                usuario.nombre }}</h3>
-                                            <form method="post"
-                                                action="{% url 'desasociar_cliente_usuario' usuario_id=usuario.id %}">
-                                                {% csrf_token %}
-                                                <div class="form-control">
-                                                    <label class="label">
-                                                        <span class="label-text">Selecciona un cliente: </span>
-                                                    </label>
-                                                    <select name="cliente_id" class="select select-bordered w-full" {%if not usuario.clientes_asociados %} disabled {% endif %}>
-                                                        {% if usuario.clientes_asociados %}
-                                                            {% for cliente in usuario.clientes_asociados %}
-                                                                <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+                                        </dialog>
+                                        <dialog id="modal_ver_clientes_{{ usuario.id }}" class="modal">
+                                            <div class="modal-box w-11/12 max-w-2xl">
+                                                <form method="dialog">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                            onclick="document.getElementById('modal_ver_clientes_{{ usuario.id }}').close()">
+                                                        ✕
+                                                    </button>
+                                                </form>
+                                                <h3 class="font-bold text-lg text-blue-700 mb-4">
+                                                    Clientes asociados a {{
+                                                    usuario.nombre }}
+                                                </h3>
+                                                <div class="overflow-x-auto">
+                                                    <table class="table table-zebra w-full">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>ID</th>
+                                                                <th>Nombre</th>
+                                                                <th>Tipo</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for cliente in usuario.clientes.all %}
+                                                                <tr>
+                                                                    <td>{{ cliente.id }}</td>
+                                                                    <td>{{ cliente.nombre }}</td>
+                                                                    <td>{{ cliente.tipo_cliente }}</td>
+                                                                </tr>
+                                                            {% empty %}
+                                                                <tr>
+                                                                    <td colspan="4" class="text-center py-4">
+                                                                        No hay clientes
+                                                                        asociados
+                                                                    </td>
+                                                                </tr>
                                                             {% endfor %}
-                                                        {% else %}
-                                                            <option disabled selected>No hay clientes disponibles para desasociar</option>
-                                                        {% endif %}
-                                                    </select>
+                                                        </tbody>
+                                                    </table>
                                                 </div>
-                                                <div class="modal-action mt-4">
-                                                    <button type="submit" class="btn btn-error">Desasociar</button>
-                                                    <button type="button" class="btn"
-                                                        onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">Cancelar</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </dialog>
-                                </td>
-                            </tr>
+                                            </div>
+                                        </dialog>
+                                        <dialog id="modal_desasociar_clientes_{{ usuario.id }}" class="modal">
+                                            <div class="modal-box w-11/12 max-w-2xl">
+                                                <form method="dialog">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                            onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">
+                                                        ✕
+                                                    </button>
+                                                </form>
+                                                <h3 class="font-bold text-lg text-red-600 mb-4">
+                                                    Desasociar Cliente a {{
+                                                    usuario.nombre }}
+                                                </h3>
+                                                <form method="post"
+                                                      action="{% url 'desasociar_cliente_usuario' usuario_id=usuario.id %}">
+                                                    {% csrf_token %}
+                                                    <div class="form-control">
+                                                        <label class="label">
+                                                            <span class="label-text">Selecciona un cliente:</span>
+                                                        </label>
+                                                        <select name="cliente_id"
+                                                                class="select select-bordered w-full"
+                                                                {% if not usuario.clientes_asociados %}disabled{% endif %}>
+                                                            {% if usuario.clientes_asociados %}
+                                                                {% for cliente in usuario.clientes_asociados %}
+                                                                    <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
+                                                                {% endfor %}
+                                                            {% else %}
+                                                                <option disabled selected>No hay clientes disponibles para desasociar</option>
+                                                            {% endif %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="modal-action mt-4">
+                                                        <button type="submit" class="btn btn-error">Desasociar</button>
+                                                        <button type="button"
+                                                                class="btn"
+                                                                onclick="document.getElementById('modal_desasociar_clientes_{{ usuario.id }}').close()">
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </dialog>
+                                    </td>
+                                </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-4">No hay usuarios registrados</td>
-                            </tr>
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">No hay usuarios registrados</td>
+                                </tr>
                             {% endfor %}
                         </tbody>
                     </table>

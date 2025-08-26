@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from .models import Rol, Usuario
+from .models import Usuario
 
 # Make the unit tests about the usuario model
 
@@ -8,7 +8,11 @@ from .models import Rol, Usuario
 class UsuarioModelTest(TestCase):
     def setUp(self):
         self.usuario = Usuario.objects.create(
-            nombre="Test User", email="test@example.com", password="testpassword", rol="admin", activo=True
+            nombre="Test User",
+            email="test@example.com",
+            password="testpassword",
+            rol="admin",
+            activo=True,
         )
 
     def test_usuario_creation(self):

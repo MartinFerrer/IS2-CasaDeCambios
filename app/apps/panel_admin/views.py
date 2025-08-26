@@ -4,8 +4,6 @@ Este módulo contiene operaciones CRUD para los modelos Usuario, Cliente y Rol,
 así como la lógica de asociación entre Cliente y Usuario.
 """
 
-from typing import Any
-
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -178,7 +176,9 @@ def cliente_list(request: HttpRequest) -> object:
     tipos_cliente = TipoCliente.objects.all()
     usuarios = Usuario.objects.all()
     return render(
-        request, "cliente_list.html", {"clientes": clientes, "tipos_cliente": tipos_cliente, "usuarios": usuarios}
+        request,
+        "cliente_list.html",
+        {"clientes": clientes, "tipos_cliente": tipos_cliente, "usuarios": usuarios},
     )
 
 
@@ -257,7 +257,9 @@ def cliente_delete(request: HttpRequest, pk: int) -> object:
     tipos_cliente = TipoCliente.objects.all()
     usuarios = Usuario.objects.all()
     return render(
-        request, "cliente_list.html", {"clientes": clientes, "tipos_cliente": tipos_cliente, "usuarios": usuarios}
+        request,
+        "cliente_list.html",
+        {"clientes": clientes, "tipos_cliente": tipos_cliente, "usuarios": usuarios},
     )
 
 
