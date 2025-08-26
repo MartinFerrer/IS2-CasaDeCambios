@@ -1,0 +1,63 @@
+# .pre-commit-config.yaml
+repos:
+  # basic utility hooks (EOF fixer, trailing whitespace, etc)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0 # update with `pre-commit autoupdate` periodically
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+        exclude: '^\.vscode/.*' # Para comentarios
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-docstring-first
+      - id: detect-private-key
+      - id: name-tests-test
+        args: [--pytest]
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, develop]
+      - id: check-merge-conflict
+      - id: check-illegal-windows-names
+      - id: check-case-conflict
+
+  # Ruff (lint + format)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.10
+    hooks:
+      # separate check and format so we can choose to --fix on the check if desired
+      - id: ruff-check
+        args: [--select, "E,F,W,C,B,I,RUF"] # optionally restrict; you already set tool.ruff in pyproject
+      - id: ruff-format
+        stages: [pre-commit] # formatting runs on commit
+
+  # djLint for Django/Jinja templates (format + lint)
+  - repo: https://github.com/djlint/djLint
+    rev: v1.36.4
+    hooks:
+      - id: djlint-reformat-django
+        files: \.(html|j2|jinja|jinja2)$
+      - id: djlint-django
+        files: \.(html|j2|jinja|jinja2)$
+
+  # local/system hooks for heavier checks
+  - repo: local
+    hooks:
+      # Run tests before pushing - less intrusive than on every commit
+      - id: pytest
+        name: Run pytest (pre-push)
+        entry: uv run pytest -q
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+
+      # Build Sphinx docs to ensure docstring & Sphinx errors are caught (pre-push)
+      - id: sphinx-build
+        name: Build Sphinx docs (pre-push)
+        entry: uv run sphinx-build -b html docs/source docs/build/html
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true

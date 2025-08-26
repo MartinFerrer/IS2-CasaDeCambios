@@ -16,6 +16,8 @@ __pycache__
 # git / system
 .git
 .gitignore
+.gitattributes
+.github
 .DS_Store
 .vscode
 .idea

@@ -22,6 +22,9 @@
     // --- Configuration / infra ---
     "redhat.vscode-yaml", // YAML support (for CI/CD, configs)
     "tamasfe.even-better-toml", // TOML support (pyproject.toml editing)
-    "ms-vscode.makefile-tools" // Makefile support
+    "ms-vscode.makefile-tools", // Makefile support
+    // pre-commit VSCode helpers (run hooks from the editor / tasks)
+    "MarkLarah.pre-commit-vscode",
+    "Affirm.pre-commit-tasks",
   ]
 }

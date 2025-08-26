@@ -1,4 +1,6 @@
-.PHONY: build up down migrate logs
+.PHONY: build up down migrate logs sync precommit precommit-all
+
+# DOCKER DEV ENVIROMENT:
 
 build:
 	docker compose -f docker-compose.dev.yml build
@@ -14,3 +16,17 @@ migrate:
 
 logs:
 	docker compose -f docker-compose.dev.yml logs -f
+
+# LOCAL DEV:
+
+sync:
+	uv sync --all-extras
+
+precommit-install:
+	uv run pre-commit install
+
+precommit:
+	uv run pre-commit run
+
+precommit-all:
+	uv run pre-commit run --all-files
