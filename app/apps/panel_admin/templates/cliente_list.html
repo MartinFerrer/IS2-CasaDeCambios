@@ -1,0 +1,312 @@
+{# apps/panel_admin/templates/panel_admin/cliente_list.html #}
+{% extends "base.html" %}
+{% block title %}Gestión de Clientes{% endblock %}
+{% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
+{# Usamos header específico para admin #}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-800">Lista de Clientes</h1>
+            <!-- Botón que abre el modal -->
+            <button class="btn btn-primary"
+                    onclick="document.getElementById('modal_crear_cliente').showModal()">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5 mr-2"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Crear Cliente
+            </button>
+            <!-- Modal para crear cliente -->
+            <dialog id="modal_crear_cliente" class="modal">
+                <div class="modal-box w-11/12 max-w-2xl">
+                    <form method="dialog">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                    <h3 class="font-bold text-lg text-blue-700 mb-4">Crear Nuevo Cliente</h3>
+                    <form method="post" action="{% url 'cliente_crear' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">RUC</span>
+                                </label>
+                                <input type="text"
+                                       name="ruc"
+                                       placeholder="12345678901"
+                                       class="input input-bordered"
+                                       required
+                                       maxlength="11"
+                                       minlength="11" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Nombre</span>
+                                </label>
+                                <input type="text"
+                                       name="nombre"
+                                       placeholder="Nombre completo"
+                                       class="input input-bordered"
+                                       required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Email</span>
+                                </label>
+                                <input type="email"
+                                       name="email"
+                                       placeholder="correo@ejemplo.com"
+                                       class="input input-bordered"
+                                       required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Tipo de Cliente</span>
+                                </label>
+                                <select name="tipo_cliente" class="select select-bordered w-full" required>
+                                    {% for tipo in tipos_cliente %}<option value="{{ tipo.id }}">{{ tipo }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Teléfono</span>
+                                </label>
+                                <input type="tel"
+                                       name="telefono"
+                                       placeholder="+569 1234 5678"
+                                       class="input input-bordered"
+                                       required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Dirección</span>
+                                </label>
+                                <input type="text"
+                                       name="direccion"
+                                       placeholder="Calle, número, ciudad"
+                                       class="input input-bordered"
+                                       required />
+                            </div>
+                        </div>
+                        <div class="modal-action mt-4">
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                            <button type="button"
+                                    class="btn"
+                                    onclick="document.getElementById('modal_crear_cliente').close()">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </dialog>
+        </div>
+        {% if form.errors %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <ul class="list-disc">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <div role="alert" class="alert alert-error mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-6 w-6 shrink-0 stroke-current"
+                                     fill="none"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span><strong>{{ field }}:</strong> {{ error }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <div class="h-180">
+            <div class="card bg-white shadow-xl overflow-auto">
+                <div class="card-body">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th class="bg-blue-100">ID</th>
+                                <th class="bg-blue-100">RUC</th>
+                                <th class="bg-blue-100">Nombre</th>
+                                <th class="bg-blue-100">Tipo</th>
+                                <th class="bg-blue-100">Email</th>
+                                <th class="bg-blue-100">Teléfono</th>
+                                <th class="bg-blue-100">Dirección</th>
+                                <th class="bg-blue-100 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in clientes %}
+                                <tr class="hover">
+                                    <td>{{ cliente.id }}</td>
+                                    <td>{{ cliente.ruc }}</td>
+                                    <td>{{ cliente.nombre }}</td>
+                                    <td>{{ cliente.tipo_cliente|default:"Sin asignar" }}</td>
+                                    <td>{{ cliente.email|default:"-" }}</td>
+                                    <td>{{ cliente.telefono|default:"-" }}</td>
+                                    <td>{{ cliente.direccion|default:"-" }}</td>
+                                    <td class="flex justify-center space-x-2">
+                                        <a class="btn btn-sm btn-info"
+                                           onclick="document.getElementById('modal_editar_cliente_{{ cliente.id }}').showModal()">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-4 w-4"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                        {% comment %} modal_editar_cliente_{{ cliente.id }} para diferenciar entre modales
+                                        de cada cliente {% endcomment %}
+                                        <dialog id="modal_editar_cliente_{{ cliente.id }}" class="modal">
+                                            <div class="modal-box w-11/12 max-w-2xl">
+                                                <form method="dialog">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                            onclick="document.getElementById('modal_editar_cliente_{{ cliente.id }}').close()">
+                                                        ✕
+                                                    </button>
+                                                </form>
+                                                <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Cliente</h3>
+                                                <form method="post"
+                                                      action="{% url 'cliente_editar' cliente.id %}"
+                                                      class="space-y-4">
+                                                    {% csrf_token %}
+                                                    <div class="grid grid-cols-2 gap-4">
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">RUC</span>
+                                                            </label>
+                                                            <input type="text"
+                                                                   name="ruc"
+                                                                   value="{{ cliente.ruc }}"
+                                                                   class="input input-bordered"
+                                                                   required
+                                                                   maxlength="11"
+                                                                   minlength="11" />
+                                                        </div>
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">Nombre</span>
+                                                            </label>
+                                                            <input type="text"
+                                                                   name="nombre"
+                                                                   value="{{ cliente.nombre }}"
+                                                                   class="input input-bordered"
+                                                                   required />
+                                                        </div>
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">Email</span>
+                                                            </label>
+                                                            <input type="email"
+                                                                   name="email"
+                                                                   value="{{ cliente.email }}"
+                                                                   class="input input-bordered"
+                                                                   required />
+                                                        </div>
+                                                        <div class="form-control">
+                                                            <label class="label">
+                                                                <span class="label-text">Tipo de Cliente</span>
+                                                            </label>
+                                                            <select name="tipo_cliente" class="select select-bordered w-full">
+                                                                <select name="tipo_cliente" class="select select-bordered w-full" required>
+                                                                    <option value="" disabled selected hidden>
+                                                                        Selecciona un
+                                                                        tipo
+                                                                    </option>
+                                                                    {% for tipo in tipos_cliente %}
+                                                                        <option value="{{ tipo.id }}"
+                                                                                {% if cliente.tipo_cliente.id == tipo.id %}selected{% endif %}>
+                                                                            {{ tipo }}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </div>
+                                                            <div class="form-control">
+                                                                <label class="label">
+                                                                    <span class="label-text">Teléfono</span>
+                                                                </label>
+                                                                <input type="tel"
+                                                                       name="telefono"
+                                                                       value="{{ cliente.telefono }}"
+                                                                       class="input input-bordered"
+                                                                       required />
+                                                            </div>
+                                                            <div class="form-control">
+                                                                <label class="label">
+                                                                    <span class="label-text">Dirección</span>
+                                                                </label>
+                                                                <input type="text"
+                                                                       name="direccion"
+                                                                       value="{{ cliente.direccion }}"
+                                                                       class="input input-bordered"
+                                                                       required />
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-action mt-4">
+                                                            <button type="submit" class="btn btn-primary">Guardar</button>
+                                                            <button type="button"
+                                                                    class="btn"
+                                                                    onclick="document.getElementById('modal_editar_cliente_{{ cliente.id }}').close()">
+                                                                Cancelar
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </dialog>
+                                            <a class="btn btn-sm btn-error"
+                                               onclick="document.getElementById('modal_eliminar_cliente_{{ cliente.id }}').showModal()">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-4 w-4"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </a>
+                                            <dialog id="modal_eliminar_cliente_{{ cliente.id }}" class="modal">
+                                                <div class="modal-box w-11/12 max-w-md">
+                                                    <form method="dialog">
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                                onclick="document.getElementById('modal_eliminar_cliente_{{ cliente.id }}').close()">
+                                                            ✕
+                                                        </button>
+                                                    </form>
+                                                    <h3 class="font-bold text-lg text-red-600 mb-4">¿Eliminar Cliente?</h3>
+                                                    <p class="mb-6 text-gray-700">
+                                                        ¿Estás seguro que deseas eliminar al cliente
+                                                        <span class="font-semibold">{{ cliente.nombre }}</span>? Esta acción no
+                                                        se puede deshacer.
+                                                    </p>
+                                                    <form method="post" action="{% url 'cliente_eliminar' cliente.id %}">
+                                                        {% csrf_token %}
+                                                        <div class="modal-action mt-4 flex justify-end space-x-2">
+                                                            <button type="submit" class="btn btn-error">Eliminar</button>
+                                                            <button type="button"
+                                                                    class="btn"
+                                                                    onclick="document.getElementById('modal_eliminar_cliente_{{ cliente.id }}').close()">
+                                                                Cancelar
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </dialog>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">No hay clientes registrados</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endblock %}

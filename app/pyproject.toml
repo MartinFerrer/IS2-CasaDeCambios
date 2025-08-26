@@ -15,8 +15,6 @@ dependencies = [
     "gunicorn==23.0",
     "dj-database-url",        # parse DATABASE_URL easily
     "python-dotenv",          # load .env in dev if desired
-    "pytest>=8.4.1",
-    "pytest-django>=4.11.1",
 ]
 
 [project.optional-dependencies]
@@ -28,6 +26,7 @@ dev = [
     "sphinx-rtd-theme>=3.0.2",
     "pyright>=1.1.403",
     "pre-commit>=4.3.0",
+    "djlint>=1.36.4",
 ]
 
 [build-system]
