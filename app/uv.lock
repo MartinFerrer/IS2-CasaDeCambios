@@ -22,6 +22,8 @@ dependencies = [
     { name = "gunicorn" },
     { name = "plotly" },
     { name = "psycopg", extra = ["binary"] },
+    { name = "pytest" },
+    { name = "pytest-django" },
     { name = "python-dotenv" },
 ]
 
@@ -30,8 +32,6 @@ dev = [
     { name = "djlint" },
     { name = "pre-commit" },
     { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-django" },
     { name = "ruff" },
     { name = "sphinx" },
     { name = "sphinx-autodoc-typehints" },
@@ -49,8 +49,8 @@ requires-dist = [
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.3.0" },
     { name = "psycopg", extras = ["binary"] },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.403" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.1" },
-    { name = "pytest-django", marker = "extra == 'dev'", specifier = ">=4.11.1" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-django", specifier = ">=4.11.1" },
     { name = "python-dotenv" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.9" },
     { name = "sphinx", marker = "extra == 'dev'", specifier = ">=8.2.3" },
