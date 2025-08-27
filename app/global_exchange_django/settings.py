@@ -40,9 +40,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "apps.presentacion",
-    "apps.accounts",
+    "apps.operaciones",
     "apps.panel_admin",
+    "apps.presentacion",
+    "apps.reportes",
+    "apps.seguridad",
+    "apps.tauser",
+    "apps.transacciones",
+    "apps.usuarios",
 ]
 
 MIDDLEWARE = [
@@ -62,9 +67,14 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "templates",
-            BASE_DIR / "apps" / "presentacion" / "templates",
+            BASE_DIR / "apps" / "operaciones" / "templates",
             BASE_DIR / "apps" / "panel_admin" / "templates",
-            # Add more app template directories here as needed
+            BASE_DIR / "apps" / "presentacion" / "templates",
+            BASE_DIR / "apps" / "reportes" / "templates",
+            BASE_DIR / "apps" / "seguridad" / "templates",
+            BASE_DIR / "apps" / "tauser" / "templates",
+            BASE_DIR / "apps" / "transacciones" / "templates",
+            BASE_DIR / "apps" / "usuarios" / "templates",
         ],
         "APP_DIRS": True,
         "OPTIONS": {

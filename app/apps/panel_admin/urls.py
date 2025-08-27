@@ -1,5 +1,4 @@
-"""
-Configuración de URLs para la aplicación panel_admin.
+"""Configuración de URLs para la aplicación panel_admin.
 
 Define rutas para la gestión de usuarios, roles, clientes y operaciones de asociación.
 """

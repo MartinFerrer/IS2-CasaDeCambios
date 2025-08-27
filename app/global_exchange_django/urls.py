@@ -20,9 +20,16 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    # Enrutar rutas de la app presentacion
+    # TODO: eliminar ruta (No usamos el panel admin, solo para ver en desarrollo)
+    path("admin_django/", admin.site.urls),
+    # Enrutar rutas de las apps
     path("", include("apps.presentacion.urls")),
-    path("", include("apps.accounts.urls")),
-    path("panel_admin/", include("apps.panel_admin.urls")),
+    path("admin/", include("apps.panel_admin.urls")),
+    path("transacciones/", include("apps.transacciones.urls")),
+    path("reportes/", include("apps.reportes.urls")),
+    path("tauser/", include("apps.tauser.urls")),
+    # TODO: evaluar si estos necesitan urls
+    path("seguridad/", include("apps.seguridad.urls")),
+    path("operaciones/", include("apps.operaciones.urls")),
+    path("usuarios/", include("apps.usuarios.urls")),
 ]
