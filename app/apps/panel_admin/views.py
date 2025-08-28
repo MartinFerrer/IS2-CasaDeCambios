@@ -7,10 +7,9 @@ así como la lógica de asociación entre Cliente y Usuario.
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.usuarios.models import Rol, Usuario
+from apps.usuarios.models import Cliente, Rol, TipoCliente, Usuario
 
 from .forms import ClienteForm, UsuarioForm
-from .models import Cliente, TipoCliente
 
 
 def panel_inicio(request: HttpRequest) -> object:

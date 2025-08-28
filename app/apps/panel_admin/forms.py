@@ -2,9 +2,7 @@
 
 from django import forms
 
-from apps.usuarios.models import Usuario
-
-from .models import Cliente
+from apps.usuarios.models import Cliente, Usuario
 
 
 class UsuarioForm(forms.ModelForm):

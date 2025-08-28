@@ -207,3 +207,6 @@ marimo/_lsp/
 __marimo__/
 /app/node_modules
 app/static/css/output.css
+
+# Specstory
+.specstory/
