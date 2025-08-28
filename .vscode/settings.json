@@ -16,6 +16,12 @@
     "python.analysis.typeCheckingMode": "standard",
     "python.analysis.autoSearchPaths": true,
     "python.analysis.useLibraryCodeForTypes": true,
+    // This setting tells Pylance where to find the Python packages for Django.
+    "python.analysis.extraPaths": [
+        "./app/.venv/Lib/site-packages"
+    ],
+    // Tell Pylance to load environment variables from the .env file
+    "python.envFile": "${workspaceFolder}/.env",
     // Testing (pytest)
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
