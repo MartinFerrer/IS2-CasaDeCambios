@@ -1,90 +1,85 @@
-# TODO: Popular con CI/CD para PR en rama desarrollo
-# This workflow is responsible for building the Sphinx documentation and
-# publishing it to GitHub Pages.
+# Este flujo de trabajo es responsable de construir la documentación de Sphinx y publicarla en GitHub Pages.
 
 name: Build and Publish Documentation
 
-# Define when the workflow should run.
+# Define cuándo debe ejecutarse el flujo de trabajo.
 on:
   push:
-    # Trigger the workflow on pushes to the 'develop' branch.
+    # Activa el flujo de trabajo en los 'push' a la rama 'develop'.
     branches: [ develop ]
   pull_request:
-    # Also trigger on pull requests to 'develop' for testing.
+    # También se activa en los 'pull requests' a 'develop' para pruebas.
     branches: [ develop ]
 
-# A workflow run is made up of one or more jobs.
+# Una ejecución del flujo de trabajo se compone de uno o más trabajos (jobs).
 jobs:
-  build_and_deploy_docs:
-    # The name of this job.
-    name: Build and Deploy Documentation
-    # The type of machine to run the job on.
+  build-docs:
+    # El nombre de este trabajo.
+    name: Construir Documentación
+    # El tipo de máquina en la que se ejecutará el trabajo.
     runs-on: ubuntu-latest
 
-    # Set permissions for the job to allow it to write to the repository.
+    # Establece los permisos para que el trabajo pueda escribir en el repositorio.
     permissions:
-      contents: write
+      contents: read
       pages: write
       id-token: write
 
-    # Steps represent a sequence of tasks that will be executed as part of the job.
+    # Los 'steps' representan una secuencia de tareas que se ejecutarán como parte del trabajo.
     steps:
-      - name: Checkout repository
-        # This action checks out your repository under $GITHUB_WORKSPACE,
-        # so your workflow can access it.
-        uses: actions/checkout@v3
+      - name: Clonar repositorio
+        # Esta acción clona tu repositorio en $GITHUB_WORKSPACE, para que tu flujo de trabajo pueda acceder a él.
+        uses: actions/checkout@v4
 
-      - name: Set up Python environment
-        # This action sets up a Python environment for the job.
-        uses: actions/setup-python@v4
+      - name: Configurar entorno de Python
+        # Esta acción configura un entorno de Python para el trabajo.
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Use the same Python version as your project.
+          # Usa la misma versión de Python que tu proyecto.
+          python-version: '3.11'
 
-      - name: Install dependencies
-        # Install project dependencies, including Sphinx and its extensions.
-        # This uses uv, the fast package installer.
+      - name: Instalar dependencias
+        # Instala las dependencias del proyecto, incluyendo Sphinx y sus extensiones.
+        # Esto usa uv, un instalador de paquetes rápido.
         run: |
           pip install uv
           cd app
           uv sync --extra dev
-          cd .. # Navigate back to the project root
+          cd .. # Vuelve al directorio raíz del proyecto
 
-      - name: Build documentation
-        # This step runs the Sphinx command to build the documentation.
-        # We navigate into the `app` directory to run the uv command, and then
-        # run the sphinx-build command from the project root.
+      - name: Construir la documentación con Sphinx
+        # Este paso ejecuta el comando de Sphinx para construir la documentación.
         run: |
           cd app
-          uv run --extra dev sphinx-build -b html ..\docs ..\docs\_build/html
-          # The documentation is built into the `docs/_build/html` directory.
-          # The path is relative to the project root.
-          echo "Documentation build completed successfully."
+          # La documentación se construye en el directorio `docs/_build/html`.
+          # La ruta es relativa a la raíz del proyecto.
+          uv run --extra dev sphinx-build -b html ../docs ../docs/_build/html
+          echo "La construcción de la documentación ha finalizado con éxito."
 
-      - name: Upload documentation artifact
-        # This step uploads the generated documentation as an artifact.
-        # This artifact will be used by the GitHub Pages deployment job.
-        uses: actions/upload-pages-artifact@v2
+      - name: Subir artefacto de documentación
+        # Este paso sube la documentación generada como un artefacto para GitHub Pages.
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/_build/html # Path to the generated HTML documentation.
+          # Ruta a la documentación HTML generada.
+          path: docs/_build/html
 
-  # The 'deploy' job is responsible for publishing the documentation to GitHub Pages.
-  deploy_docs:
-    name: Deploy Docs to GitHub Pages
-    # The 'deploy' job depends on the 'build' job finishing successfully.
-    needs: build_and_deploy_docs
-    # Set permissions for the deployment.
+  # El trabajo 'deploy' es responsable de publicar la documentación en GitHub Pages.
+  deploy-docs:
+    name: Desplegar Docs en GitHub Pages
+    # El trabajo 'deploy' depende de que el trabajo 'build' finalice con éxito.
+    needs: build-docs
+    # Establece los permisos para el despliegue.
     permissions:
-      pages: write      # Required to deploy to GitHub Pages
-      id-token: write   # Required to authenticate with GitHub Pages
+      pages: write      # Requerido para desplegar en GitHub Pages
+      id-token: write   # Requerido para la autenticación
 
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy to GitHub Pages
-        # The 'deploy-pages' action is a built-in action for GitHub Pages deployment.
+      - name: Desplegar en GitHub Pages
+        # La acción 'deploy-pages' es una acción integrada para el despliegue en GitHub Pages.
         id: deployment
-        uses: actions/deploy-pages@v3
+        uses: actions/deploy-pages@v4

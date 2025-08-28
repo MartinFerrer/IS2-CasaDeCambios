@@ -1,2 +1,0 @@
-'''This file contains the views for the module, which handle the logic for processing requests and returning responses.
-Views can be function-based (using functions) or class-based (using classes). They typically interact with models to retrieve or manipulate data.'''
