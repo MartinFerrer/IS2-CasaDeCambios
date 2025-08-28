@@ -1,6 +1,6 @@
-# Este flujo de trabajo es responsable de construir la documentación de Sphinx y publicarla en GitHub Pages.
+# Este flujo de trabajo construye la documentación en cada PR y la despliega en cada push a develop.
 
-name: Build and Publish Documentation
+name: Construir y Publicar Documentación
 
 # Define cuándo debe ejecutarse el flujo de trabajo.
 on:
@@ -18,8 +18,7 @@ jobs:
     name: Construir Documentación
     # El tipo de máquina en la que se ejecutará el trabajo.
     runs-on: ubuntu-latest
-
-    # Establece los permisos para que el trabajo pueda escribir en el repositorio.
+    # Establece los permisos necesarios.
     permissions:
       contents: read
       pages: write
@@ -28,19 +27,18 @@ jobs:
     # Los 'steps' representan una secuencia de tareas que se ejecutarán como parte del trabajo.
     steps:
       - name: Clonar repositorio
-        # Esta acción clona tu repositorio en $GITHUB_WORKSPACE, para que tu flujo de trabajo pueda acceder a él.
+        # Esta acción clona tu repositorio para que el flujo de trabajo pueda acceder a él.
         uses: actions/checkout@v4
 
       - name: Configurar entorno de Python
         # Esta acción configura un entorno de Python para el trabajo.
         uses: actions/setup-python@v5
         with:
-          # Usa la misma versión de Python que tu proyecto.
-          python-version: '3.11'
+          # Usar la misma versión de Python que tu proyecto.
+          python-version: '3.13'
 
       - name: Instalar dependencias
-        # Instala las dependencias del proyecto, incluyendo Sphinx y sus extensiones.
-        # Esto usa uv, un instalador de paquetes rápido.
+        # Instala las dependencias del proyecto, incluyendo Sphinx.
         run: |
           pip install uv
           cd app
@@ -52,7 +50,6 @@ jobs:
         run: |
           cd app
           # La documentación se construye en el directorio `docs/_build/html`.
-          # La ruta es relativa a la raíz del proyecto.
           uv run --extra dev sphinx-build -b html ../docs ../docs/_build/html
           echo "La construcción de la documentación ha finalizado con éxito."
 
@@ -63,9 +60,10 @@ jobs:
           # Ruta a la documentación HTML generada.
           path: docs/_build/html
 
-  # El trabajo 'deploy' es responsable de publicar la documentación en GitHub Pages.
   deploy-docs:
     name: Desplegar Docs en GitHub Pages
+    # Condición: Ejecutar este trabajo solo si el evento que activó el flujo fue un 'push'.
+    if: github.event_name == 'push'
     # El trabajo 'deploy' depende de que el trabajo 'build' finalice con éxito.
     needs: build-docs
     # Establece los permisos para el despliegue.
