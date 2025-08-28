@@ -14,3 +14,7 @@ migrate:
 
 logs:
 	docker compose -f docker-compose.dev.yml logs -f
+
+# uv
+test: # Correr testeos unitarios de pytest en local
+	uv run --env-file ..\.env.dev pytest
