@@ -38,17 +38,16 @@ RUN --mount=type=cache,target=/root/.cache \
     --frozen \
     --no-install-project
 
-# Copy entrypoint.sh and make it executable
-COPY ./entrypoint.sh .
+# Copy project
+COPY . .
+
+# Ensure correct EOF of entrypoint.sh and make it executable
 RUN sed -i "s/\r$//g" /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Download tailwind binary directly 
 ADD https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 /app/static/css/tailwindcss 
 RUN chmod +x /app/static/css/tailwindcss
-
-# Copy project
-COPY . .
 
 # Compile CSS at build time and fail if output.css missing
 RUN /app/static/css/tailwindcss \

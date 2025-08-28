@@ -1,13 +1,19 @@
 Documentacion para el proyecto Global Exchange!
 ==================================================
 
-Welcome to the official documentation for the IS2-CasaDeCambios project. This site provides an overview of the project, including its features and how to set up the development environment.
+Este sitio ofrece una visualización del desarrollo del proyecto Global Exchange!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: APPs:
 
-   modules
+   operaciones
+   panel_admin
+   reportes
+   seguridad
+   tauser
+   transacciones
+   usuarios
 
 
 Indices and tables

@@ -7,8 +7,8 @@
     "ruff.lint.enable": true,
     // Ruff is used for formatting via code actions. We trigger fixAll on save.
     "editor.codeActionsOnSave": {
-        "source.fixAll": "never",
-        "source.fixAll.ruff": "never",
+        "source.fixAll": "explicit",
+        "source.fixAll.ruff": "explicit",
         "source.organizeImports": "always"
     },
     "editor.formatOnSave": true,

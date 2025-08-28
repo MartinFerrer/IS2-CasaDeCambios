@@ -13,13 +13,13 @@ authors = [{ name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" },
 
 # Runtime dependencies
 dependencies = [
-    "Django==5.2.5",
+    "django==5.2.5",
     "django-environ>=0.12.0",
     "psycopg[binary]",
     "plotly==6.3.0",
     "gunicorn==23.0",
-    "dj-database-url",        # parse DATABASE_URL easily
-    "python-dotenv",          # load .env in dev if desired
+    "dj-database-url", # parse DATABASE_URL easily
+    "python-dotenv", # load .env in dev if desired
 ]
 
 [project.optional-dependencies]
@@ -33,6 +33,7 @@ dev = [
     "sphinx-rtd-theme>=3.0.2",
     "pyright>=1.1.403",
     "pre-commit>=4.3.0",
+    "djlint>=1.36.4",
 ]
 
 [build-system]

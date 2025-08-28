@@ -7,10 +7,13 @@
     "charliermarsh.ruff", // Ruff for linting + formatting
     "njpwerner.autodocstring", // Generate Python docstrings quickly
     "ms-python.debugpy", // Debugging support for Python
+    "monosans.djlint", // Django template linting / formatting
+    "batisteo.vscode-django", // Django support (snippets, navigation)
     // --- Web & backend ---
     "ms-azuretools.vscode-docker", // Manage Docker containers for dev/test
     "ms-vscode-remote.remote-containers", // Dev containers integration
-    "bradlc.vscode-tailwindcss", // Tailwind highlighting
+    "bradlc.vscode-tailwindcss", // Tailwind highlightin
+    "emranweb.daisyui-snippet", // Daisy UI snippets
     // --- Git / collaboration ---
     "eamodio.gitlens", // Git history & insights
     "github.copilot", // AI code suggestions

@@ -1,0 +1,31 @@
+{# apps/panel_admin/templates/panel_admin/panel_inicio.html #}
+{% extends "base.html" %}
+{% block title %}Menú Principal{% endblock %}
+{% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
+{# Usamos header específico para admin #}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock %}
+{% block content %}
+    <main class="flex flex-col items-center justify-center mt-12">
+        <div class="card w-full max-w-md bg-white shadow-xl mx-4 sm:mx-0">
+            <div class="card-body">
+                <h2 class="card-title text-blue-700">Gestionar...</h2>
+                <ul class="menu menu-vertical rounded-box">
+                    <li>
+                        <a href="{% url 'usuario_listar' %}"
+                           class="btn btn-outline btn-primary w-full my-2">Usuarios</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'rol_listar' %}"
+                           class="btn btn-outline btn-secondary w-full my-2">Roles</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'cliente_listar' %}"
+                           class="btn btn-outline btn-accent w-full my-2">Clientes</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+{% endblock %}
