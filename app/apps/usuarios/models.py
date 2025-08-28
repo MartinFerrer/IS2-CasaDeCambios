@@ -92,7 +92,10 @@ class Cliente(models.Model):
 
     # referencia a TipoCliente
     tipo_cliente = models.ForeignKey(
-        TipoCliente, on_delete=models.SET_NULL, null=True, blank=True
+        TipoCliente,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
 
     # referencia dinámica al modelo de usuario
