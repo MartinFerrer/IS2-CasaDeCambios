@@ -5,10 +5,10 @@ def crear_grupos_y_asociar(apps, schema_editor):
     Group = apps.get_model("auth", "Group")
     # Crear grupos
     roles = [
-        "usuario_registrado",
-        "usuario_asociado_cliente",
-        "analista_cambiario",
-        "administrador",
+        "Usuario Registrado",
+        "Usuario Asociado a Cliente",
+        "Analista Cambiario",
+        "Administrador",
     ]
     grupos = {}
     for nombre in roles:

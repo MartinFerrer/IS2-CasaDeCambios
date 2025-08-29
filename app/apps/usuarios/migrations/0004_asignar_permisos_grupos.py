@@ -1,3 +1,4 @@
+from django.contrib.auth.management import create_permissions
 from django.db import migrations
 
 
@@ -6,12 +7,18 @@ def asignar_permisos_a_grupos(apps, schema_editor):
     Group = apps.get_model("auth", "Group")
     Permission = apps.get_model("auth", "Permission")
 
+    # Los permisos deben crearse antes de aplicarlos
+    for app_config in apps.get_app_configs():
+        app_config.models_module = True
+        create_permissions(app_config, verbosity=0)
+        app_config.models_module = None
+
     # Obtener los grupos creados
     try:
-        admin_group = Group.objects.get(name="administrador")
-        analista_group = Group.objects.get(name="analista_cambiario")
-        usuario_cliente_group = Group.objects.get(name="usuario_asociado_cliente")
-        usuario_registrado_group = Group.objects.get(name="usuario_registrado")
+        admin_group = Group.objects.get(name="Administrador")
+        analista_group = Group.objects.get(name="Analista Cambiario")
+        usuario_cliente_group = Group.objects.get(name="Usuario Asociado a Cliente")
+        usuario_registrado_group = Group.objects.get(name="Usuario Registrado")
     except Group.DoesNotExist:
         return  # Si no existen los grupos, no hacer nada
 
