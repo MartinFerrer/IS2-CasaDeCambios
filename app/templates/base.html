@@ -2,29 +2,33 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{% block title %}Mi Aplicación{% endblock %}</title>
-
-  <!-- CSS global (tailwind + daisyUI build) -->
-  <link rel="stylesheet" href="{% static 'css/output.css' %}">
-
-  {% block extra_head %}{% endblock %}
-</head>
-<body class="{% block body_class %}{% endblock %}">
-  {# Por defecto incluimos el header global, pero cada plantilla se puede
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description"
+          content="GlobalExchange Casa de Cambios - Plataforma para cambio de divisas.">
+    <meta name="keywords"
+          content="cambio, divisas, moneda, globalexchange, casa de cambios, dinero">
+    <title>
+      {% block title %}Mi Aplicación{% endblock %}
+    </title>
+    <link rel="icon"
+          type="image/x-icon"
+          href="{% static 'images/favicon.ico' %}">
+    <!-- CSS global (tailwind + daisyUI build) -->
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
+    {# Por defecto incluimos el header global, pero cada plantilla se puede
      sobrescribir el bloque 'header' para usar otro header. #}
-  {% block header %}
-    {% include "includes/header.html" %}
-  {% endblock %}
-
-  <main>
-    {% block content %}{% endblock %}
-  </main>
-
-  {% include "includes/footer.html" %}
-
-  {% block extra_scripts %}{% endblock %}
-</body>
+    {% block header %}
+      {% include "includes/header.html" %}
+    {% endblock %}
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+    {% include "includes/footer.html" %}
+    {% block extra_scripts %}{% endblock %}
+  </body>
 </html>
