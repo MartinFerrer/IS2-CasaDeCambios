@@ -1,3 +1,10 @@
+"""Modelos para gestionar divisas y tasas de cambio en el sistema de Casa de Cambios.
+
+Incluye:
+- Divisa: modelo para las monedas soportadas.
+- TasaCambio: modelo para las tasas de cambio entre divisas.
+"""
+
 import uuid
 from decimal import Decimal
 
@@ -39,16 +46,17 @@ class Divisa(models.Model):
 
 class TasaCambio(models.Model):
     """Modelo para gestionar las tasas de cambio entre divisas.
+
     Representa el valor de una divisa con respecto a otra en un momento dado.
     """
 
-    idTasaCambio = models.UUIDField(
+    id_tasa_cambio = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único para la tasa de cambio."
     )
-    divisaOrigen = models.ForeignKey(
+    divisa_origen = models.ForeignKey(
         "Divisa", on_delete=models.CASCADE, related_name="tasas_origen", help_text="La divisa que se va a intercambiar."
     )
-    divisaDestino = models.ForeignKey(
+    divisa_destino = models.ForeignKey(
         "Divisa",
         on_delete=models.CASCADE,
         related_name="tasas_destino",
@@ -71,10 +79,10 @@ class TasaCambio(models.Model):
         default=Decimal("0.00"),
         help_text="Monto de comisión por venta en la divisa de destino (Guaraníes).",
     )
-    fechaActualizacion = models.DateField(
+    fecha_actualizacion = models.DateField(
         auto_now=True, help_text="Fecha y hora de la última actualización de la tasa."
     )
-    fechaVigencia = models.DateField(help_text="Fecha a partir de la cual esta tasa es válida.")
+    fecha_vigencia = models.DateField(help_text="Fecha a partir de la cual esta tasa es válida.")
     activo = models.BooleanField(
         default=True, help_text="Indica si la tasa de cambio está activa o ha sido desactivada."
     )
@@ -106,6 +114,12 @@ class TasaCambio(models.Model):
         return self.valor
 
     class Meta:
+        """Meta información para el modelo TasaCambio.
+
+        Define detalles como el nombre de la tabla, nombres para la administración
+        y restricciones de unicidad.
+        """
+
         # Nombre de la tabla en la base de datos
         db_table = "tasa_cambio"
         # Nombre singular y plural para el panel de administración de Django
@@ -118,4 +132,4 @@ class TasaCambio(models.Model):
     def __str__(self):
         """Representación en string del objeto, útil para la administración."""
         estado = "Activa" if self.activo else "Inactiva"
-        return f"{self.divisaOrigen} a {self.divisaDestino} - Valor: {self.valor} ({estado})"
+        return f"{self.divisa_origen} a {self.divisa_destino} - Valor: {self.valor} ({estado})"
