@@ -1,43 +1,110 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Lista de Roles</title>
-    </head>
-    <body>
-        <header>
-            <h1>Lista de Roles</h1>
-            <nav>
-                <ul>
-                    <li>
-                        <a href="{% url 'rol_crear' %}">Crear Rol</a>
-                    </li>
-                </ul>
-            </nav>
-        </header>
-        <main>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rol in roles %}
-                        <tr>
-                            <td>{{ rol.id }}</td>
-                            <td>{{ rol.nombre }}</td>
-                            <td>
-                                <a href="{% url 'rol_editar' rol.id %}">Editar</a>
-                                <a href="{% url 'rol_eliminar' rol.id %}">Eliminar</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </main>
-    </body>
-</html>
+{# apps/panel_admin/templates/panel_admin/rol_list.html #}
+{% extends "base.html" %}
+{% block title %}Gestión de grupos{% endblock %}
+{% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
+
+{# Usamos header específico para admin #}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock %}
+
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-800">Lista de Roles y Permisos</h1>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            {% for grupo in grupos %}
+                <div class="card bg-white shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-blue-700 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            {{ grupo.name|title }}
+                        </h2>
+                        
+                        <div class="mb-4">
+                            <div class="badge badge-outline mb-2">
+                                {{ grupo.permissions.count }} permiso{{ grupo.permissions.count|pluralize }}
+                            </div>
+                        </div>
+
+                        {% if grupo.permissions.exists %}
+                            <div class="overflow-x-auto">
+                                <h3 class="font-semibold text-gray-700 mb-2">Permisos asignados:</h3>
+                                <div class="space-y-1 max-h-64 overflow-y-auto">
+                                    {% for permission in grupo.permissions.all %}
+                                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                            <span class="text-sm font-medium text-gray-800">
+                                                {{ permission.name }}
+                                            </span>
+                                            <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                                                {{ permission.codename }}
+                                            </span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                <p class="text-gray-500">Sin permisos asignados</p>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-actions justify-end mt-4">
+                            <div class="badge badge-info">
+                                ID: {{ grupo.id }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-full">
+                    <div class="card bg-white shadow-xl">
+                        <div class="card-body text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-2">No hay roles registrados</h3>
+                            <p class="text-gray-500">No se encontraron roles en el sistema.</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Resumen de estadísticas -->
+        <div class="mt-8">
+            <div class="stats shadow w-full">
+                <div class="stat">
+                    <div class="stat-figure text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div class="stat-title">Total de roles</div>
+                    <div class="stat-value text-primary">{{ grupos.count }}</div>
+                    <div class="stat-desc">roles configurados en el sistema</div>
+                </div>
+                
+                <div class="stat">
+                    <div class="stat-figure text-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <div class="stat-title">Permisos Asignados</div>
+                    <div class="stat-value text-secondary">
+                        {% for grupo in grupos %}{{ grupo.permissions.count }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                    </div>
+                    <div class="stat-desc">Permisos distribuidos entre roles</div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

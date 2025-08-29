@@ -68,7 +68,7 @@
                                 </label>
                                 <select name="rol" class="select select-bordered w-full">
                                     <option value="" disabled selected>Selecciona un rol</option>
-                                    {% for rol in roles %}<option value="{{ rol.id }}">{{ rol.nombre }}</option>{% endfor %}
+                                    {% for grupo in grupos %}<option value="{{ grupo.id }}">{{ grupo.name }}</option>{% endfor %}
                                 </select>
                             </div>
                             <div class="form-control col-span-2">
@@ -127,7 +127,7 @@
                                     <td>{{ usuario.id }}</td>
                                     <td>{{ usuario.nombre }}</td>
                                     <td>{{ usuario.email|default:"-" }}</td>
-                                    <td>{{ usuario.rol|default:"Sin rol" }}</td>
+                                    <td>{{ usuario.groups|default:"Sin rol" }}</td>
                                     <td>
                                         {% if usuario.activo %}
                                             <div class="badge badge-success">Activo</div>
@@ -198,10 +198,10 @@
                                                             </label>
                                                             <select name="rol" class="select select-bordered w-full">
                                                                 <option value="" disabled>Selecciona un rol</option>
-                                                                {% for rol in roles %}
-                                                                    <option value="{{ rol.id }}"
-                                                                            {% if usuario.rol.id == rol.id %}selected{% endif %}>
-                                                                        {{ rol.nombre }}
+                                                                {% for grupo in grupos %}
+                                                                    <option value="{{ grupo.id }}"
+                                                                            {% if usuario.groups.id == grupo.id %}selected{% endif %}>
+                                                                        {{ grupo.name }}
                                                                     </option>
                                                                 {% endfor %}
                                                             </select>

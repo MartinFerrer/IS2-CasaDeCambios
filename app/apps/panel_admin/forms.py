@@ -12,10 +12,10 @@ class UsuarioForm(forms.ModelForm):
         """Meta clase conteniendo los campos del formulario de usuario."""
 
         model = Usuario
-        fields = ["nombre", "email", "password", "rol", "activo"]
+        fields = ["nombre", "email", "password", "activo", "groups"]
         widgets = {
             "password": forms.PasswordInput(),
-            "rol": forms.Select(),
+            "groups": forms.Select(),
         }
 
 

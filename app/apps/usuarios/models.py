@@ -1,9 +1,5 @@
 from django.conf import settings
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager,
-    PermissionsMixin,
-)
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
 
@@ -34,7 +30,6 @@ class UsuarioManager(BaseUserManager):
 class Usuario(AbstractBaseUser, PermissionsMixin):
     nombre = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    rol = models.ForeignKey("Rol", on_delete=models.SET_NULL, null=True, blank=True)
     activo = models.BooleanField(default=True)
 
     # Campos requeridos para integrarse con Django Admin
@@ -49,27 +44,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         return self.nombre
 
 
-# -----------------------
-# MODELO PERMISO
-# -----------------------
-class Permiso(models.Model):
-    nombre = models.CharField(max_length=30, unique=True)
-    descripcion = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.nombre
-
-
-# -----------------------
-# MODELO ROL
-# -----------------------
-class Rol(models.Model):
-    nombre = models.CharField(max_length=30, unique=True)
-    descripcion = models.TextField(blank=True)
-    permisos = models.ManyToManyField(Permiso, blank=True)
-
-    def __str__(self):
-        return self.nombre
 
 
 class TipoCliente(models.Model):
