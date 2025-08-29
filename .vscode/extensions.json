@@ -26,5 +26,7 @@
     // pre-commit VSCode helpers (run hooks from the editor / tasks)
     "MarkLarah.pre-commit-vscode",
     "Affirm.pre-commit-tasks",
+    // IA,
+    "specstory.specstory-vscode", // Save chats
   ]
 }

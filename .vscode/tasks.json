@@ -1,0 +1,208 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "dev: list",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "--list"
+            ]
+        },
+        {
+            "label": "dev: build",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "build"
+            ]
+        },
+        {
+            "label": "dev: up (detached)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "up-detached"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "dev: down",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "down"
+            ]
+        },
+        {
+            "label": "dev: down (remove volumes)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "down-rm-volumes"
+            ]
+        },
+        {
+            "label": "dev: migrate",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "migrate"
+            ]
+        },
+        {
+            "label": "dev: makemigrations",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "makemigrations"
+            ]
+        },
+        {
+            "label": "dev: logs",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "logs"
+            ]
+        },
+        {
+            "label": "dev: sync (uv)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "sync"
+            ]
+        },
+        {
+            "label": "dev: precommit-install",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "precommit-install"
+            ]
+        },
+        {
+            "label": "dev: precommit (changed files)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "precommit"
+            ]
+        },
+        {
+            "label": "dev: precommit (all files)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "precommit-all"
+            ]
+        },
+        {
+            "label": "dev: test (docker)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "test"
+            ]
+        },
+        {
+            "label": "dev: test (local)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "test-local"
+            ]
+        },
+        {
+            "label": "dev: doc (docker)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "doc"
+            ]
+        },
+        {
+            "label": "dev: doc (local)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "doc-local"
+            ]
+        },
+        {
+            "label": "dev: runserver (docker)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "runserver-docker"
+            ],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "dev: runserver (local)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "runserver-local"
+            ],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "dev: tailwind (docker watch)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "tailwind-watch-docker"
+            ],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "dev: tailwind (local watch)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "tailwind-watch-local"
+            ],
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "dev: shell (web)",
+            "type": "process",
+            "command": "python",
+            "args": [
+                "dev.py",
+                "shell"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
