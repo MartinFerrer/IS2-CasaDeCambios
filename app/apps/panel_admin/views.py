@@ -55,11 +55,7 @@ def usuario_create(request: HttpRequest) -> object:
     if request.method == "POST":
         form = UsuarioForm(request.POST)
         if form.is_valid():
-            usuario = form.save()
-            # Asignar grupo si se seleccionó uno
-            grupo = form.cleaned_data.get("groups")
-            if grupo:
-                usuario.groups.add(grupo)
+            form.save()  # Django maneja automáticamente los campos ManyToMany
             return redirect("usuario_listar")
     else:
         form = UsuarioForm()
@@ -83,15 +79,10 @@ def usuario_edit(request: HttpRequest, pk: int) -> object:
     if request.method == "POST":
         form = UsuarioForm(request.POST, instance=usuario)
         if form.is_valid():
-            usuario = form.save()
-            # Limpiar grupos actuales y asignar el nuevo si se seleccionó
-            usuario.groups.clear()
-            grupo = form.cleaned_data.get("groups")
-            if grupo:
-                usuario.groups.add(grupo)
+            form.save()  # Django maneja automáticamente los campos ManyToMany
             return redirect("usuario_listar")
     else:
-        form = UsuarioForm()
+        form = UsuarioForm(instance=usuario)  # Inicializar con datos del usuario
     usuarios = Usuario.objects.all()
     grupos = Group.objects.all()
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})

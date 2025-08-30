@@ -66,9 +66,13 @@
                                 <label class="label">
                                     <span class="label-text">Rol</span>
                                 </label>
-                                <select name="rol" class="select select-bordered w-full">
+                                <select name="groups" class="select select-bordered w-full" required>
                                     <option value="" disabled selected>Selecciona un rol</option>
-                                    {% for grupo in grupos %}<option value="{{ grupo.id }}">{{ grupo.name }}</option>{% endfor %}
+                                    {% for grupo in grupos %}
+                                        <option value="{{ grupo.id }}">
+                                            {{ grupo.name }}
+                                        </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="form-control col-span-2">
@@ -127,7 +131,13 @@
                                     <td>{{ usuario.id }}</td>
                                     <td>{{ usuario.nombre }}</td>
                                     <td>{{ usuario.email|default:"-" }}</td>
-                                    <td>{{ usuario.groups|default:"Sin rol" }}</td>
+                                    <td>
+                                        {% if usuario.groups.exists %}
+                                            {{ usuario.groups.first.name }}
+                                        {% else %}
+                                            Sin rol
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if usuario.activo %}
                                             <div class="badge badge-success">Activo</div>
@@ -196,11 +206,11 @@
                                                             <label class="label">
                                                                 <span class="label-text">Rol</span>
                                                             </label>
-                                                            <select name="rol" class="select select-bordered w-full">
+                                                            <select name="groups" class="select select-bordered w-full" required>
                                                                 <option value="" disabled>Selecciona un rol</option>
                                                                 {% for grupo in grupos %}
                                                                     <option value="{{ grupo.id }}"
-                                                                            {% if usuario.groups.id == grupo.id %}selected{% endif %}>
+                                                                            {% if grupo in usuario.groups.all %}selected{% endif %}>
                                                                         {{ grupo.name }}
                                                                     </option>
                                                                 {% endfor %}

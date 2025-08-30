@@ -15,7 +15,7 @@ class UsuarioForm(forms.ModelForm):
         fields = ["nombre", "email", "password", "activo", "groups"]
         widgets = {
             "password": forms.PasswordInput(),
-            "groups": forms.Select(),
+            "groups": forms.SelectMultiple(),
         }
 
 
