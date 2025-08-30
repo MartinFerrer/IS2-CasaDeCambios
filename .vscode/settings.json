@@ -41,5 +41,6 @@
     "python.analysis.typeEvaluation.deprecateTypingAliases": true,
     "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
     "makefile.configureOnOpen": false,
-    "djlint.showInstallError": false
+    "djlint.showInstallError": false,
+    "autoDocstring.docstringFormat": "google"
 }
