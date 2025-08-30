@@ -4,18 +4,21 @@
     {
       "label": "dev: list",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "--list"
       ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": []
     },
     // ==== DEV ====
     {
       "label": "dev: build",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "build"
@@ -25,7 +28,7 @@
     {
       "label": "dev: build (no cache)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "build-no-cache"
@@ -35,7 +38,7 @@
     {
       "label": "dev: up (no build)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "up-no-build"
@@ -45,7 +48,7 @@
     {
       "label": "dev: up (build - detached)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "up-build-detached"
@@ -59,7 +62,7 @@
     {
       "label": "dev: down",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "down"
@@ -69,7 +72,7 @@
     {
       "label": "dev: down (remove volumes)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "down-rm-volumes"
@@ -79,7 +82,7 @@
     {
       "label": "dev: migrate",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "migrate"
@@ -89,7 +92,7 @@
     {
       "label": "dev: makemigrations",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "makemigrations"
@@ -99,7 +102,7 @@
     {
       "label": "dev: logs",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "logs"
@@ -109,7 +112,7 @@
     {
       "label": "dev: sync (uv)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "sync"
@@ -119,7 +122,7 @@
     {
       "label": "dev: precommit-install",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "precommit-install"
@@ -129,7 +132,7 @@
     {
       "label": "dev: precommit (changed files)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "precommit"
@@ -139,7 +142,7 @@
     {
       "label": "dev: precommit (all files)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "precommit-all"
@@ -149,7 +152,7 @@
     {
       "label": "dev: test (docker)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "test"
@@ -159,7 +162,7 @@
     {
       "label": "dev: test (local)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "test-local"
@@ -169,7 +172,7 @@
     {
       "label": "dev: doc (docker)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "doc"
@@ -179,7 +182,7 @@
     {
       "label": "dev: doc (local)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "doc-local"
@@ -189,7 +192,7 @@
     {
       "label": "dev: runserver (docker)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "runserver-docker"
@@ -200,7 +203,7 @@
     {
       "label": "dev: runserver (local)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "runserver-local"
@@ -211,7 +214,7 @@
     {
       "label": "dev: install-tailwind",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "install-tailwind"
@@ -221,7 +224,7 @@
     {
       "label": "dev: tailwind (local watch)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "tailwind-watch-local"
@@ -232,7 +235,7 @@
     {
       "label": "dev: shell (web)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "shell"
@@ -243,7 +246,7 @@
     {
       "label": "prod: build",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "build-prod"
@@ -253,7 +256,7 @@
     {
       "label": "prod: build (no cache)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "build-no-cache-prod"
@@ -263,7 +266,7 @@
     {
       "label": "prod: up (detached)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "up-prod"
@@ -273,7 +276,7 @@
     {
       "label": "prod: down",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "down-prod"
@@ -283,7 +286,7 @@
     {
       "label": "prod: down (remove volumes)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "down-rm-volumes-prod"
@@ -293,7 +296,7 @@
     {
       "label": "prod: logs",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "logs-prod"
@@ -303,7 +306,7 @@
     {
       "label": "prod: shell (web)",
       "type": "process",
-      "command": "python",
+      "command": "${workspaceFolder}/app/.venv/Scripts/python.exe",
       "args": [
         "dev.py",
         "shell-prod"
