@@ -10,7 +10,8 @@ import django
 # The 'docs' directory is one level deep, so we go up one level ('..') and
 # to find your app's modules like models, views, etc.
 sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app"))
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app")),
 )
 
 

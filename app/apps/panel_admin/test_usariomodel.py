@@ -1,5 +1,4 @@
 import pytest
-
 from apps.panel_admin.models import Usuario
 
 

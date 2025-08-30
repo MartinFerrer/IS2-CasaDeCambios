@@ -5,57 +5,73 @@ from django.db import migrations, models
 
 
 def insertar_tipos_clientes(apps, schema_editor):
-    TipoCliente = apps.get_model('panel_admin', 'TipoCliente')
-    TipoCliente.objects.bulk_create([
-        TipoCliente(nombre="minorista", descripcion="Cliente minorista"),
-        TipoCliente(nombre="corporativo", descripcion="Cliente corporativo"),
-        TipoCliente(nombre="vip", descripcion="Cliente VIP"),
-    ])
+    TipoCliente = apps.get_model("panel_admin", "TipoCliente")
+    TipoCliente.objects.bulk_create(
+        [
+            TipoCliente(nombre="minorista", descripcion="Cliente minorista"),
+            TipoCliente(nombre="corporativo", descripcion="Cliente corporativo"),
+            TipoCliente(nombre="vip", descripcion="Cliente VIP"),
+        ],
+    )
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('panel_admin', '0001_initial'),
+        ("panel_admin", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Permiso',
+            name="Permiso",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=30, unique=True)),
-                ('descripcion', models.TextField(blank=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("nombre", models.CharField(max_length=30, unique=True)),
+                ("descripcion", models.TextField(blank=True)),
             ],
         ),
         migrations.CreateModel(
-            name='TipoCliente',
+            name="TipoCliente",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(choices=[('minorista', 'Minorista'), ('corporativo', 'Corporativo'), ('vip', 'VIP')], max_length=20, unique=True)),
-                ('descripcion', models.TextField(blank=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "nombre",
+                    models.CharField(
+                        choices=[("minorista", "Minorista"), ("corporativo", "Corporativo"), ("vip", "VIP")],
+                        max_length=20,
+                        unique=True,
+                    ),
+                ),
+                ("descripcion", models.TextField(blank=True)),
             ],
         ),
         migrations.AlterField(
-            model_name='rol',
-            name='nombre',
+            model_name="rol",
+            name="nombre",
             field=models.CharField(max_length=30, unique=True),
         ),
         migrations.AddField(
-            model_name='rol',
-            name='permisos',
-            field=models.ManyToManyField(blank=True, to='panel_admin.permiso'),
+            model_name="rol",
+            name="permisos",
+            field=models.ManyToManyField(blank=True, to="panel_admin.permiso"),
         ),
         migrations.CreateModel(
-            name='Cliente',
+            name="Cliente",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ruc', models.CharField(max_length=11, unique=True)),
-                ('nombre', models.CharField(max_length=100)),
-                ('email', models.EmailField(max_length=254, unique=True)),
-                ('telefono', models.CharField(blank=True, max_length=15)),
-                ('direccion', models.CharField(blank=True, max_length=255)),
-                ('tipo_cliente', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='panel_admin.tipocliente')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("ruc", models.CharField(max_length=11, unique=True)),
+                ("nombre", models.CharField(max_length=100)),
+                ("email", models.EmailField(max_length=254, unique=True)),
+                ("telefono", models.CharField(blank=True, max_length=15)),
+                ("direccion", models.CharField(blank=True, max_length=255)),
+                (
+                    "tipo_cliente",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="panel_admin.tipocliente",
+                    ),
+                ),
             ],
         ),
         migrations.RunPython(insertar_tipos_clientes),

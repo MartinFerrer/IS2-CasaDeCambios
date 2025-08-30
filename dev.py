@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-dev.py - Corredor simple de comandos configurados en dev-commands.json
+"""dev.py - Corredor simple de comandos configurados en dev-commands.json
 Platform-aware replacement for {TAILWIND_BIN} so tailwind-watch-local works.
 Usage:
   python dev.py --list
@@ -21,7 +20,7 @@ DEFAULT_CONFIG = "dev-commands.json"
 
 
 def load_config(path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -31,14 +30,12 @@ def download_file(url, dest):
     response = requests.get(url, stream=True)
     response.raise_for_status()
     with open(dest, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
+        f.writelines(response.iter_content(chunk_size=8192))
     os.chmod(dest, 0o755)  # Make executable
 
 
 def find_tailwind_bin():
-    """
-    Return the absolute path to the correct tailwind binary inside the repo.
+    """Return the absolute path to the correct tailwind binary inside the repo.
     Downloads from GitHub if not present.
     """
     root = os.path.abspath(os.getcwd())
@@ -58,17 +55,14 @@ def find_tailwind_bin():
 
     if not os.path.exists(bin_path):
         os.makedirs(os.path.dirname(bin_path), exist_ok=True)
-        base_url = (
-            f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
-        )
+        base_url = f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
         download_file(f"{base_url}/tailwindcss-{platform_name}", bin_path)
 
     return bin_path
 
 
 def download_tailwind_linux():
-    """
-    Download the Linux-x64 tailwind binary into app/static/css/tailwindcss-linux-x64
+    """Download the Linux-x64 tailwind binary into app/static/css/tailwindcss-linux-x64
     on the host filesystem (useful for making the file available to docker compose).
     """
     root = os.path.abspath(os.getcwd())
@@ -81,17 +75,13 @@ def download_tailwind_linux():
         return bin_path
 
     os.makedirs(os.path.dirname(bin_path), exist_ok=True)
-    base_url = (
-        f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
-    )
+    base_url = f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
     download_file(f"{base_url}/{bin_name}", bin_path)
     return bin_path
 
 
 def replace_placeholders(cmd_list):
-    """
-    Replace {TAILWIND_BIN} placeholder with platform-specific absolute path.
-    """
+    """Replace {TAILWIND_BIN} placeholder with platform-specific absolute path."""
     tailwind_path = find_tailwind_bin()
     out = []
     for part in cmd_list:

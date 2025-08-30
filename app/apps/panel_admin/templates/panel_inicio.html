@@ -1,7 +1,11 @@
 {# apps/panel_admin/templates/panel_admin/panel_inicio.html #}
 {% extends "base.html" %}
-{% block title %}Menú Principal{% endblock %}
-{% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
+{% block title %}
+    Menú Principal
+{% endblock title %}
+{% block body_class %}
+    bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
+{% endblock body_class %}
 {# Usamos header específico para admin #}
 {% block header %}
     {% include "includes/header_admin.html" %}

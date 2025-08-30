@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('panel_admin', '0002_permiso_tipocliente_alter_rol_nombre_rol_permisos_and_more'),
+        ("panel_admin", "0002_permiso_tipocliente_alter_rol_nombre_rol_permisos_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='cliente',
-            name='usuarios',
-            field=models.ManyToManyField(related_name='clientes', to='panel_admin.usuario'),
+            model_name="cliente",
+            name="usuarios",
+            field=models.ManyToManyField(related_name="clientes", to="panel_admin.usuario"),
         ),
     ]

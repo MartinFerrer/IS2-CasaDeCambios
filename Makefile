@@ -30,7 +30,7 @@ makemigrations:
 logs:
 	docker compose -f $(COMPOSE_FILE) logs -f
 
-# HERRAMIENTAS LOCALES / DESARROLLO 
+# HERRAMIENTAS LOCALES / DESARROLLO
 # Sincroniza el entorno de desarrollo con uv (local)
 sync:
 	uv sync --all-extras
