@@ -160,6 +160,6 @@ EMAIL_HOST = "smtp.gmail.com"  # ejemplo con Gmail
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 # aca ponemos el correo desde donde se va enviar
-EMAIL_HOST_USER = "correoejemplo@gmailcom"
-EMAIL_HOST_PASSWORD = "contrasenha de la app"  # usa una contraseña de app si usas 2FA
-DEFAULT_FROM_EMAIL = "tucorreo@gmail.com"
+EMAIL_HOST_USER = env.str("EMAIL_USER")
+EMAIL_HOST_PASSWORD = env.str("EMAIL_PASSWORD")  # usa una contraseña de app si usas 2FA
+DEFAULT_FROM_EMAIL = env.str("EMAIL_USER")
