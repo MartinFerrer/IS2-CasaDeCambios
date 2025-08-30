@@ -10,25 +10,30 @@
     <meta name="keywords"
           content="cambio, divisas, moneda, globalexchange, casa de cambios, dinero">
     <title>
-      {% block title %}Mi Aplicación{% endblock %}
+      {% block title %}
+        Mi Aplicación
+      {% endblock title %}
     </title>
     <link rel="icon"
           type="image/x-icon"
           href="{% static 'images/favicon.ico' %}">
     <!-- CSS global (tailwind + daisyUI build) -->
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
-    {% block extra_head %}{% endblock %}
+    {% block extra_head %}
+    {% endblock extra_head %}
   </head>
-  <body class="{% block body_class %}{% endblock %}">
-    {# Por defecto incluimos el header global, pero cada plantilla se puede
-     sobrescribir el bloque 'header' para usar otro header. #}
+  <body class="{% block body_class %}bg-white{% endblock body_class %}">
+    <!--Por defecto incluimos el header global, pero cada plantilla se puede
+     sobrescribir el bloque 'header' para usar otro header.-->
     {% block header %}
       {% include "includes/header.html" %}
-    {% endblock %}
+    {% endblock header %}
     <main>
-      {% block content %}{% endblock %}
+      {% block content %}
+      {% endblock content %}
     </main>
     {% include "includes/footer.html" %}
-    {% block extra_scripts %}{% endblock %}
+    {% block extra_scripts %}
+    {% endblock extra_scripts %}
   </body>
 </html>
