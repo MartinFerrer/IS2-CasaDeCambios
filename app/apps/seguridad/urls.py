@@ -1,12 +1,11 @@
 from django.urls import path
-
-from . import views
+from .views import login_view, logout_view, registro_view
 
 app_name = "seguridad"
 
+# URL patterns for the seguridad app
 urlpatterns = [
-    # path("", views.ejemplo, name="ejemplo"),
-    # path("registro/", views.registro, name="registro"),
-    path("login/", views.login_view, name="login"),
-    path("logout/", views.logout_view, name="logout"),
+    path("login/", login_view, name="login"),
+    path("logout/", logout_view, name="logout"),
+    path("registro/", registro_view, name="registro"),
 ]
