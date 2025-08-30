@@ -4,7 +4,13 @@ version = "0.1.0"
 description = "Sistema Global Exchange"
 readme = "README.md"
 requires-python = ">=3.13"
-authors = [{ name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" }]
+authors = [
+    { name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" },
+    { name = "Fabrizio Daisuke Kawabata Miyamoto", email = "fabrizziokawabata@fpuna.edu.py" },
+    { name = "Atilio Sebastián Paredes Pérez", email = "atilioparedes973@fpuna.edu.py" },
+    { name = "Ian Alexander Torres Marecos", email = "iantorressm@fpuna.edu.py" },
+    { name = "Lucas Daniel Lamas Lezcano", email = "lucasdaniellamas876@fpuna.edu.py" },
+]
 
 # Runtime dependencies
 dependencies = [
@@ -13,15 +19,15 @@ dependencies = [
     "psycopg[binary]",
     "plotly==6.3.0",
     "gunicorn==23.0",
-    "dj-database-url", # parse DATABASE_URL easily
-    "python-dotenv", # load .env in dev if desired
+    "dj-database-url",        # parse DATABASE_URL easily
+    "python-dotenv",          # load .env in dev if desired
+    "pytest>=8.4.1",
+    "pytest-django>=4.11.1",
 ]
 
 [project.optional-dependencies]
 # dev extras (testing, linting, docs)
 dev = [
-    "pytest>=8.4.1",
-    "pytest-django>=4.11.1",
     "ruff>=0.12.9",
     "sphinx>=8.2.3",
     "sphinx-autodoc-typehints>=3.2.0",
