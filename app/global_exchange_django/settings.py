@@ -153,4 +153,13 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "usuarios.Usuario"
-     
+
+# con esto podemos enviar correos de verificación al momento del registro
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"  # ejemplo con Gmail
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+# aca ponemos el correo desde donde se va enviar
+EMAIL_HOST_USER = "correoejemplo@gmailcom"
+EMAIL_HOST_PASSWORD = "contrasenha de la app"  # usa una contraseña de app si usas 2FA
+DEFAULT_FROM_EMAIL = "tucorreo@gmail.com"
