@@ -1,3 +1,5 @@
+# Archivo compose para produccion (montamos volúmenes, contenedor test)
+
 services:
   db:
     image: postgres:17
@@ -12,22 +14,20 @@ services:
     build: ./app
     command: uv run python manage.py runserver 0.0.0.0:8000
     working_dir: /app
-    # volumes: TODO: montar entorno desarrollador, watch
-    #   - ./app/:/app/
+    volumes:
+      - ./app/:/app/:cached
     ports:
       - 8000:8000
     env_file:
       - ./.env.dev
     depends_on:
       - db
-
-# Nuevo servicios para tests
   test:
     build: ./app
     command: uv run python -m pytest
     working_dir: /app
-    # volumes:
-    #   - ./app/:/app/
+    volumes:
+      - ./app/:/app/:cached
     env_file:
       - ./.env.dev
     depends_on:

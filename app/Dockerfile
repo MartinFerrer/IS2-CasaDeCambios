@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-# This Dockerfile was modified from the following article: 
+# This Dockerfile was modified from the following article:
 # https://medium.com/@hmbarotov/dockerizing-django-with-uv-postgres-and-redis-e1dd9abe9640
 # Base image: Python slim bookworm
 FROM python:3.13-slim-bookworm AS base
@@ -19,8 +19,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-traditional \
     curl \
-    ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # install uv inside Docker
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -42,18 +42,20 @@ RUN --mount=type=cache,target=/root/.cache \
 COPY . .
 
 # Ensure correct EOF of entrypoint.sh and make it executable
-RUN sed -i "s/\r$//g" /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN sed -i "s/\r$//g" /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
-# Download tailwind binary directly 
-ADD https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 /app/static/css/tailwindcss 
-RUN chmod +x /app/static/css/tailwindcss
+# Download tailwind binary only if it doesn't exist
+RUN if [ ! -f /app/static/css/tailwindcss-linux-x64 ]; then \
+    curl -sL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 \
+    -o /app/static/css/tailwindcss-linux-x64; \
+    fi
+RUN chmod +x /app/static/css/tailwindcss-linux-x64
 
 # Compile CSS at build time and fail if output.css missing
-RUN /app/static/css/tailwindcss \
+RUN /app/static/css/tailwindcss-linux-x64 \
     -i /app/static/css/input.css \
     -o /app/static/css/output.css \
-    --minify 
+    --minify
 RUN test -f /app/static/css/output.css
 
 # run entrypoint.sh

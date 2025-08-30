@@ -1,256 +1,343 @@
 {
-    "commands": {
-        "build": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "build"
-            ],
-            "cwd": "."
-        },
-        "up": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "up",
-                "--build"
-            ],
-            "cwd": "."
-        },
-        "up-detached": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "up",
-                "-d",
-                "--build"
-            ],
-            "cwd": "."
-        },
-        "down": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "down"
-            ],
-            "cwd": "."
-        },
-        "down-rm-volumes": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "down",
-                "-v"
-            ],
-            "cwd": "."
-        },
-        "migrate": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "run",
-                "--rm",
-                "--no-deps",
-                "web",
-                "uv",
-                "run",
-                "python",
-                "manage.py",
-                "migrate"
-            ],
-            "cwd": "."
-        },
-        "makemigrations": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "run",
-                "--rm",
-                "--no-deps",
-                "web",
-                "uv",
-                "run",
-                "python",
-                "manage.py",
-                "makemigrations"
-            ],
-            "cwd": "."
-        },
-        "logs": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "logs",
-                "-f"
-            ],
-            "cwd": "."
-        },
-        "sync": {
-            "cmd": [
-                "uv",
-                "sync",
-                "--all-extras"
-            ],
-            "cwd": "app"
-        },
-        "precommit-install": {
-            "cmd": [
-                "uv",
-                "run",
-                "pre-commit",
-                "install"
-            ],
-            "cwd": "app"
-        },
-        "precommit": {
-            "cmd": [
-                "uv",
-                "run",
-                "pre-commit",
-                "run"
-            ],
-            "cwd": "app"
-        },
-        "precommit-all": {
-            "cmd": [
-                "uv",
-                "run",
-                "pre-commit",
-                "run",
-                "--all-files"
-            ],
-            "cwd": "app"
-        },
-        "test": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "run",
-                "--rm",
-                "test"
-            ],
-            "cwd": "."
-        },
-        "test-local": {
-            "cmd": [
-                "uv",
-                "run",
-                "--env-file",
-                "../.env.dev",
-                "pytest"
-            ],
-            "cwd": "app"
-        },
-        "doc": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "run",
-                "--rm",
-                "--no-deps",
-                "web",
-                "uv",
-                "run",
-                "sphinx-build",
-                "-b",
-                "html",
-                "docs",
-                "docs/_build/html"
-            ],
-            "cwd": "."
-        },
-        "doc-local": {
-            "cmd": [
-                "uv",
-                "run",
-                "--extra",
-                "dev",
-                "sphinx-build",
-                "-b",
-                "html",
-                "docs",
-                "docs/_build/html"
-            ],
-            "cwd": "app"
-        },
-        "runserver-docker": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "up",
-                "web"
-            ],
-            "cwd": "."
-        },
-        "runserver-local": {
-            "cmd": [
-                "python",
-                "manage.py",
-                "runserver",
-                "0.0.0.0:8000"
-            ],
-            "cwd": "app"
-        },
-        "tailwind-watch-docker": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "-f",
-                "docker-compose.override.yml",
-                "up",
-                "tailwind"
-            ],
-            "cwd": "."
-        },
-        "tailwind-watch-local": {
-            "cmd": [
-                "./app/static/css/tailwindcss",
-                "-i",
-                "app/static/css/input.css",
-                "-o",
-                "app/static/css/output.css",
-                "--watch",
-                "--content",
-                "app/templates/**/*.html",
-                "app/**/*.py"
-            ],
-            "cwd": "."
-        },
-        "shell": {
-            "cmd": [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.dev.yml",
-                "exec",
-                "web",
-                "bash"
-            ],
-            "cwd": "."
-        }
+  "commands": {
+    "build": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "build"
+      ],
+      "cwd": "."
+    },
+    "build-no-cache": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "build",
+        "--no-cache"
+      ],
+      "cwd": "."
+    },
+    "up-no-build": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "up"
+      ],
+      "cwd": "."
+    },
+    "up-build-detached": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "up",
+        "-d",
+        "--build"
+      ],
+      "cwd": "."
+    },
+    "down": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "down"
+      ],
+      "cwd": "."
+    },
+    "down-rm-volumes": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "down",
+        "-v"
+      ],
+      "cwd": "."
+    },
+    "migrate": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "run",
+        "--rm",
+        "--no-deps",
+        "web",
+        "uv",
+        "run",
+        "python",
+        "manage.py",
+        "migrate"
+      ],
+      "cwd": "."
+    },
+    "makemigrations": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "run",
+        "--rm",
+        "--no-deps",
+        "web",
+        "uv",
+        "run",
+        "python",
+        "manage.py",
+        "makemigrations"
+      ],
+      "cwd": "."
+    },
+    "migrate-local": {
+      "cmd": [
+        "python",
+        "manage.py",
+        "migrate"
+      ],
+      "cwd": "app"
+    },
+    "makemigrations-local": {
+      "cmd": [
+        "python",
+        "manage.py",
+        "makemigrations"
+      ],
+      "cwd": "app"
+    },
+    "logs": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "logs",
+        "-f"
+      ],
+      "cwd": "."
+    },
+    "sync": {
+      "cmd": [
+        "uv",
+        "sync",
+        "--all-extras"
+      ],
+      "cwd": "app"
+    },
+    "precommit-install": {
+      "cmd": [
+        "uv",
+        "run",
+        "pre-commit",
+        "install"
+      ],
+      "cwd": "app"
+    },
+    "precommit": {
+      "cmd": [
+        "uv",
+        "run",
+        "pre-commit",
+        "run"
+      ],
+      "cwd": "app"
+    },
+    "precommit-all": {
+      "cmd": [
+        "uv",
+        "run",
+        "pre-commit",
+        "run",
+        "--all-files"
+      ],
+      "cwd": "app"
+    },
+    "test": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "run",
+        "--rm",
+        "test"
+      ],
+      "cwd": "."
+    },
+    "test-local": {
+      "cmd": [
+        "uv",
+        "run",
+        "--env-file",
+        "../.env.dev",
+        "pytest"
+      ],
+      "cwd": "app"
+    },
+    "doc": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "run",
+        "--rm",
+        "--no-deps",
+        "web",
+        "uv",
+        "run",
+        "sphinx-build",
+        "-b",
+        "html",
+        "docs",
+        "docs/_build/html"
+      ],
+      "cwd": "."
+    },
+    "doc-local": {
+      "cmd": [
+        "uv",
+        "run",
+        "--extra",
+        "dev",
+        "sphinx-build",
+        "-b",
+        "html",
+        "docs",
+        "docs/_build/html"
+      ],
+      "cwd": "app"
+    },
+    "runserver-docker": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "up",
+        "--build"
+      ],
+      "cwd": "."
+    },
+    "runserver-local": {
+      "cmd": [
+        "python",
+        "manage.py",
+        "runserver",
+        "0.0.0.0:8000"
+      ],
+      "cwd": "app"
+    },
+    "tailwind-watch-local": {
+      "cmd": [
+        "{TAILWIND_BIN}",
+        "-i",
+        "app/static/css/input.css",
+        "-o",
+        "app/static/css/output.css",
+        "--watch"
+      ],
+      "cwd": "."
+    },
+    "shell": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.dev.yml",
+        "exec",
+        "web",
+        "bash"
+      ],
+      "cwd": "."
+    },
+    "build-prod": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "build"
+      ],
+      "cwd": "."
+    },
+    "build-no-cache-prod": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "build",
+        "--no-cache"
+      ],
+      "cwd": "."
+    },
+    "up-prod": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "up",
+        "--build",
+        "-d"
+      ],
+      "cwd": "."
+    },
+    "down-prod": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "down"
+      ],
+      "cwd": "."
+    },
+    "down-rm-volumes-prod": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "down",
+        "-v"
+      ],
+      "cwd": "."
+    },
+    "logs-prod": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "logs",
+        "-f"
+      ],
+      "cwd": "."
+    },
+    "shell-prod": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.prod.yml",
+        "exec",
+        "web",
+        "bash"
+      ],
+      "cwd": "."
     }
+  }
 }

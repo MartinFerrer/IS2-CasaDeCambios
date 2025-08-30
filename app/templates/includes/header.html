@@ -1,14 +1,14 @@
 {# templates/includes/header.html #}
 <header class="bg-blue-700 text-white shadow-lg p-4">
-  <div class="container mx-auto flex justify-between items-center">
-    <a href="{% url 'panel_inicio' %}" class="text-2xl font-semibold">Global Exchange</a>
-    <nav class="hidden lg:flex items-center space-x-4">
-      <a href="{% url 'usuario_listar' %}" class="hover:text-blue-200">Compra Divisas</a>
-      <a href="{% url 'cliente_listar' %}" class="hover:text-blue-200">Historico</a>
-    </nav>
-    <!-- avatar / acciones -->
-    <div>
-      <span class="mr-2 text-sm">{{ request.user.nombre|default:'Usuario' }}</span>
+    <div class="container mx-auto flex justify-between items-center">
+        <a href="{% url 'panel_inicio' %}" class="text-2xl font-semibold">Global Exchange</a>
+        <nav class="hidden lg:flex items-center space-x-4">
+            <a href="{% url 'usuario_listar' %}" class="hover:text-blue-200">Compra Divisas</a>
+            <a href="{% url 'cliente_listar' %}" class="hover:text-blue-200">Historico</a>
+        </nav>
+        <!-- avatar / acciones -->
+        <div>
+            <span class="mr-2 text-sm">{{ request.user.nombre|default:'Usuario' }}</span>
+        </div>
     </div>
-  </div>
 </header>

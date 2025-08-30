@@ -27,7 +27,7 @@ repos:
       - id: ruff-check
         args: ["--select", "E,F,W,C,B,I,RUF"]
       - id: ruff-format
-        stages: [commit]
+        stages: [pre-commit]
 
   - repo: https://github.com/djlint/djLint
     rev: v1.36.4

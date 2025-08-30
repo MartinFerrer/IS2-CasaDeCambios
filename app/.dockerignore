@@ -8,10 +8,12 @@ yarn-error.log
 .venv
 venv
 .env
+.env.*
 __pycache__
 *.pyc
 *.pyo
 *.pyd
+*.sqlite3
 
 # git / system
 .git
@@ -20,6 +22,7 @@ __pycache__
 .github
 .DS_Store
 .vscode
+*.swp
 .idea
 
 # docker build artifacts / local logs
