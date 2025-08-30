@@ -1,9 +1,14 @@
+"""Configuración de URLs para la aplicación presentacion.
+
+Define los patrones de URL para las vistas relacionadas con transacciones.
+"""
+
 from django.urls import path
 
 from . import views
 
-app_name = "presentacion"
+app_name = "transacciones"
 
 urlpatterns = [
-    path("", views.ejemplo, name="ejemplo"),
+    path("", views.home, name="home"),
 ]

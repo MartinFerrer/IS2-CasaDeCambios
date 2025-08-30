@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}
+    TLa plataforma de cambios más completa del país
+{% endblock title %}
+{% block content %}
+    <div class="container mx-auto p-8">
+        <h2 class="text-3xl font-bold mb-6">Tasas de Cambio y Nuestros Servicios</h2>
+        <div class="flex flex-col lg:flex-row gap-8">
+            <div class="flex-1 bg-base-100 p-6 rounded-box shadow-lg relative">
+                <button id="toggle-view-btn"
+                        class="absolute top-4 right-4 btn btn-sm btn-outline">Mostrar Historial</button>
+                <div id="tasas-view">
+                    <h3 class="text-2xl font-semibold mb-4 text-center">Tasas de Cambio Actuales</h3>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Divisa</th>
+                                    <th>Compra</th>
+                                    <th>Venta</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>USD</td>
+                                    <td>$ 7.500</td>
+                                    <td>$ 7.800</td>
+                                </tr>
+                                <tr>
+                                    <td>EUR</td>
+                                    <td>€ 8.100</td>
+                                    <td>€ 8.500</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="historial-view" class="hidden">
+                    <h3 class="text-2xl font-semibold mb-4 text-center">Gráfico de Historial</h3>
+                    <div id="plotly-graph-div"
+                         class="bg-gray-200 h-80 rounded-box flex items-center justify-center text-gray-500">
+                        Gráfico de Plotly aquí
+                    </div>
+                </div>
+            </div>
+            <div class="flex-none w-full lg:w-1/4 bg-base-100 p-6 rounded-box shadow-lg flex flex-col gap-4">
+                <a href="{% url 'simular_cambio' %}" class="btn btn-lg btn-secondary">Simular Cambio</a>
+                <a href="{% url 'comprar_divisa' %}" class="btn btn-lg btn-primary">Comprar Divisa</a>
+                <a href="{% url 'vender_divisa' %}" class="btn btn-lg btn-success">Vender Divisa</a>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_scripts %}
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggleBtn = document.getElementById('toggle-view-btn');
+        const tasasView = document.getElementById('tasas-view');
+        const historialView = document.getElementById('historial-view');
+
+        toggleBtn.addEventListener('click', () => {
+            tasasView.classList.toggle('hidden');
+            historialView.classList.toggle('hidden');
+            
+            // Cambiar el texto del botón
+            if (tasasView.classList.contains('hidden')) {
+                toggleBtn.innerText = 'Mostrar Tasas';
+            } else {
+                toggleBtn.innerText = 'Mostrar Historial';
+            }
+        });
+    });
+    </script>
+{% endblock extra_scripts %}
