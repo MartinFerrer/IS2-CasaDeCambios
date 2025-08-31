@@ -1,8 +1,5 @@
 {
-    // Interpreter: prefer workspace .venv; developers on Windows should select the interpreter once if needed.
-    // NOTE: Some versions of the Python extension use `python.defaultInterpreterPath`.
-    // If that doesn't work in your environment, select the interpreter via Command Palette.
-    "python.defaultInterpreterPath": "${workspaceFolder}/app/.venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/app/.venv",
     // Linting and formatting
     "ruff.lint.enable": true,
     // Ruff is used for formatting via code actions. We trigger fixAll on save.
