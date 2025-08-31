@@ -4,11 +4,13 @@ Este módulo contiene operaciones CRUD para los modelos Usuario, Cliente y Rol,
 así como la lógica de asociación entre Cliente y Usuario.
 """
 
+from django.contrib.auth.models import Group
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.usuarios.models import Cliente, TipoCliente, Usuario
+
 from .forms import ClienteForm, UsuarioForm
-from .models import Cliente, Rol, TipoCliente, Usuario
 
 
 def panel_inicio(request: HttpRequest) -> object:
@@ -36,8 +38,8 @@ def usuario_list(request: HttpRequest) -> object:
 
     """
     usuarios = Usuario.objects.all()
-    roles = Rol.objects.all()
-    return render(request, "usuario_list.html", {"usuarios": usuarios, "roles": roles})
+    grupos = Group.objects.all()
+    return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos})
 
 
 def usuario_create(request: HttpRequest) -> object:
@@ -53,13 +55,13 @@ def usuario_create(request: HttpRequest) -> object:
     if request.method == "POST":
         form = UsuarioForm(request.POST)
         if form.is_valid():
-            form.save()
+            form.save()  # Django maneja automáticamente los campos ManyToMany
             return redirect("usuario_listar")
     else:
         form = UsuarioForm()
     usuarios = Usuario.objects.all()
-    roles = Rol.objects.all()
-    return render(request, "usuario_list.html", {"usuarios": usuarios, "roles": roles, "form": form})
+    grupos = Group.objects.all()
+    return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
 def usuario_edit(request: HttpRequest, pk: int) -> object:
@@ -77,13 +79,13 @@ def usuario_edit(request: HttpRequest, pk: int) -> object:
     if request.method == "POST":
         form = UsuarioForm(request.POST, instance=usuario)
         if form.is_valid():
-            form.save()
+            form.save()  # Django maneja automáticamente los campos ManyToMany
             return redirect("usuario_listar")
     else:
-        form = UsuarioForm()
+        form = UsuarioForm(instance=usuario)  # Inicializar con datos del usuario
     usuarios = Usuario.objects.all()
-    roles = Rol.objects.all()
-    return render(request, "usuario_list.html", {"usuarios": usuarios, "roles": roles, "form": form})
+    grupos = Group.objects.all()
+    return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
 def usuario_delete(request: HttpRequest, pk: int) -> object:
@@ -102,13 +104,13 @@ def usuario_delete(request: HttpRequest, pk: int) -> object:
         usuario.delete()
         return redirect("usuario_listar")
     usuarios = Usuario.objects.all()
-    roles = Rol.objects.all()
-    return render(request, "usuario_list.html", {"usuarios": usuarios, "roles": roles})
+    grupos = Group.objects.all()
+    return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos})
 
 
 # CRUD de Roles
 def rol_list(request: HttpRequest) -> object:
-    """Renderiza la lista de roles en el panel de administración.
+    """Renderiza la lista de roles (grupos) y sus permisos asociados.
 
     Args:
         request: HttpRequest object.
@@ -117,48 +119,8 @@ def rol_list(request: HttpRequest) -> object:
         HttpResponse: Rendered rol_list.html template.
 
     """
-    return render(request, "rol_list.html")
-
-
-def rol_create(request: HttpRequest) -> object:
-    """Renderiza el formulario para crear un nuevo rol en el panel de administración.
-
-    Args:
-        request: HttpRequest object.
-
-    Returns:
-        HttpResponse: Rendered rol_form.html template.
-
-    """
-    return render(request, "rol_form.html")
-
-
-def rol_edit(request: HttpRequest, pk: int) -> object:
-    """Renderiza el formulario para editar un rol existente en el panel de administración.
-
-    Args:
-        request: HttpRequest object.
-        pk: int, identificador primario del rol a editar.
-
-    Returns:
-        HttpResponse: Rendered rol_form.html template.
-
-    """
-    return render(request, "rol_form.html")
-
-
-def rol_delete(request: HttpRequest, pk: int) -> object:
-    """Renderiza el formulario de confirmación para eliminar un rol existente en el panel de administración.
-
-    Args:
-        request: HttpRequest object.
-        pk: int, identificador primario del rol a eliminar.
-
-    Returns:
-        HttpResponse: Rendered rol_confirm_delete.html template.
-
-    """
-    return render(request, "rol_confirm_delete.html")
+    grupos = Group.objects.prefetch_related("permissions").all()
+    return render(request, "rol_list.html", {"grupos": grupos})
 
 
 # CRUD de Clientes

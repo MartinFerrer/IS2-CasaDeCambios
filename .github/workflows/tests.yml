@@ -20,7 +20,23 @@ jobs:
       - name: Clonar repositorio
         # Clona tu repositorio para que el flujo de trabajo pueda acceder al código y a los archivos de Docker.
         uses: actions/checkout@v4
-
+      - name: Crear archivo .env a partir de secrets #  paso para crear el archivo .env
+        run: |
+          cat > .env <<'EOF'
+          DEBUG=True
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          ALLOWED_HOSTS=localhost,127.0.0.1
+          SQL_ENGINE=django.db.backends.postgresql
+          SQL_USER=${{ secrets.SQL_USER }}
+          SQL_PASSWORD=${{ secrets.SQL_PASSWORD }}
+          SQL_DATABASE=${{ secrets.SQL_DATABASE }}
+          SQL_HOST=db
+          SQL_PORT=5432
+          DATABASE=postgres
+          DJANGO_SETTINGS_MODULE=global_exchange_django.settings
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+          EOF
       - name: Ejecutar pruebas con Docker Compose
         # Este comando inicia los servicios 'db' y 'test' definidos en tu archivo docker-compose.
         # --build: Asegura que la imagen de Docker se construya con los últimos cambios del código.

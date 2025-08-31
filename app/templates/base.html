@@ -2,35 +2,38 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <meta name="description"
-              content="Casa de cambios Global Exchange - Cambio de divisas y servicios financieros" />
-        <meta name="keywords"
-              content="casa de cambios, divisas, cambio de moneda, servicios financieros, Global Exchange" />
-        <title>
-            {% block title %}
-                Global Exchange
-            {% endblock title %}
-        </title>
-        <!-- CSS global (tailwind + daisyUI build) -->
-        <link rel="stylesheet" href="{% static 'css/output.css' %}">
-        {% block extra_head %}
-        {% endblock extra_head %}
-    </head>
-    <body class="{% block body_class %}{% endblock body_class %}">
-        {% comment %} Por defecto incluimos el header global, pero cada plantilla se puede
-        sobrescribir el bloque 'header' para usar otro header. {% endcomment %}
-        {% block header %}
-            {% include "includes/header.html" %}
-        {% endblock header %}
-        <main>
-            {% block content %}
-            {% endblock content %}
-        </main>
-        {% include "includes/footer.html" %}
-        {% block extra_scripts %}
-        {% endblock extra_scripts %}
-    </body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description"
+          content="GlobalExchange Casa de Cambios - Plataforma para cambio de divisas.">
+    <meta name="keywords"
+          content="cambio, divisas, moneda, globalexchange, casa de cambios, dinero">
+    <title>
+      {% block title %}
+        Mi Aplicación
+      {% endblock title %}
+    </title>
+    <link rel="icon"
+          type="image/x-icon"
+          href="{% static 'images/favicon.ico' %}">
+    <!-- CSS global (tailwind + daisyUI build) -->
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    {% block extra_head %}
+    {% endblock extra_head %}
+  </head>
+  <body class="{% block body_class %}bg-white{% endblock body_class %}">
+    <!--Por defecto incluimos el header global, pero cada plantilla se puede
+     sobrescribir el bloque 'header' para usar otro header.-->
+    {% block header %}
+      {% include "includes/header.html" %}
+    {% endblock header %}
+    <main>
+      {% block content %}
+      {% endblock content %}
+    </main>
+    {% include "includes/footer.html" %}
+    {% block extra_scripts %}
+    {% endblock extra_scripts %}
+  </body>
 </html>
