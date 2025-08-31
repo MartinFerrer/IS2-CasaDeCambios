@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Global Exchange</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-blue-500 p-4 text-white">
+        <div class="container mx-auto flex justify-between">
+            <div class="font-bold text-lg">Global Exchange</div>
+            <div>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'logout' %}" class="px-3 py-2 hover:bg-blue-700 rounded">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="px-3 py-2 hover:bg-blue-700 rounded">Login</a>
+                    <a href="{% url 'register' %}" class="px-3 py-2 hover:bg-blue-700 rounded">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto mt-10">
+        <h1 class="text-3xl font-bold text-center">Bienvenido a Global Exchange</h1>
+    </div>
+</body>
+</html>
