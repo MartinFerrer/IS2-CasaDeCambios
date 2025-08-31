@@ -40,5 +40,7 @@
     "python.languageServer": "Pylance",
     "python.analysis.typeEvaluation.deprecateTypingAliases": true,
     "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
-    "makefile.configureOnOpen": false
+    "makefile.configureOnOpen": false,
+    "djlint.showInstallError": false,
+    "autoDocstring.docstringFormat": "google"
 }
