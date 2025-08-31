@@ -3,9 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 
 
-# -----------------------
-# MANAGER PERSONALIZADO
-# -----------------------
+# TODO [SCRUM-110]: Documentar modelos usuarios
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, nombre, password=None, **extra_fields):
         """Crea y guarda un usuario normal"""
@@ -24,9 +22,6 @@ class UsuarioManager(BaseUserManager):
         return self.create_user(email, nombre, password, **extra_fields)
 
 
-# -----------------------
-# MODELO USUARIO
-# -----------------------
 class Usuario(AbstractBaseUser, PermissionsMixin):
     nombre = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
@@ -42,8 +37,6 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.nombre
-
-
 
 
 class TipoCliente(models.Model):
