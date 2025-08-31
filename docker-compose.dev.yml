@@ -30,7 +30,7 @@ services:
     # volumes:
     #   - ./app/:/app/
     env_file:
-      - ./.env
+      - ./.env.tests
     depends_on:
       - db
 

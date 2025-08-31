@@ -27,4 +27,4 @@ jobs:
         # --exit-code-from test: Hace que el comando 'up' devuelva el código de salida del contenedor 'test'.
         # Si las pruebas de pytest pasan, el código de salida es 0 (éxito). Si fallan, es distinto de 0 (fallo),
         # lo que hará que este paso del workflow falle, como se espera.
-        run: docker compose --env-file .env.tests -f docker-compose.dev.yml up --build --exit-code-from test
+        run: docker compose -f docker-compose.dev.yml up --build --exit-code-from test
