@@ -1,0 +1,407 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev: list",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "--list"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    // ==== DEV ====
+    {
+      "label": "dev: build",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "build"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: build (no cache)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "build-no-cache"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: up (no build)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "up-no-build"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: up (build - detached)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "up-build-detached"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "dev: down",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "down"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: down (remove volumes)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "down-rm-volumes"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: migrate",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "migrate"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: makemigrations",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "makemigrations"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: logs",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "logs"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: sync (uv)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "sync"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: precommit-install",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "precommit-install"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: precommit (changed files)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "precommit"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: precommit (all files)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "precommit-all"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: test (docker)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "test"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: test (local)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "test-local"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: doc (docker)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "doc"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: doc (local)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "doc-local"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: runserver (docker)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "runserver-docker"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: runserver (local)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "runserver-local"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: install-tailwind",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "install-tailwind"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: tailwind (local watch)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "tailwind-watch-local"
+      ],
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: shell (web)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "shell"
+      ],
+      "problemMatcher": []
+    },
+    // ==== PROD ====
+    {
+      "label": "prod: build",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "build-prod"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prod: build (no cache)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "build-no-cache-prod"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prod: up (detached)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "up-prod"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prod: down",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "down-prod"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prod: down (remove volumes)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "down-rm-volumes-prod"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prod: logs",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "logs-prod"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prod: shell (web)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "shell-prod"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

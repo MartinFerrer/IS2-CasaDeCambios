@@ -5,3 +5,9 @@
 @source "../../**/templates/**/*.html";
 @source "../../apps/**/templates/**/*.html";
 @source "../../**/apps/**/templates/**/*.html";
+
+@layer utilities {
+  .debug-border {
+    border: 4px dashed rgb(255, 0, 255) !important;
+  }
+}

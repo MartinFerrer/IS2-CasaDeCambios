@@ -8,4 +8,3 @@ Tauser App
 
 .. automodule:: apps.tauser.views
    :members:
-

@@ -1,0 +1,4 @@
+Configuración de Workflows p/ Github Actions (Docs y test):
+https://g.co/gemini/share/7faf47f1c17a
+Configuracion de Entorno de Desarrollo (tasks, pre-commit, watch):
+https://chatgpt.com/share/68b1a6ed-079c-8011-b72d-656b419ee0c7
