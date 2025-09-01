@@ -1,1 +1,109 @@
-# Create your models here.
+import uuid
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
+from django.db import models
+
+
+class Divisa(models.Model):
+    """Modelo para gestionar las divisas soportadas en el sistema."""
+
+    idDivisa = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único para la divisa."
+    )
+    codigo = models.CharField(max_length=3, unique=True, help_text="Código ISO 4217 de la divisa (ej. PYG, USD, EUR).")
+    nombre = models.CharField(max_length=50, help_text="Nombre de la divisa (ej. Guaraní, Dólar Estadounidense).")
+    simbolo = models.CharField(max_length=5, help_text="Símbolo de la divisa (ej. ₲, $, €).")
+
+    class Meta:
+        db_table = "divisa"
+        verbose_name = "Divisa"
+        verbose_name_plural = "Divisas"
+
+    def __str__(self):
+        """Representación en string del objeto, útil para su visualización."""
+        return f"{self.codigo}"
+
+
+class TasaCambio(models.Model):
+    """Modelo para gestionar las tasas de cambio entre divisas.
+    Representa el valor de una divisa con respecto a otra en un momento dado.
+    """
+
+    idTasaCambio = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único para la tasa de cambio."
+    )
+    divisaOrigen = models.ForeignKey(
+        "Divisa", on_delete=models.CASCADE, related_name="tasas_origen", help_text="La divisa que se va a intercambiar."
+    )
+    divisaDestino = models.ForeignKey(
+        "Divisa",
+        on_delete=models.CASCADE,
+        related_name="tasas_destino",
+        help_text="La divisa a la cual se va a convertir.",
+    )
+    valor = models.DecimalField(
+        max_digits=15,
+        decimal_places=8,
+        help_text="El valor de la divisa de origen en términos de la divisa de destino.",
+    )
+    comision_compra = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Monto de comisión por compra en la divisa de destino (Guaraníes).",
+    )
+    comision_venta = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Monto de comisión por venta en la divisa de destino (Guaraníes).",
+    )
+    fechaActualizacion = models.DateField(
+        auto_now=True, help_text="Fecha y hora de la última actualización de la tasa."
+    )
+    fechaVigencia = models.DateField(help_text="Fecha a partir de la cual esta tasa es válida.")
+    activo = models.BooleanField(
+        default=True, help_text="Indica si la tasa de cambio está activa o ha sido desactivada."
+    )
+
+    def clean(self):
+        """Valida que una de las divisas en la tasa de cambio sea la moneda base (PYG)."""
+        # Suponiendo que la divisa base (PYG) se puede identificar por un código,
+        # un campo booleano 'es_base', o un ID conocido.
+        # Por ahora, trabajando con el código 'PYG'.
+        es_moneda_base = self.divisaOrigen.codigo == "PYG" or self.divisaDestino.codigo == "PYG"
+
+        if not es_moneda_base:
+            raise ValidationError("Una de las divisas en la tasa de cambio debe ser la moneda base (PYG).")
+
+    # Las siguientes funciones no se definen como campos del modelo en Django,
+    # sino como métodos de la clase para encapsular la lógica de negocio.
+    def actualizar_tasa_compra(self, tasa: float):
+        """Método para actualizar la tasa de compra."""
+        # Lógica para actualizar la tasa de compra
+        pass
+
+    def actualizar_tasa_venta(self, tasa: float):
+        """Método para actualizar la tasa de venta."""
+        # Lógica para actualizar la tasa de venta
+        pass
+
+    def consultar_tasa_actual(self) -> Decimal:
+        """Método para consultar la tasa de cambio actual."""
+        return self.valor
+
+    class Meta:
+        # Nombre de la tabla en la base de datos
+        db_table = "tasa_cambio"
+        # Nombre singular y plural para el panel de administración de Django
+        verbose_name = "Tasa de Cambio"
+        verbose_name_plural = "Tasas de Cambio"
+        # Restricción de unicidad para evitar duplicados, por ejemplo,
+        # que no haya dos tasas activas con la misma divisa origen y destino.
+        unique_together = ("divisaOrigen", "divisaDestino")
+
+    def __str__(self):
+        """Representación en string del objeto, útil para la administración."""
+        estado = "Activa" if self.activo else "Inactiva"
+        return f"{self.divisaOrigen} a {self.divisaDestino} - Valor: {self.valor} ({estado})"
