@@ -8,4 +8,3 @@ Panel Admin App
 
 .. automodule:: apps.panel_admin.views
    :members:
-

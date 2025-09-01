@@ -10,5 +10,15 @@ if [ "$DATABASE" = "postgres" ]; then
     echo "PostgreSQL started"
 fi
 
-# Exec the command (runserver, gunicorn, etc.)
+# Run migrations
+echo "Running migrations..."
+uv run python manage.py migrate
+
+# Collect static files if in production
+if [ "${DEBUG}" = "False" ] || [ "${DEBUG}" = "false" ] || [ "${DEBUG}" = "0" ]; then
+    echo "Collecting static files..."
+    uv run python manage.py collectstatic --noinput
+fi
+
+# Exec the main command (runserver, gunicorn, etc.)
 exec "$@"
