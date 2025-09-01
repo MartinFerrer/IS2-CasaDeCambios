@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Lista de Monedas</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+              rel="stylesheet">
+        <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #f3f4f6;
+            }
+            .container {
+                max-width: 90%;
+            }
+            /* Estilo para el backdrop del modal */
+            dialog::backdrop {
+                background-color: rgba(0, 0, 0, 0.5);
+            }
+            /* Estilo base para el modal */
+            dialog {
+                border-radius: 1rem;
+                padding: 2rem;
+                background-color: white;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+                max-width: 95%;
+                width: 500px;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100 min-h-screen flex items-center justify-center py-12">
+        <div class="container mx-auto p-4 md:p-8 bg-white shadow-xl rounded-2xl w-full">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800">Lista de Monedas</h1>
+                <!-- Botón para crear moneda que abre un modal -->
+                <button class="mt-4 md:mt-0 px-6 py-2 bg-indigo-600 text-white font-medium rounded-full hover:bg-indigo-700 transition-colors duration-200 shadow-lg flex items-center"
+                        onclick="document.getElementById('modal_crear_moneda').showModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5 mr-2"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Crear Moneda
+                </button>
+            </div>
+            <div class="overflow-x-auto shadow-sm rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Código
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Nombre
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Esto es un marcador de posición para la lógica de Django -->
+                        <!-- Aquí se iteraría sobre una lista de monedas -->
+                        {% if monedas %}
+                            {% for moneda in monedas %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ moneda.codigo }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ moneda.nombre }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium flex space-x-2">
+                                        <a href="{% url 'operaciones:moneda_detail' moneda.pk %}"
+                                           class="text-blue-600 hover:text-blue-900 transition-colors duration-200">Ver</a>
+                                        <a href="{% url 'operaciones:edit_moneda' moneda.pk %}"
+                                           class="text-indigo-600 hover:text-indigo-900 transition-colors duration-200">
+                                            Editar
+                                        </a>
+                                        <a href="{% url 'operaciones:delete_moneda' moneda.pk %}"
+                                           class="text-red-600 hover:text-red-900 transition-colors duration-200">
+                                            Eliminar
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="3"
+                                    class="px-6 py-4 text-center text-sm text-gray-500 italic">
+                                    No hay monedas para mostrar.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Modal para crear moneda con el formulario completo -->
+        <dialog id="modal_crear_moneda" class="modal">
+            <div class="w-full max-w-xl p-6 bg-white rounded-lg shadow-xl">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Crear Nueva Moneda</h3>
+                <!-- Formulario de creación de moneda -->
+                <form id="crear-moneda-form" method="POST" action="/crear_moneda/">
+                    <div class="mb-4">
+                        <label for="id_codigo" class="block text-gray-700 font-medium mb-2">Código:</label>
+                        <input type="text"
+                               name="codigo"
+                               id="id_codigo"
+                               required
+                               maxlength="3"
+                               class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
+                    </div>
+                    <div class="mb-6">
+                        <label for="id_nombre" class="block text-gray-700 font-medium mb-2">Nombre:</label>
+                        <input type="text"
+                               name="nombre"
+                               id="id_nombre"
+                               required
+                               maxlength="50"
+                               class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button"
+                                class="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-full hover:bg-gray-300 transition-colors duration-200 shadow-lg"
+                                onclick="document.getElementById('modal_crear_moneda').close()">Cancelar</button>
+                        <button type="submit"
+                                class="px-6 py-2 bg-indigo-600 text-white font-medium rounded-full hover:bg-indigo-700 transition-colors duration-200 shadow-lg">
+                            Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+    </body>
+</html>

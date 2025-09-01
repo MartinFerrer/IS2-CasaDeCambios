@@ -14,11 +14,14 @@ class TipoDeCambio(models.Model):
 
     """
 
-    nombre = models.CharField(max_length=50, unique=True, verbose_name="Nombre")
-    """La funcion __str__ devuelve un nombre entendible para el objeto Tipo de Cambio.
-    """
+    class Tipo(models.TextChoices):
+        COMPRA = "Compra", "Compra"
+        VENTA = "Venta", "Venta"
+
+    nombre = models.CharField(max_length=50, choices=Tipo.choices, verbose_name="Nombre")
 
     def __str__(self):
+        """La funcion __str__ devuelve un nombre entendible para el objeto Tipo de Cambio."""
         return self.nombre
 
 
@@ -55,7 +58,7 @@ class Moneda(models.Model):
 
     tipo_de_cambio = models.ForeignKey(
         "TipoDeCambio",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         blank=True,
         null=True,
         verbose_name="Tipo de Cambio",
