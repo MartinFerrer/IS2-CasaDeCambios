@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Editar Cuenta Bancaria - {{ cliente.nombre }}{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Editar Cuenta Bancaria</h1>
+                        <p class="text-gray-600">
+                            Cliente: <span class="font-medium">{{ cliente.nombre }}</span> ({{ cliente.ruc }})
+                        </p>
+                        <p class="text-sm text-gray-500">Cuenta: {{ cuenta.alias }}</p>
+                    </div>
+                    <a href="{% url 'medios_pago_cliente' cliente.pk %}"
+                       class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver
+                    </a>
+                </div>
+            </div>
+            <!-- Formulario -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h2 class="card-title mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                            </path>
+                        </svg>
+                        Editar Información de la Cuenta
+                    </h2>
+                    <form method="post" class="space-y-6">
+                        {% csrf_token %}
+                        <!-- Banco -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Banco *</span>
+                            </label>
+                            <input type="text"
+                                   name="banco"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: Banco Nacional"
+                                   value="{{ cuenta.banco }}"
+                                   required
+                                   maxlength="100">
+                        </div>
+                        <!-- Número de Cuenta -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Número de Cuenta *</span>
+                            </label>
+                            <input type="text"
+                                   name="numero_cuenta"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: 1234567890123456"
+                                   value="{{ cuenta.numero_cuenta }}"
+                                   required
+                                   maxlength="20"
+                                   title="Escriba un número de cuenta válido"
+                                   pattern="[0-9]+">
+                        </div>
+                        <!-- Titular de la Cuenta -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Titular de la Cuenta *</span>
+                            </label>
+                            <input type="text"
+                                   name="titular_cuenta"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: Juan Pérez"
+                                   value="{{ cuenta.titular_cuenta }}"
+                                   required
+                                   maxlength="100">
+                        </div>
+                        <!-- RUC del Titular -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">RUC del Titular</span>
+                                <span class="label-text-alt text-gray-500">(Opcional)</span>
+                            </label>
+                            <input type="text"
+                                   name="ruc_titular"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: 12345678-9"
+                                   value="{{ cuenta.ruc_titular }}"
+                                   maxlength="12"
+                                   title="Escriba en formato 12345678-9"
+                                   pattern="[0-9]{1,8}-[0-9]">
+                        </div>
+                        <!-- Alias -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Alias personalizado</span>
+                                <span class="label-text-alt text-gray-500">(Opcional)</span>
+                            </label>
+                            <input type="text"
+                                   name="alias"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: Cuenta Principal"
+                                   value="{{ cuenta.alias }}"
+                                   maxlength="50">
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Si se deja vacío, se generará automáticamente</span>
+                            </label>
+                        </div>
+                        <!-- Botones -->
+                        <div class="card-actions justify-end pt-6">
+                            <a href="{% url 'medios_pago_cliente' cliente.pk %}"
+                               class="btn btn-outline">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">
+                                <svg class="w-4 h-4 mr-2"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Actualizar Cuenta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>// Sin validaciones JavaScript complejas, igual que en crear_cuenta_bancaria</script>
+{% endblock %}

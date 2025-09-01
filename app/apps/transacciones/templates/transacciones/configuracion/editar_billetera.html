@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Editar Billetera Electrónica - {{ cliente.nombre }}{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Editar Billetera Electrónica</h1>
+                        <p class="text-gray-600">
+                            Cliente: <span class="font-medium">{{ cliente.nombre }}</span> ({{ cliente.ruc }})
+                        </p>
+                        <p class="text-sm text-gray-500">Billetera: {{ billetera.alias }}</p>
+                    </div>
+                    <a href="{% url 'medios_pago_cliente' cliente.pk %}"
+                       class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver
+                    </a>
+                </div>
+            </div>
+            <!-- Formulario -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h2 class="card-title mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                            </path>
+                        </svg>
+                        Editar Información de la Billetera
+                    </h2>
+                    <form method="post" class="space-y-6">
+                        {% csrf_token %}
+                        <!-- Proveedor -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Proveedor *</span>
+                            </label>
+                            <select name="proveedor" class="select select-bordered w-full" required>
+                                <option value="">Seleccione un proveedor</option>
+                                <option value="personal_pay"
+                                        {% if billetera.proveedor == 'personal_pay' %}selected{% endif %}>
+                                    Personal Pay
+                                </option>
+                                <option value="mango"
+                                        {% if billetera.proveedor == 'mango' %}selected{% endif %}>Mango</option>
+                                <option value="wally"
+                                        {% if billetera.proveedor == 'wally' %}selected{% endif %}>Wally</option>
+                                <option value="eko" {% if billetera.proveedor == 'eko' %}selected{% endif %}>Eko</option>
+                                <option value="vaquita"
+                                        {% if billetera.proveedor == 'vaquita' %}selected{% endif %}>Vaquita</option>
+                                <option value="otros"
+                                        {% if billetera.proveedor == 'otros' %}selected{% endif %}>Otros</option>
+                            </select>
+                        </div>
+                        <!-- Identificador -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Identificador *</span>
+                            </label>
+                            <input type="text"
+                                   name="identificador"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: usuario123, +595991234567"
+                                   value="{{ billetera.identificador }}"
+                                   required
+                                   maxlength="50">
+                        </div>
+                        <!-- Número de Teléfono -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Número de Teléfono *</span>
+                                <span class="label-text-alt text-gray-500"></span>
+                            </label>
+                            <input type="tel"
+                                   name="numero_telefono"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: +595991234567"
+                                   value="{{ billetera.numero_telefono }}"
+                                   maxlength="15"
+                                   required>
+                        </div>
+                        <!-- Email Asociado -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Email Asociado *</span>
+                                <span class="label-text-alt text-gray-500"></span>
+                            </label>
+                            <input type="email"
+                                   name="email_asociado"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: usuario@example.com"
+                                   value="{{ billetera.email_asociado }}"
+                                   maxlength="100"
+                                   required>
+                        </div>
+                        <!-- Alias -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Alias personalizado</span>
+                                <span class="label-text-alt text-gray-500">(Opcional)</span>
+                            </label>
+                            <input type="text"
+                                   name="alias"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: Mi Billetera Principal"
+                                   value="{{ billetera.alias }}"
+                                   maxlength="50">
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Si se deja vacío, se generará automáticamente</span>
+                            </label>
+                        </div>
+                        <!-- Botones -->
+                        <div class="card-actions justify-end pt-6">
+                            <a href="{% url 'medios_pago_cliente' cliente.pk %}"
+                               class="btn btn-outline">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">
+                                <svg class="w-4 h-4 mr-2"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Actualizar Billetera
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>// Sin validaciones JavaScript complejas, igual que en crear_billetera</script>
+{% endblock %}
