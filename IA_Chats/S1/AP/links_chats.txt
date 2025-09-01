@@ -1,0 +1,5 @@
+#levantar del docker para el entorno siguiendo instrucciones
+https://chatgpt.com/share/68b2635b-7ab4-8003-9768-e4952c4dcf4f
+
+#explicacion del auth.user_permissions
+https://chatgpt.com/share/68b263d6-4100-8003-bef7-2d5dadedebdd
