@@ -8,4 +8,3 @@ Usuarios App
 
 .. automodule:: apps.usuarios.views
    :members:
-

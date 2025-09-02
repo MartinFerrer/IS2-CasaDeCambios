@@ -8,4 +8,3 @@ Transacciones App
 
 .. automodule:: apps.transacciones.views
    :members:
-

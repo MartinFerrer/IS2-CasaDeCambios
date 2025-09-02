@@ -1,0 +1,57 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+        exclude: '^\.vscode/.*'
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-docstring-first
+      - id: detect-private-key
+      - id: name-tests-test
+        args: ["--pytest"]
+      - id: no-commit-to-branch
+        args: ["--branch", "main", "--branch", "develop"]
+      - id: check-merge-conflict
+      - id: check-illegal-windows-names
+      - id: check-case-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.10
+    hooks:
+      - id: ruff-check
+        args: ["--fix", "--exit-zero", "--config=app/pyproject.toml"] # Exit 0 to not fail precommit but still apply fixes
+      - id: ruff-format
+        args: ["--config=app/pyproject.toml"]
+        stages: [pre-commit]
+
+  - repo: https://github.com/djlint/djLint
+    rev: v1.36.4
+    hooks:
+      - id: djlint-reformat-django
+        files: "\\.(html|j2|jinja|jinja2)$"
+      - id: djlint-django
+        files: "\\.(html|j2|jinja|jinja2)$"
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Run pytest (pre-push)
+        entry: docker compose -f docker-compose.dev.yml run --rm test
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+
+      - id: sphinx-build
+        name: Build Sphinx docs (pre-push)
+        entry: docker compose -f docker-compose.dev.yml run --rm --no-deps web uv run sphinx-build -b html docs docs/_build/html
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true

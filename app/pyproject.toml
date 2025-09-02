@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 # dev extras (testing, linting, docs)
 dev = [
+    "requests>=2.32.5",
     "ruff>=0.12.9",
     "sphinx>=8.2.3",
     "sphinx-autodoc-typehints>=3.2.0",
@@ -50,10 +51,35 @@ exclude = [] # exclude packages matching these glob patterns (empty by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.ruff.lint]
-select = ["ALL"]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "C",   # mccabe complexity
+    "N",   # naming conventions
+    "D",   # docstring issues (pydocstyle)
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "RUF012", # Mutable class attributes should be annotated with typing.ClassVar
+    "D203",   # Ignore incompatible rule for blank lines before class, there should be line before class
+    "D213",   # Ignore incompatible rule for multi-line summary, multi-line comment should be in first line
+]
 
 [tool.ruff]
-# Minimal ruff config stored here so we have one source of truth
 line-length = 120
-select = ["E", "F", "W", "C", "B", "I", "RUF"]
 exclude = [".venv", "venv", "build", "dist", ".git"]
+
+[tool.ruff.lint.per-file-ignores]
+"dev.py" = ["T201"] # Allow print statements in dev.py
+
+[tool.djlint]
+profile = "django"
+ignore = "T003,H030,H031"
+# T003: Endblock should have name
+# H030: Adding meta description
+# H031: Adding meta keywords
+
+[tool.djlint.per-file-ignores]
