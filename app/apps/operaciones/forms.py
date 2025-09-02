@@ -1,14 +1,20 @@
+# Importar el módulo de formularios de Django para crear formularios basados en modelos
 from django import forms
 
 from .models import Divisa, TasaCambio
 
+"""Forms para app operaciones.
+
+Este módulo contiene formularios de Django para crear y editar los modelos Divisa y TasaCambio.
+"""
+
 
 class TasaCambioForm(forms.ModelForm):
-    """Formulario para la creación y edición del modelo TasaCambio.
-    Añade clases de DaisyUI para el estilo.
-    """
+    """Formulario para la creación y edición del modelo TasaCambio."""
 
     class Meta:
+        """Clase Meta para TasaCambioForm."""
+
         model = TasaCambio
         fields = [
             "divisaOrigen",
@@ -38,7 +44,24 @@ class TasaCambioForm(forms.ModelForm):
             "activo": "Marque esta opción para activar la tasa de cambio.",
         }
 
+        # Inicialización del formulario con aplicación de estilos de DaisyUI a los widgets
+        def __init__(self, *args, **kwargs):
+            """Inicializa el formulario y aplica clases de DaisyUI a los widgets."""
+            super().__init__(*args, **kwargs)
+            # Aplica las clases de estilo de DaisyUI a los widgets
+            for field_name, field in self.fields.items():
+                if field_name in ["divisaOrigen", "divisaDestino"]:
+                    # Las claves foráneas usan un widget Select por defecto
+                    field.widget.attrs.update({"class": "select select-bordered w-full"})
+                elif field_name == "activo":
+                    # El campo booleano usa un widget CheckboxInput
+                    field.widget.attrs.update({"class": "checkbox"})
+                else:
+                    # El resto de los campos de texto y número usan Input
+                    field.widget.attrs.update({"class": "input input-bordered w-full"})
+
     def __init__(self, *args, **kwargs):
+        """Inicializa el formulario y aplica clases de DaisyUI a los widgets."""
         super().__init__(*args, **kwargs)
         # Aplica las clases de estilo de DaisyUI a los widgets
         for field_name, field in self.fields.items():
@@ -58,6 +81,7 @@ class DivisaForm(forms.ModelForm):
 
     class Meta:
         """Se define como se mostraran los campos del formulario.
+
         Los widgets son para personalizar la apariencia de los campos en la interfaz.
         """
 
