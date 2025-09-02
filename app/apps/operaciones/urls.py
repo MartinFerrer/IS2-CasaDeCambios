@@ -17,9 +17,11 @@ urlpatterns = [
     # URL para la vista que crea una nueva divisa
     path("divisa/crear/", views.create_divisa, name="create_divisa"),
     # URL para la vista que muestra los detalles de una divisa específica
-    path("divisa/detalles/<int:pk>/", views.divisa_detail, name="divisa_detail"),
+    path("divisa/detalles/<uuid:pk>/", views.divisa_detail, name="divisa_detail"),
     # Se agrega la URL para editar una divisa, que faltaba
-    path("divisa/editar/<int:pk>/", views.edit_divisa, name="edit_divisa"),
+    path("divisa/editar/<uuid:pk>/", views.edit_divisa, name="edit_divisa"),
     # URL para la vista que elimina una divisa específica
-    path("divisa/eliminar/<int:pk>/", views.delete_divisa, name="delete_divisa"),
+    path("divisa/eliminar/<uuid:pk>/", views.delete_divisa, name="delete_divisa"),
+    # URL para la lista de dvisas
+    path("divisa/lista/<uuid:pk>/", views.divisa_listar, name="divisa_list"),
 ]

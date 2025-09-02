@@ -23,15 +23,13 @@ def create_divisa(request):
         if form.is_valid():
             # si el formulario es válido, guarda la nueva instancia de divisa en la base de datos
             divisa = form.save()
-            return redirect(
-                "operaciones:divisa_detail", pk=divisa.pk
-            )  # Redirige a la vista de detalle con el namespace
+            return redirect("operaciones:divisa_list", pk=divisa.pk)  # Redirige a la vista de detalle con el namespace
     else:
         # si es una solicitud GET, crea un formulario vacío
         form = DivisaForm()
 
     # renderiza el formulario en la plantilla
-    return render(request, "operaciones/create_divisa.html", {"form": form})
+    return render(request, "crear_divisa.html", {"form": form})
 
 
 def edit_divisa(request, pk):
@@ -45,7 +43,7 @@ def edit_divisa(request, pk):
     else:
         form = DivisaForm(instance=divisa)
 
-    return render(request, "operaciones/edit_divisa.html", {"form": form, "divisa": divisa})
+    return render(request, "crear_divisa.html", {"form": form, "divisa": divisa})
 
 
 def delete_divisa(request, pk):
@@ -60,7 +58,7 @@ def delete_divisa(request, pk):
     if request.method == "POST":
         divisa.delete()
         return redirect("operaciones:divisa_list")  # Redirige a la lista de divisas después de eliminar
-    return render(request, "operaciones/divisa_confirm_delete.html", {"divisa": divisa})
+    return render(request, "divisa_list.html", {"divisa": divisa})
 
 
 def divisa_detail(request, pk):
@@ -72,7 +70,7 @@ def divisa_detail(request, pk):
 
     """
     divisa = get_object_or_404(Divisa, pk=pk)
-    return render(request, "operaciones/divisa_detail.html", {"divisa": divisa})
+    return render(request, "divisa_detalle.html", {"divisa": divisa})
 
 
 def divisa_listar(request):
@@ -81,7 +79,7 @@ def divisa_listar(request):
     context = {
         "divisas": divisas,
     }
-    return render(request, "operaciones/divisa_list.html", context)
+    return render(request, "divisa_list.html", context)
 
 
 def tasa_cambio_listar(request: HttpRequest) -> object:
@@ -95,7 +93,7 @@ def tasa_cambio_listar(request: HttpRequest) -> object:
 
     """
     tasas = TasaCambio.objects.all().order_by("-fechaActualizacion")
-    return render(request, "tasas_cambio/tasa_cambio_list.html", {"tasas_de_cambio": tasas})
+    return render(request, "tasa_cambio_list.html", {"tasas_de_cambio": tasas})
 
 
 def tasa_cambio_crear(request: HttpRequest) -> object:
@@ -115,7 +113,7 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
             return redirect("operaciones:tasa_cambio_listar")
     else:
         form = TasaCambioForm()
-    return render(request, "tasas_cambio/tasa_cambio_form.html", {"form": form})
+    return render(request, "tasa_cambio_form.html", {"form": form})
 
 
 def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
@@ -137,7 +135,7 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
             return redirect("operaciones:tasa_cambio_listar")
     else:
         form = TasaCambioForm(instance=tasa)
-    return render(request, "tasas_cambio/tasa_cambio_form.html", {"form": form})
+    return render(request, "tasa_cambio_form.html", {"form": form})
 
 
 def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
