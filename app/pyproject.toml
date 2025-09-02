@@ -5,7 +5,7 @@ description = "Sistema Global Exchange"
 readme = "README.md"
 requires-python = ">=3.13"
 authors = [
-    { name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" },
+    { name = "Martín Ferrer Canese", email = "martinferrer2010@fpuna.edu.py" },
     { name = "Fabrizio Daisuke Kawabata Miyamoto", email = "fabrizziokawabata@fpuna.edu.py" },
     { name = "Atilio Sebastián Paredes Pérez", email = "atilioparedes973@fpuna.edu.py" },
     { name = "Ian Alexander Torres Marecos", email = "iantorressm@fpuna.edu.py" },
@@ -23,6 +23,7 @@ dependencies = [
     "python-dotenv",          # load .env in dev if desired
     "pytest>=8.4.1",
     "pytest-django>=4.11.1",
+    "environ>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -65,8 +66,13 @@ select = [
 ignore = [
     "RUF012", # Mutable class attributes should be annotated with typing.ClassVar
     "D203",   # Ignore incompatible rule for blank lines before class, there should be line before class
-    "D213",   # Ignore incompatible rule for multi-line summary, multi-line comment should be in first line
+    "D213",   # Ignore incompatible rule for multi-line summary, multi-line comment should be in first 
+    "D105",   # Ignore missing docstring in magic method
 ]
+
+# Allow unused variables when underscore-prefixed.
+fixable = ["A", "B", "C", "D", "E", "F", "I", "N", "RUF", "W"]
+unfixable = []
 
 [tool.ruff]
 line-length = 120
