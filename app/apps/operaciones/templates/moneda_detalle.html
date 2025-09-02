@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Detalle de Moneda{% endblock %}
+{% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-800">Detalle de Moneda</h1>
+            <a href="{% url 'operaciones:create_moneda' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5 mr-2"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Crear Moneda
+            </a>
+        </div>
+        <div class="card w-full max-w-2xl mx-auto bg-white shadow-xl overflow-auto rounded-lg">
+            <div class="card-body">
+                <h2 class="text-xl font-semibold mb-4">{{ moneda.nombre }}</h2>
+                <div class="space-y-2">
+                    <p>
+                        <strong>Símbolo:</strong> {{ moneda.simbolo }}
+                    </p>
+                    <p>
+                        <strong>Código:</strong> {{ moneda.codigo }}
+                    </p>
+                </div>
+                <div class="mt-4 flex space-x-2">
+                    <a href="{% url 'moneda_edit' moneda.pk %}" class="btn btn-primary">Editar</a>
+                    <!-- Botón para eliminar, abre un modal de confirmación -->
+                    <button class="btn btn-error"
+                            onclick="document.getElementById('modal_eliminar_moneda').showModal()">Eliminar</button>
+                    <!-- Modal de confirmación de eliminación -->
+                    <dialog id="modal_eliminar_moneda" class="modal">
+                        <div class="modal-box">
+                            <h3 class="font-bold text-lg">Confirmar Eliminación</h3>
+                            <p class="py-4">¿Estás seguro de que deseas eliminar la moneda "{{ moneda.nombre }}"?</p>
+                            <form method="post"
+                                  action="{% url 'operaciones:delete_moneda' moneda.pk %}">
+                                {% csrf_token %}
+                                <div class="modal-action mt-4 flex justify-end space-x-2">
+                                    <button type="submit" class="btn btn-error">Eliminar</button>
+                                    <button type="button"
+                                            class="btn"
+                                            onclick="document.getElementById('modal_eliminar_moneda').close()">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </dialog>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

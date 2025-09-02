@@ -6,8 +6,82 @@ Este módulo contiene las vistas CRUD para el modelo TasaCambio.
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import TasaCambioForm
-from .models import TasaCambio
+from .forms import DivisaForm, TasaCambioForm
+from .models import Divisa, TasaCambio
+
+
+def create_divisa(request):
+    """View para crear una nueva divisa.
+
+    Args:
+        request: La solicitud HTTP.
+
+    """
+    if request.method == "POST":
+        # si se envía el formulario, se vinculan los datos al formulario
+        form = DivisaForm(request.POST)
+        if form.is_valid():
+            # si el formulario es válido, guarda la nueva instancia de divisa en la base de datos
+            divisa = form.save()
+            return redirect(
+                "operaciones:divisa_detail", pk=divisa.pk
+            )  # Redirige a la vista de detalle con el namespace
+    else:
+        # si es una solicitud GET, crea un formulario vacío
+        form = DivisaForm()
+
+    # renderiza el formulario en la plantilla
+    return render(request, "operaciones/create_divisa.html", {"form": form})
+
+
+def edit_divisa(request, pk):
+    """View para editar una divisa existente."""
+    divisa = get_object_or_404(Divisa, pk=pk)
+    if request.method == "POST":
+        form = DivisaForm(request.POST, instance=divisa)
+        if form.is_valid():
+            form.save()
+            return redirect("operaciones:divisa_detail", pk=divisa.pk)
+    else:
+        form = DivisaForm(instance=divisa)
+
+    return render(request, "operaciones/edit_divisa.html", {"form": form, "divisa": divisa})
+
+
+def delete_divisa(request, pk):
+    """View para eliminar una divisa específica.
+
+    Args:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a eliminar.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    if request.method == "POST":
+        divisa.delete()
+        return redirect("operaciones:divisa_list")  # Redirige a la lista de divisas después de eliminar
+    return render(request, "operaciones/divisa_confirm_delete.html", {"divisa": divisa})
+
+
+def divisa_detail(request, pk):
+    """View para mostrar los detalles de una divisa específica.
+
+    Args:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a mostrar.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    return render(request, "operaciones/divisa_detail.html", {"divisa": divisa})
+
+
+def divisa_listar(request):
+    """View para mostrar las divisas."""
+    divisas = Divisa.objects.all().order_by("nombre")
+    context = {
+        "divisas": divisas,
+    }
+    return render(request, "operaciones/divisa_list.html", context)
 
 
 def tasa_cambio_listar(request: HttpRequest) -> object:

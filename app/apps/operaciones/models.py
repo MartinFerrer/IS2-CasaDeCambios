@@ -6,7 +6,19 @@ from django.db import models
 
 
 class Divisa(models.Model):
-    """Modelo para gestionar las divisas soportadas en el sistema."""
+    """Representa una Divisa utilizada en el sistema de cambio.
+
+    Este modelo almacena información básica sobre cada Divisa, incluyendo su
+    símbolo, país, estado de activación, y las tasas de cambio y comisiones
+    asociadas.
+
+    Args:
+        idDivisa (UUIDField): Identificador único para la Divisa.
+        codigo (CharField): El código ISO 4217 de la Divisa (e.g 'USD', 'EUR').
+        nombre (CharField): El nombre de la Divisa (e.g., 'Dólar').
+        simbolo (CharField): El símbolo de la Divisa (ej. ₲, $, €).
+
+    """
 
     idDivisa = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único para la divisa."
@@ -68,14 +80,14 @@ class TasaCambio(models.Model):
     )
 
     def clean(self):
-        """Valida que una de las divisas en la tasa de cambio sea la moneda base (PYG)."""
+        """Valida que una de las divisas en la tasa de cambio sea la Divisa base (PYG)."""
         # Suponiendo que la divisa base (PYG) se puede identificar por un código,
         # un campo booleano 'es_base', o un ID conocido.
         # Por ahora, trabajando con el código 'PYG'.
-        es_moneda_base = self.divisaOrigen.codigo == "PYG" or self.divisaDestino.codigo == "PYG"
+        es_Divisa_base = self.divisaOrigen.codigo == "PYG" or self.divisaDestino.codigo == "PYG"
 
-        if not es_moneda_base:
-            raise ValidationError("Una de las divisas en la tasa de cambio debe ser la moneda base (PYG).")
+        if not es_Divisa_base:
+            raise ValidationError("Una de las divisas en la tasa de cambio debe ser la Divisa base (PYG).")
 
     # Las siguientes funciones no se definen como campos del modelo en Django,
     # sino como métodos de la clase para encapsular la lógica de negocio.
