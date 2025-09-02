@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import TasaCambio
+from .models import Divisa, TasaCambio
 
 
 class TasaCambioForm(forms.ModelForm):
@@ -53,16 +53,8 @@ class TasaCambioForm(forms.ModelForm):
                 field.widget.attrs.update({"class": "input input-bordered w-full"})
 
 
-from .models import Divisa
-
-
 class DivisaForm(forms.ModelForm):
-    """Formulario para crear y editar divisas.
-
-    Args:
-        request: La solicitud HTTP.
-
-    """
+    """Formulario para crear y editar divisas."""
 
     class Meta:
         """Se define como se mostraran los campos del formulario.
@@ -70,22 +62,14 @@ class DivisaForm(forms.ModelForm):
         """
 
         model = Divisa
-        fields = ["nombre", "simbolo", "pais", "esta_activa", "comision", "tipo_de_cambio", "tasa_actual"]
+        fields = ["codigo", "nombre", "simbolo"]
         labels = {
+            "codigo": "Código",
             "nombre": "Nombre",
             "simbolo": "Símbolo",
-            "pais": "País",
-            "esta_activa": "Está Activa",
-            "comision": "Comisión (%)",
-            "tipo_de_cambio": "Tipo de Cambio",
-            "tasa_actual": "Tasa Actual",
         }
         widgets = {
+            "codigo": forms.TextInput(attrs={"class": "form-control"}),
             "nombre": forms.TextInput(attrs={"class": "form-control"}),
             "simbolo": forms.TextInput(attrs={"class": "form-control"}),
-            "pais": forms.TextInput(attrs={"class": "form-control"}),
-            "esta_activa": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "comision": forms.NumberInput(attrs={"class": "form-control"}),
-            "tipo_de_cambio": forms.Select(attrs={"class": "form-control"}),
-            "tasa_actual": forms.NumberInput(attrs={"class": "form-control"}),
         }

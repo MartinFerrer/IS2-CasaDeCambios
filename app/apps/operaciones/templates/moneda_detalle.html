@@ -8,7 +8,7 @@
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-blue-800">Detalle de Moneda</h1>
-            <a href="{% url 'operaciones:create_moneda' %}" class="btn btn-primary">
+            <a href="{% url 'operaciones:create_divisa' %}" class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5 mr-2"
                      fill="none"
@@ -21,33 +21,32 @@
         </div>
         <div class="card w-full max-w-2xl mx-auto bg-white shadow-xl overflow-auto rounded-lg">
             <div class="card-body">
-                <h2 class="text-xl font-semibold mb-4">{{ moneda.nombre }}</h2>
+                <h2 class="text-xl font-semibold mb-4">{{ divisa.nombre }}</h2>
                 <div class="space-y-2">
                     <p>
-                        <strong>Símbolo:</strong> {{ moneda.simbolo }}
+                        <strong>Símbolo:</strong> {{ divisa.simbolo }}
                     </p>
                     <p>
-                        <strong>Código:</strong> {{ moneda.codigo }}
+                        <strong>Código:</strong> {{ divisa.codigo }}
                     </p>
                 </div>
                 <div class="mt-4 flex space-x-2">
-                    <a href="{% url 'moneda_edit' moneda.pk %}" class="btn btn-primary">Editar</a>
-                    <!-- Botón para eliminar, abre un modal de confirmación -->
+                    <a href="{% url 'operaciones:edit_divisa' divisa.pk %}"
+                       class="btn btn-primary">Editar</a>
                     <button class="btn btn-error"
-                            onclick="document.getElementById('modal_eliminar_moneda').showModal()">Eliminar</button>
-                    <!-- Modal de confirmación de eliminación -->
-                    <dialog id="modal_eliminar_moneda" class="modal">
+                            onclick="document.getElementById('modal_eliminar_divisa').showModal()">Eliminar</button>
+                    <dialog id="modal_eliminar_divisa" class="modal">
                         <div class="modal-box">
                             <h3 class="font-bold text-lg">Confirmar Eliminación</h3>
-                            <p class="py-4">¿Estás seguro de que deseas eliminar la moneda "{{ moneda.nombre }}"?</p>
+                            <p class="py-4">¿Estás seguro de que deseas eliminar la moneda "{{ divisa.nombre }}"?</p>
                             <form method="post"
-                                  action="{% url 'operaciones:delete_moneda' moneda.pk %}">
+                                  action="{% url 'operaciones:delete_divisa' divisa.pk %}">
                                 {% csrf_token %}
                                 <div class="modal-action mt-4 flex justify-end space-x-2">
                                     <button type="submit" class="btn btn-error">Eliminar</button>
                                     <button type="button"
                                             class="btn"
-                                            onclick="document.getElementById('modal_eliminar_moneda').close()">
+                                            onclick="document.getElementById('modal_eliminar_divisa').close()">
                                         Cancelar
                                     </button>
                                 </div>
