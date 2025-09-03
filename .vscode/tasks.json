@@ -140,7 +140,6 @@
       "problemMatcher": []
     },
     {
-<<<<<<< HEAD
       "label": "dev: makemigrations (local)",
       "type": "process",
       "command": "${workspaceFolder}/app/.venv/bin/python",
@@ -154,8 +153,6 @@
       "problemMatcher": []
     },
     {
-=======
->>>>>>> develop
       "label": "dev: logs",
       "type": "process",
       "command": "${workspaceFolder}/app/.venv/bin/python",
