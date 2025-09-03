@@ -66,11 +66,11 @@ select = [
 ignore = [
     "RUF012", # Mutable class attributes should be annotated with typing.ClassVar
     "D203",   # Ignore incompatible rule for blank lines before class, there should be line before class
-    "D213",   # Ignore incompatible rule for multi-line summary, multi-line comment should be in first 
+    "D213",   # Ignore incompatible rule for multi-line summary, multi-line comment should be in first
     "D105",   # Ignore missing docstring in magic method
 ]
 
-# Allow unused variables when underscore-prefixed.
+# Allow autofixing selected with --fix flag
 fixable = ["A", "B", "C", "D", "E", "F", "I", "N", "RUF", "W"]
 unfixable = []
 
