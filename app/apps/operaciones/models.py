@@ -44,30 +44,6 @@ class Divisa(models.Model):
         return f"{self.codigo}"
 
 
-class TipoDeCambio(models.Model):
-    """Modelo para gestionar los tipos de cambio entre divisas."""
-
-    id_tipo_cambio = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único para el tipo de cambio."
-    )
-    nombre = models.CharField(max_length=50, help_text="Nombre del tipo de cambio (e.g., 'Compra', 'Venta').")
-
-    class Meta:
-        db_table = "tipo_de_cambio"
-        verbose_name = "Tipo de Cambio"
-        verbose_name_plural = "Tipos de Cambio"
-
-    class Tipo(models.TextChoices):
-        COMPRA = "Compra", "Compra"
-        VENTA = "Venta", "Venta"
-
-    nombre = models.CharField(max_length=50, choices=Tipo.choices, verbose_name="Nombre")
-
-    def __str__(self):
-        """La funcion __str__ devuelve un nombre entendible para el objeto Tipo de Cambio."""
-        return self.nombre
-
-
 class TasaCambio(models.Model):
     """Modelo para gestionar las tasas de cambio entre divisas.
 
@@ -116,18 +92,10 @@ class TasaCambio(models.Model):
         # Suponiendo que la divisa base (PYG) se puede identificar por un código,
         # un campo booleano 'es_base', o un ID conocido.
         # Por ahora, trabajando con el código 'PYG'.
-        es_Divisa_base = self.divisaOrigen.codigo == "PYG" or self.divisaDestino.codigo == "PYG"
+        es_Divisa_base = self.divisa_origen.codigo == "PYG" or self.divisa_destino.codigo == "PYG"
 
         if not es_Divisa_base:
             raise ValidationError("Una de las divisas en la tasa de cambio debe ser la Divisa base (PYG).")
-
-    tipo_de_cambio = models.ForeignKey(
-        "TipoDeCambio",
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
-        verbose_name="Tipo de Cambio",
-    )
 
     # Las siguientes funciones no se definen como campos del modelo en Django,
     # sino como métodos de la clase para encapsular la lógica de negocio.
@@ -159,7 +127,7 @@ class TasaCambio(models.Model):
         verbose_name_plural = "Tasas de Cambio"
         # Restricción de unicidad para evitar duplicados, por ejemplo,
         # que no haya dos tasas activas con la misma divisa origen y destino.
-        unique_together = ("divisaOrigen", "divisaDestino")
+        unique_together = ("divisa_origen", "divisa_destino")
 
     def __str__(self):
         """Representación en string del objeto, útil para la administración."""

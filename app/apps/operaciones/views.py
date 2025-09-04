@@ -92,7 +92,7 @@ def tasa_cambio_listar(request: HttpRequest) -> object:
         HttpResponse: Renderiza el template tasa_cambio_list.html con el contexto de las tasas de cambio.
 
     """
-    tasas = TasaCambio.objects.all().order_by("-fechaActualizacion")
+    tasas = TasaCambio.objects.all().order_by("-fecha_actualizacion")
     return render(request, "tasa_cambio_list.html", {"tasas_de_cambio": tasas})
 
 
@@ -178,10 +178,6 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
     return redirect("operaciones:tasa_cambio_listar")
 
 
-from .forms import MonedaForm
-from .models import Moneda
-
-
 def create_moneda(request):
     """View para crear una nueva moneda.
 
@@ -191,7 +187,7 @@ def create_moneda(request):
     """
     if request.method == "POST":
         # si se envía el formulario, se vinculan los datos al formulario
-        form = MonedaForm(request.POST)
+        form = DivisaForm(request.POST)
         if form.is_valid():
             # si el formulario es válido, guarda la nueva instancia de moneda en la base de datos
             moneda = form.save()
@@ -200,7 +196,7 @@ def create_moneda(request):
             )  # Redirige a la vista de detalle con el namespace
     else:
         # si es una solicitud GET, crea un formulario vacío
-        form = MonedaForm()
+        form = DivisaForm()
 
     # renderiza el formulario en la plantilla
     return render(request, "operaciones/create_moneda.html", {"form": form})
@@ -208,14 +204,14 @@ def create_moneda(request):
 
 def edit_moneda(request, pk):
     """View para editar una moneda existente."""
-    moneda = get_object_or_404(Moneda, pk=pk)
+    moneda = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
-        form = MonedaForm(request.POST, instance=moneda)
+        form = DivisaForm(request.POST, instance=moneda)
         if form.is_valid():
             form.save()
             return redirect("operaciones:moneda_detail", pk=moneda.pk)
     else:
-        form = MonedaForm(instance=moneda)
+        form = DivisaForm(instance=moneda)
 
     return render(request, "operaciones/edit_moneda.html", {"form": form, "moneda": moneda})
 
@@ -228,7 +224,7 @@ def delete_moneda(request, pk):
         pk: El identificador de la moneda a eliminar.
 
     """
-    moneda = get_object_or_404(Moneda, pk=pk)
+    moneda = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
         moneda.delete()
         return redirect("operaciones:moneda_list")  # Redirige a la lista de monedas después de eliminar
@@ -243,13 +239,13 @@ def moneda_detail(request, pk):
         pk: El identificador de la moneda a mostrar.
 
     """
-    moneda = get_object_or_404(Moneda, pk=pk)
+    moneda = get_object_or_404(Divisa, pk=pk)
     return render(request, "operaciones/moneda_detail.html", {"moneda": moneda})
 
 
 def moneda_listar(request):
     """View para mostrar las monedas."""
-    monedas = Moneda.objects.all().order_by("nombre")
+    monedas = Divisa.objects.all().order_by("nombre")
     context = {
         "monedas": monedas,
     }
