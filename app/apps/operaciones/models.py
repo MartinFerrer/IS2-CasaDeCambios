@@ -18,7 +18,7 @@ class Divisa(models.Model):
     Este modelo almacena información básica sobre cada Divisa, incluyendo su
     código ISO, nombre y símbolo.
 
-    Args:
+    Argumentos:
         idDivisa (UUIDField): Identificador único para la Divisa.
         codigo (CharField): El código ISO 4217 de la Divisa (e.g 'USD', 'EUR').
         nombre (CharField): El nombre de la Divisa (e.g., 'Dólar').
