@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
@@ -43,8 +45,14 @@ class TipoCliente(models.Model):
     """Modelo que representa el tipo de cliente."""
 
     nombre = models.CharField(max_length=50, unique=True)
+    # Descuento configurable aplicado sobre la comisión en Compra/Venta de Divisas (y mostrado en simulación)
+    descuento_sobre_comision = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        default=Decimal("0.0"),
+    )  # 0.0 - 99.9
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.nombre
 
 

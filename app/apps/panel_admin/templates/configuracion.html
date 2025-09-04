@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}
+    Configuración del Sistema
+{% endblock title %}
+{% block body_class %}
+    bg-gradient-to-br from-blue-20 to-blue-200 min-h-screen
+{% endblock body_class %}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock %}
+{% block content %}
+    <main class="prose prose-a:no-underline max-w-screen-lg container mx-auto px-4 py-8">
+        <h1>Configuraciones</h1>
+        <!-- Tabs para diferentes secciones de configuración -->
+        <div class="tabs tabs-box mb-6">
+            <a class="tab tab-active" data-tab="comisiones">Comisiones</a>
+            <a class="tab" data-tab="otras">Otras</a>
+            <!-- Más tabs para futuras configuraciones -->
+        </div>
+        <!-- Sección de Comisiones -->
+        <div id="comisiones" class="config-section">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mt-0 mb-6">Descuentos Sobre la Comision por Tipo de Cliente</h2>
+                    <!-- Formulario de comisiones -->
+                    <form method="POST"
+                          action="{% url 'guardar_comisiones' %}"
+                          class="space-y-6">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-[max-content_1fr] gap-4">
+                            {% for tipo_cliente in tipos_clientes %}
+                                <label class="label row">
+                                    <span class="label-text">Cliente {{ tipo_cliente.nombre }} (%)</span>
+                                </label>
+                                <input type="number"
+                                       name="descuento_comision_{{ tipo_cliente.pk }}"
+                                       min="0"
+                                       max="20"
+                                       step="0.1"
+                                       class="input input-bordered"
+                                       title="Debe ser entre 0 y 20"
+                                       value="{{ tipo_cliente.descuento_sobre_comision | floatformat:1 }}"
+                                       required>
+                            {% endfor %}
+                        </div>
+                        <!-- Botones de acción -->
+                        <div class="flex justify- space-x-4">
+                            <button type="reset" class="btn btn-outline">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Sección de Otras Opciones (oculta por defecto) -->
+        <div id="otras" class="config-section hidden">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mt-0 mb-6">Otras Configuraciones</h2>
+                    <!-- Contenido futuro para configuraciónes -->
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Toast para notificaciones -->
+    <div id="toast" class="toast toast-end hidden">
+        <div class="alert alert-success">
+            <span>Cambios guardados exitosamente.</span>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_scripts %}
+    <script>
+    // Manejo de tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            // Remover active de todos los tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
+            // Agregar active al tab seleccionado
+            e.target.classList.add('tab-active');
+            
+            // Ocultar todas las secciones
+            document.querySelectorAll('.config-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Mostrar la sección seleccionada
+            const targetSection = document.getElementById(e.target.dataset.tab);
+            targetSection.classList.remove('hidden');
+        });
+    });
+    </script>
+{% endblock %}
