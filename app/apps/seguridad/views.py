@@ -1,13 +1,13 @@
+from apps.usuarios.forms import CustomUserCreationForm
+from apps.usuarios.models import Usuario
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-
-from apps.usuarios.forms import CustomUserCreationForm
-from apps.usuarios.models import Usuario
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -22,7 +22,9 @@ def registro_view(request):
             user = form.save(commit=False)
             user.is_active = False  # 🚨 desactivar hasta verificar
             user.save()
-
+            # Definir grupo de usuario creado
+            grupo, _ = Group.objects.get_or_create(name="Usuario Registrado")
+            user.groups.add(grupo)
             # Generar token
             token = token_generator.make_token(user)
             uid = user.pk

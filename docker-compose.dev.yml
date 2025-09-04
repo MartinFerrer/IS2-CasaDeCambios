@@ -16,7 +16,7 @@ services:
       - 7432:5432
 
   web:
-    build: 
+    build:
       context: ./app
       cache_from:
         - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
@@ -57,7 +57,7 @@ services:
           path: ./app/pyproject.toml
 
   test:
-    build: 
+    build:
       context: ./app
       cache_from:
         - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
