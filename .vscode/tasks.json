@@ -114,6 +114,19 @@
       "problemMatcher": []
     },
     {
+      "label": "dev: migrate (local)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "migrate-local"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "dev: makemigrations",
       "type": "process",
       "command": "${workspaceFolder}/app/.venv/bin/python",
@@ -123,6 +136,19 @@
       "args": [
         "dev.py",
         "makemigrations"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: makemigrations (local)",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "makemigrations-local"
       ],
       "problemMatcher": []
     },
