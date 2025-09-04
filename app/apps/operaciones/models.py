@@ -79,7 +79,7 @@ class TasaCambio(models.Model):
         help_text="La divisa a la cual se va a convertir.",
     )
     valor = models.DecimalField(
-        max_digits=6,
+        max_digits=9,
         decimal_places=3,
         help_text="El valor de la divisa de origen en términos de la divisa de destino.",
     )
