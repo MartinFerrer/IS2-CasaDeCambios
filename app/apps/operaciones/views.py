@@ -131,11 +131,7 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
     if request.method == "POST":
         form = TasaCambioForm(request.POST)
         if form.is_valid():
-            tasa_cambio = form.save(commit=False)
-            # Asignar la divisa de origen "PYG" automáticamente
-            divisa_origen = get_object_or_404(Divisa, codigo="PYG")
-            tasa_cambio.divisa_origen = divisa_origen
-            tasa_cambio.save()
+            form.save()
             return redirect("operaciones:tasa_cambio_listar")
     else:
         form = TasaCambioForm()

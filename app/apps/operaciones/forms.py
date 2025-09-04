@@ -16,7 +16,7 @@ class TasaCambioForm(forms.ModelForm):
 
         model = TasaCambio
         fields = [
-            # Eliminamos 'divisa_origen' de los campos del formulario
+            "divisa_origen",
             "divisa_destino",
             "valor",
             "comision_compra",
@@ -26,23 +26,23 @@ class TasaCambioForm(forms.ModelForm):
             "activo",
         ]
         labels = {
-            # Eliminamos 'divisa_origen' de las etiquetas
+            "divisa_origen": "Divisa de Origen",
             "divisa_destino": "Divisa de Destino",
             "valor": "Valor de la Tasa",
             "comision_compra": "Comisión por Compra (Gs.)",
             "comision_venta": "Comisión por Venta (Gs.)",
             "fecha_vigencia": "Fecha de Vigencia",
-            "hora_vigencia": "Hora de Vigencia",  # Nueva etiqueta
+            "hora_vigencia": "Hora de Vigencia",
             "activo": "Activa",
         }
         help_texts = {
-            # Eliminamos 'divisa_origen' de los textos de ayuda
+            "divisa_origen": "La divisa desde la cual se realiza la conversión. (Fijo en PYG)",
             "divisa_destino": "Seleccione la divisa de destino para la tasa de cambio.",
             "valor": "Ingrese el valor de la tasa de cambio.",
             "comision_compra": "Monto en Gs. que se suma al valor de la tasa para la compra.",
             "comision_venta": "Monto en Gs. que se suma al valor de la tasa para la venta.",
             "fecha_vigencia": "Fecha en la que la tasa de cambio entra en vigencia.",
-            "hora_vigencia": "Hora en la que la tasa de cambio entra en vigencia.",  # Nuevo texto de ayuda
+            "hora_vigencia": "Hora en la que la tasa de cambio entra en vigencia.",
         }
 
     def __init__(self, *args, **kwargs):
