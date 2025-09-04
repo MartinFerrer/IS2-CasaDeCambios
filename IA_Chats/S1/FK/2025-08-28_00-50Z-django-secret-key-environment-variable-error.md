@@ -40,7 +40,7 @@ pero esto solo es recomendable para desarrollo, nunca para producción.
 _**User**_
 
 Traceback (most recent call last):
-  File "C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios\app\manage.py", line 22, in <module>        
+  File "C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios\app\manage.py", line 22, in <module>
     main()
     ~~~~^^
   File "C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios\app\manage.py", line 18, in main
@@ -93,14 +93,14 @@ La librería `django-environ` exige que la variable de entorno `SECRET_KEY` est�
 
 Soluciones posibles:
 
-1. **Definir la variable de entorno**  
+1. **Definir la variable de entorno**
    En PowerShell, antes de ejecutar cualquier comando de Django, ejecuta:
    ```powershell
    $env:SECRET_KEY="una_clave_secreta_segura"
    ```
    Luego ejecuta tu comando Django normalmente.
 
-2. **Agregar un valor por defecto en desarrollo**  
+2. **Agregar un valor por defecto en desarrollo**
    Puedes modificar la línea en `settings.py` para que use un valor por defecto si la variable no está definida (solo recomendable para desarrollo):
    ```python
    SECRET_KEY = env.str("SECRET_KEY", default="clave_insegura_para_desarrollo")
@@ -112,7 +112,7 @@ Soluciones posibles:
 
 _**User**_
 
-El directorio tiene algo que ver creo? Parece que no lee 
+El directorio tiene algo que ver creo? Parece que no lee
 
 ---
 
@@ -120,7 +120,7 @@ _**Assistant**_
 
 Sí, la ubicación y configuración del archivo `.env` (o las variables de entorno) pueden afectar si Django puede leer la variable `SECRET_KEY`.
 
-Con django-environ, normalmente debes tener un archivo `.env` en el mismo directorio que tu `settings.py` o donde inicializas `env = environ.Env()`.  
+Con django-environ, normalmente debes tener un archivo `.env` en el mismo directorio que tu `settings.py` o donde inicializas `env = environ.Env()`.
 Ejemplo de `.env`:
 ```
 SECRET_KEY=tu_clave_secreta
@@ -148,7 +148,7 @@ Tengo un .env.dev en el proyecto
 
 _**Assistant**_
 
-Perfecto, tienes un archivo `.env.dev`.  
+Perfecto, tienes un archivo `.env.dev`.
 Por defecto, django-environ busca un archivo llamado `.env`. Si tu archivo se llama `.env.dev`, debes indicarle la ruta al cargar las variables.
 
 En tu `settings.py`, asegúrate de tener esto al inicio:
@@ -177,7 +177,7 @@ _**Assistant**_
 ```
 
 ```
-Listo. Ahora tu archivo `settings.py` está configurado para leer las variables desde `.env.dev`.  
+Listo. Ahora tu archivo `settings.py` está configurado para leer las variables desde `.env.dev`.
 El único detalle es que el linter recomienda usar comillas dobles en vez de simples para el nombre del archivo. Si quieres, puedo corregirlo para que quede consistente con el estilo recomendado.
 
 ¿Quieres que lo cambie a comillas dobles?
@@ -186,13 +186,13 @@ El único detalle es que el linter recomienda usar comillas dobles en vez de sim
 
 _**User**_
 
-Pero .env.dev está en carpeta padre del settings.py, tiene que ver algo? 
+Pero .env.dev está en carpeta padre del settings.py, tiene que ver algo?
 
 ---
 
 _**Assistant**_
 
-Sí, la ubicación del archivo `.env.dev` importa.  
+Sí, la ubicación del archivo `.env.dev` importa.
 Por defecto, el método `env.read_env(env_file=".env.dev")` busca el archivo relativo al directorio donde se ejecuta el proceso, o puedes darle la ruta absoluta.
 
 Si tu archivo `.env.dev` está en la carpeta `` y tu `settings.py` está en ``, debes indicarle la ruta correcta:
@@ -226,7 +226,7 @@ _**Assistant**_
 ```
 Listo, ahora tu `settings.py` busca el archivo `.env.dev` en la raíz del proyecto, así que la variable `SECRET_KEY` y demás variables deberían leerse correctamente.
 
-Sin embargo, hay varios errores de tipado en el uso de `env.str()` y `env.bool()` con el argumento `default`.  
+Sin embargo, hay varios errores de tipado en el uso de `env.str()` y `env.bool()` con el argumento `default`.
 La librería `django-environ` espera que uses `env("VAR", default=valor)` en vez de `env.str("VAR", default=valor)`.
 
 ¿Quieres que corrija estos errores para que tu configuración funcione correctamente?
@@ -237,7 +237,7 @@ _**User**_
 
 psycopg.OperationalError: [Errno 11001] getaddrinfo failed
 Traceback (most recent call last):
-  File "C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios\app\manage.py", line 22, in <module>        
+  File "C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios\app\manage.py", line 22, in <module>
     main()
     ~~~~^^
   File "C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios\app\manage.py", line 18, in main
@@ -282,7 +282,7 @@ Tu configuración actual está usando:
 ```
 SQL_HOST=db
 ```
-Esto significa que Django intentará conectarse al host llamado `db`.  
+Esto significa que Django intentará conectarse al host llamado `db`.
 Si estás usando Docker Compose, el nombre del servicio de la base de datos en tu archivo `docker-compose.dev.yml` debe ser `db` para que funcione correctamente.
 
 Verifica:
@@ -382,7 +382,7 @@ Que es ese warning
 
 _**Assistant**_
 
-Ese warning indica que Django intentó conectarse a la base de datos para verificar el historial de migraciones, pero no pudo resolver el nombre del host configurado (por ejemplo, `db` o `localhost`).  
+Ese warning indica que Django intentó conectarse a la base de datos para verificar el historial de migraciones, pero no pudo resolver el nombre del host configurado (por ejemplo, `db` o `localhost`).
 El error específico `[Errno 11001] getaddrinfo failed` significa que el sistema operativo no pudo encontrar la dirección IP para el host especificado.
 
 Esto ocurre cuando:
@@ -391,7 +391,7 @@ Esto ocurre cuando:
 
 No es un error fatal para `makemigrations`, pero sí lo será para comandos que requieren conexión real, como `migrate` o cuando inicies el servidor.
 
-Solución:  
+Solución:
 Asegúrate de que el host y puerto en tu `.env.dev` sean correctos para tu entorno (local o Docker), y que la base de datos esté corriendo y accesible.
 
 ---
@@ -438,7 +438,7 @@ Sí, está bien poner esta línea en tu `settings.py`:
 AUTH_USER_MODEL = "usuarios.Usuario"
 ```
 
-Esto le indica a Django que use el modelo personalizado `Usuario` definido en la app `usuarios` como el modelo de usuario principal del proyecto.  
+Esto le indica a Django que use el modelo personalizado `Usuario` definido en la app `usuarios` como el modelo de usuario principal del proyecto.
 Es la forma correcta de configurar un modelo de usuario personalizado.
 
 Solo asegúrate de que:
@@ -473,12 +473,12 @@ CommandError: Database postgres couldn't be flushed. Possible reasons:
   * At least one of the expected database tables doesn't exist.
   * The SQL was invalid.
 Hint: Look at the output of 'django-admin sqlflush'. That's the SQL this command wasn't able to run.
-(app) PS C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios> docker compose -f docker-compose.dev.yml exec web uv run django-admin sqlflush 
+(app) PS C:\Users\Fabrizio Kawabata\Desktop\IS2-Proyecto-27-08\IS2-CasaDeCambios> docker compose -f docker-compose.dev.yml exec web uv run django-admin sqlflush
 Traceback (most recent call last):
   File "/app/.venv/bin/django-admin", line 10, in <module>
     sys.exit(execute_from_command_line())
              ~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "/app/.venv/lib/python3.13/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line 
+  File "/app/.venv/lib/python3.13/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
     utility.execute()
     ~~~~~~~~~~~~~~~^^
   File "/app/.venv/lib/python3.13/site-packages/django/core/management/__init__.py", line 436, in execute
@@ -489,7 +489,7 @@ Traceback (most recent call last):
   File "/app/.venv/lib/python3.13/site-packages/django/core/management/base.py", line 371, in create_parser
     self.add_arguments(parser)
     ~~~~~~~~~~~~~~~~~~^^^^^^^^
-  File "/app/.venv/lib/python3.13/site-packages/django/core/management/commands/sqlflush.py", line 19, in add_arguments     
+  File "/app/.venv/lib/python3.13/site-packages/django/core/management/commands/sqlflush.py", line 19, in add_arguments
     choices=tuple(connections),
             ~~~~~^^^^^^^^^^^^^
   File "/app/.venv/lib/python3.13/site-packages/django/utils/connection.py", line 73, in __iter__
@@ -600,11 +600,11 @@ Solución rápida:
 _**User**_
 
 auth.User.groups: (fields.E304) Reverse accessor 'Group.user_set' for 'auth.User.groups' clashes with reverse accessor for 'usuarios.Usuario.groups'.
-        HINT: Add or change a related_name argument to the definition for 'auth.User.groups' or 'usuarios.Usuario.groups'.  
+        HINT: Add or change a related_name argument to the definition for 'auth.User.groups' or 'usuarios.Usuario.groups'.
 auth.User.user_permissions: (fields.E304) Reverse accessor 'Permission.user_set' for 'auth.User.user_permissions' clashes with reverse accessor for 'usuarios.Usuario.user_permissions'.
         HINT: Add or change a related_name argument to the definition for 'auth.User.user_permissions' or 'usuarios.Usuario.user_permissions'.
 usuarios.Usuario.groups: (fields.E304) Reverse accessor 'Group.user_set' for 'usuarios.Usuario.groups' clashes with reverse accessor for 'auth.User.groups'.
-        HINT: Add or change a related_name argument to the definition for 'usuarios.Usuario.groups' or 'auth.User.groups'.  
+        HINT: Add or change a related_name argument to the definition for 'usuarios.Usuario.groups' or 'auth.User.groups'.
 usuarios.Usuario.user_permissions: (fields.E304) Reverse accessor 'Permission.user_set' for 'usuarios.Usuario.user_permissions' clashes with reverse accessor for 'auth.User.user_permissions'.
         HINT: Add or change a related_name argument to the definition for 'usuarios.Usuario.user_permissions' or 'auth.User.user_permissions'.
 
@@ -612,7 +612,7 @@ usuarios.Usuario.user_permissions: (fields.E304) Reverse accessor 'Permission.us
 
 _**Assistant**_
 
-Este error ocurre porque tu modelo personalizado `Usuario` hereda de `AbstractUser` o `AbstractBaseUser` y no ha definido los argumentos `related_name` en los campos `groups` y `user_permissions`.  
+Este error ocurre porque tu modelo personalizado `Usuario` hereda de `AbstractUser` o `AbstractBaseUser` y no ha definido los argumentos `related_name` en los campos `groups` y `user_permissions`.
 Django intenta crear relaciones inversas con los mismos nombres que el modelo `auth.User`, lo que causa el conflicto.
 
 Solución:
@@ -645,4 +645,3 @@ Luego ejecuta `makemigrations` y `migrate`.
 ¿Quieres que realice este cambio automáticamente en tu modelo `Usuario`?
 
 ---
-

@@ -18,10 +18,10 @@ WORKDIR /app
 # Set the uv project environment directory
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    UV_COMPILE_BYTECODE=1 \ 
+    UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never \
-    UV_TOOL_BIN_DIR=/usr/local/bin \ 
+    UV_TOOL_BIN_DIR=/usr/local/bin \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
 # Install system dependencies

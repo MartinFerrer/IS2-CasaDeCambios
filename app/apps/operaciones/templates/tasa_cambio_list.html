@@ -45,12 +45,12 @@
                             {% for tasa in tasas_de_cambio %}
                                 {% if tasa.activo %}
                                     <tr>
-                                        <td>{{ tasa.divisaOrigen }}</td>
-                                        <td>{{ tasa.divisaDestino }}</td>
+                                        <td>{{ tasa.divisa_origen }}</td>
+                                        <td>{{ tasa.divisa_destino }}</td>
                                         <td>{{ tasa.valor }}</td>
                                         <td>{{ tasa.comision_compra }}</td>
                                         <td>{{ tasa.comision_venta }}</td>
-                                        <td>{{ tasa.fechaVigencia }}</td>
+                                        <td>{{ tasa.fecha_vigencia }}</td>
                                         <td>
                                             <span class="badge badge-success">Activa</span>
                                         </td>
@@ -80,12 +80,12 @@
                             {% for tasa in tasas_de_cambio %}
                                 {% if not tasa.activo %}
                                     <tr>
-                                        <td>{{ tasa.divisaOrigen }}</td>
-                                        <td>{{ tasa.divisaDestino }}</td>
+                                        <td>{{ tasa.divisa_origen }}</td>
+                                        <td>{{ tasa.divisa_destino }}</td>
                                         <td>{{ tasa.valor }}</td>
                                         <td>{{ tasa.comision_compra }}</td>
                                         <td>{{ tasa.comision_venta }}</td>
-                                        <td>{{ tasa.fechaVigencia }}</td>
+                                        <td>{{ tasa.fecha_vigencia }}</td>
                                         <td>
                                             <span class="badge badge-error">Inactiva</span>
                                         </td>

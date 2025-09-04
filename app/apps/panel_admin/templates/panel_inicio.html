@@ -14,24 +14,40 @@
     <main class="flex flex-col items-center justify-center mt-12">
         <div class="card w-full max-w-md bg-white shadow-xl mx-4 sm:mx-0">
             <div class="card-body">
-                <h2 class="card-title text-blue-700">Gestionar...</h2>
-                <ul class="menu menu-vertical rounded-box">
+                <ul class="menu bg-base-200 rounded-box w-full">
                     <li>
-                        <a href="{% url 'usuario_listar' %}"
-                           class="btn btn-outline btn-primary w-full my-2">Usuarios</a>
+                        <details open>
+                            <summary class="card-title text-blue-700">Gestionar</summary>
+                            <ul>
+                                <li>
+                                    <a href="{% url 'usuario_listar' %}"
+                                       class="btn btn-outline btn-primary w-full my-2">Usuarios</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'rol_listar' %}"
+                                       class="btn btn-outline btn-secondary w-full my-2">Roles</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'cliente_listar' %}"
+                                       class="btn btn-outline btn-accent w-full my-2">Clientes</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                                       class="btn btn-outline btn-info w-full my-2">Tasas de Cambio</a>
+                                </li>
+                            </ul>
+                        </details>
                     </li>
                     <li>
-                        <a href="{% url 'rol_listar' %}"
-                           class="btn btn-outline btn-secondary w-full my-2">Roles</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'cliente_listar' %}"
-                           class="btn btn-outline btn-accent w-full my-2">Clientes</a>
-                    </li>
-                    {# Nuevo botón para Tasas de Cambio #}
-                    <li>
-                        <a href="{% url 'operaciones:tasa_cambio_listar' %}"
-                           class="btn btn-outline btn-info w-full my-2">Tasas de Cambio</a>
+                        <details open>
+                            <summary class="card-title text-blue-700">Configurar</summary>
+                            <ul>
+                                <li>
+                                    <a href="{% url 'configuracion' %}#comisiones"
+                                       class="btn btn-outline btn-primary w-full my-2">Comisiones</a>
+                                </li>
+                            </ul>
+                        </details>
                     </li>
                 </ul>
             </div>

@@ -30,7 +30,9 @@ def asignar_permisos_a_grupos(apps, schema_editor):
     # Permisos para Analista Cambiario
     analista_permisos = Permission.objects.filter(
         codename__in=[
-            "view_usuario", "view_cliente", "view_tipocliente",
+            "view_usuario",
+            "view_cliente",
+            "view_tipocliente",
             "change_cliente",  # Puede modificar datos de clientes
         ],
     )

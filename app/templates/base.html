@@ -2,38 +2,62 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="description"
-          content="GlobalExchange Casa de Cambios - Plataforma para cambio de divisas.">
-    <meta name="keywords"
-          content="cambio, divisas, moneda, globalexchange, casa de cambios, dinero">
-    <title>
-      {% block title %}
-        Mi Aplicación
-      {% endblock title %}
-    </title>
-    <link rel="icon"
-          type="image/x-icon"
-          href="{% static 'images/favicon.ico' %}">
-    <!-- CSS global (tailwind + daisyUI build) -->
-    <link rel="stylesheet" href="{% static 'css/output.css' %}">
-    {% block extra_head %}
-    {% endblock extra_head %}
-  </head>
-  <body class="{% block body_class %}bg-white{% endblock body_class %}">
-    <!--Por defecto incluimos el header global, pero cada plantilla se puede
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="description"
+              content="GlobalExchange Casa de Cambios - Plataforma para cambio de divisas.">
+        <meta name="keywords"
+              content="cambio, divisas, moneda, globalexchange, casa de cambios, dinero">
+        <title>
+            {% block title %}
+                Mi Aplicación
+            {% endblock title %}
+        </title>
+        <link rel="icon"
+              type="image/x-icon"
+              href="{% static 'images/favicon.ico' %}">
+        <!-- CSS global (tailwind + daisyUI build) -->
+        <link rel="stylesheet" href="{% static 'css/output.css' %}">
+        {% block extra_head %}
+        {% endblock extra_head %}
+    </head>
+    <body class="{% block body_class %}bg-white{% endblock body_class %}">
+        <!--Por defecto incluimos el header global, pero cada plantilla se puede
      sobrescribir el bloque 'header' para usar otro header.-->
-    {% block header %}
-      {% include "includes/header.html" %}
-    {% endblock header %}
-    <main>
-      {% block content %}
-      {% endblock content %}
-    </main>
-    {% include "includes/footer.html" %}
-    {% block extra_scripts %}
-    {% endblock extra_scripts %}
-  </body>
+        {% block header %}
+            {% include "includes/header.html" %}
+        {% endblock header %}
+        <!-- Mensajes del sistema -->
+        {% if messages %}
+            <div class="container mx-auto px-4 pt-4">
+                {% for message in messages %}
+                    {% with tags=message.tags %}
+                        <div role="alert" class="alert alert-{{ tags }} mb-2">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6 shrink-0 stroke-current"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                {% if 'error' in tags %}
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                {% elif 'warning' in tags %}
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                {% else %}
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                {% endif %}
+                            </svg>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endwith %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        <main>
+            {% block content %}
+            {% endblock content %}
+        </main>
+        {% include "includes/footer.html" %}
+        {% block extra_scripts %}
+        {% endblock extra_scripts %}
+    </body>
 </html>

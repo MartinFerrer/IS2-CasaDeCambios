@@ -6,14 +6,14 @@ Define plantillas de URL para la página principal y las vistas de cambio de div
 
 from django.urls import path
 
-from apps.presentacion.views import home
-
 from . import views
 
+app_name = "transacciones"
+
 urlpatterns = [
-    path("", home, name="home"),
     # formato de las vistas para los botones de la pagina principal, pueden editar sin problema
     path("simular-cambio/", views.simular_cambio_view, name="simular_cambio"),
+    path("api/simular", views.api_simular_cambio, name="api_simular_cambio"),
     path("comprar-divisa/", views.comprar_divisa_view, name="comprar_divisa"),
     path("vender-divisa/", views.vender_divisa_view, name="vender_divisa"),
 ]
