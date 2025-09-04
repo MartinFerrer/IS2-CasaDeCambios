@@ -15,6 +15,8 @@ def create_divisa(request):
 
     Args:
         request: La solicitud HTTP.
+    Retorna:
+        HttpResponse: el formulario de creación o la redirección después de guardar.
 
     """
     if request.method == "POST":
@@ -33,7 +35,15 @@ def create_divisa(request):
 
 
 def edit_divisa(request, pk):
-    """View para editar una divisa existente."""
+    """View para editar una divisa existente.
+
+    Args:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a editar.
+    Retorna:
+        HttpResponse: el formulario de edición o la redirección después de guardar.
+
+    """
     divisa = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
         form = DivisaForm(request.POST, instance=divisa)
@@ -52,6 +62,8 @@ def delete_divisa(request, pk):
     Args:
         request: La solicitud HTTP.
         pk: El identificador de la divisa a eliminar.
+    Retorna:
+        HttpResponse: Redirige a la lista de divisas después de eliminar.
 
     """
     divisa = get_object_or_404(Divisa, pk=pk)
@@ -67,6 +79,8 @@ def divisa_detail(request, pk):
     Args:
         request: La solicitud HTTP.
         pk: El identificador de la divisa a mostrar.
+    Retorna:
+        HttpResponse: Renderiza el template divisa_detalle.html con el contexto de la divisa.
 
     """
     divisa = get_object_or_404(Divisa, pk=pk)
@@ -74,7 +88,15 @@ def divisa_detail(request, pk):
 
 
 def divisa_listar(request):
-    """View para mostrar las divisas."""
+    """View para mostrar las divisas.
+
+    Args:
+        request: La solicitud HTTP.
+
+    Retorna:
+        HttpResponse: Renderiza el template divisa_list.html con el contexto de las divisas.
+
+    """
     divisas = Divisa.objects.all().order_by("nombre")
     context = {
         "divisas": divisas,
@@ -88,7 +110,7 @@ def tasa_cambio_listar(request: HttpRequest) -> object:
     Args:
         request: Objeto HttpRequest.
 
-    Returns:
+    Retorna:
         HttpResponse: Renderiza el template tasa_cambio_list.html con el contexto de las tasas de cambio.
 
     """
@@ -102,7 +124,7 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
     Args:
         request: Objeto HttpRequest.
 
-    Returns:
+    Retorna:
         HttpResponse: Redirige al listado de tasas o renderiza el formulario de creación.
 
     """
@@ -123,7 +145,7 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
         request: Objeto HttpRequest.
         pk: str, el identificador único (UUID) de la tasa de cambio a editar.
 
-    Returns:
+    Retorna:
         HttpResponse: Redirige al listado de tasas o renderiza el formulario de edición.
 
     """
@@ -145,7 +167,7 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
         request: Objeto HttpRequest.
         pk: str, el identificador único (UUID) de la tasa de cambio a desactivar.
 
-    Returns:
+    Retorna:
         HttpResponse: Redirige al listado de tasas.
 
     """
@@ -165,7 +187,7 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
         request: Objeto HttpRequest.
         pk: str, el identificador único (UUID) de la tasa de cambio a activar.
 
-    Returns:
+    Retorna:
         HttpResponse: Redirige al listado de tasas.
 
     """

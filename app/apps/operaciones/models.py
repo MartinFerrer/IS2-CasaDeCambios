@@ -21,7 +21,7 @@ class Divisa(models.Model):
 
     Args:
         idDivisa (UUIDField): Identificador único para la Divisa.
-        codigo (CharField): El código ISO 4217 de la Divisa (e.g 'USD', 'EUR').
+        codigo (CharField): El código ISO 4317 de la Divisa (e.g 'USD', 'EUR').
         nombre (CharField): El nombre de la Divisa (e.g., 'Dólar').
         simbolo (CharField): El símbolo de la Divisa (ej. ₲, $, €).
 
@@ -68,28 +68,31 @@ class TasaCambio(models.Model):
         primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único para la tasa de cambio."
     )
     divisa_origen = models.ForeignKey(
-        "Divisa", on_delete=models.CASCADE, related_name="tasas_origen", help_text="La divisa que se va a intercambiar."
+        "Divisa",
+        on_delete=models.SET_NULL,
+        related_name="tasas_origen",
+        help_text="La divisa que se va a intercambiar.",
     )
     divisa_destino = models.ForeignKey(
         "Divisa",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="tasas_destino",
         help_text="La divisa a la cual se va a convertir.",
     )
     valor = models.DecimalField(
-        max_digits=15,
-        decimal_places=8,
+        max_digits=6,
+        decimal_places=3,
         help_text="El valor de la divisa de origen en términos de la divisa de destino.",
     )
     comision_compra = models.DecimalField(
-        max_digits=15,
-        decimal_places=2,
+        max_digits=4,
+        decimal_places=0,
         default=Decimal("0.00"),
         help_text="Monto de comisión por compra en la divisa de destino (Guaraníes).",
     )
     comision_venta = models.DecimalField(
-        max_digits=15,
-        decimal_places=2,
+        max_digits=4,
+        decimal_places=0,
         default=Decimal("0.00"),
         help_text="Monto de comisión por venta en la divisa de destino (Guaraníes).",
     )
