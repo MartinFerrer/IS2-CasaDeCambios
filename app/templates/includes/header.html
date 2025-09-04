@@ -2,28 +2,14 @@
 <header class="navbar bg-blue-700 text-white shadow-lg p-4">
     <div class="container mx-auto flex justify-between items-center">
         <div class="flex-1">
-            <a href="{% url 'home' %}"
+            <!-- Cambio de panel_inicio a home para que el logo de Global siempre lleve a home -->
+            <a href="{% url 'presentacion:home' %}"
                class="btn btn-ghost text-2xl font-semibold hover:text-white">Global Exchange</a>
         </div>
-        
-        {# Botón del menú móvil (aparece en pantallas pequeñas) #}
-        <div class="flex-none lg:hidden">
-            <button class="btn btn-ghost"
-                    onclick="document.getElementById('sidebar_menu').showModal()">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     class="h-6 w-6"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-        </div>
-
-        {# Menú de navegación principal (oculto en pantallas pequeñas) #}
         <nav class="flex-none hidden lg:flex items-center space-x-4">
             <ul class="menu menu-horizontal px-1">
                 <li>
+                    <!--Acá poner alguna url para ver transacciones u otra vista-->
                     <a href="{% url 'usuario_listar' %}"
                        class="hover:bg-blue-600 rounded-md">Mis transacciones</a>
                 </li>
@@ -39,7 +25,6 @@
                 {% endif %}
             </ul>
         </nav>
-        
         {# Menú de usuario desplegable #}
         <div class="flex-none hidden lg:flex">
             <div class="dropdown dropdown-end">
@@ -68,42 +53,3 @@
         </div>
     </div>
 </header>
-
-{# Sidebar móvil (oculto en pantallas grandes) #}
-<dialog id="sidebar_menu" class="modal">
-    <div class="modal-box w-full max-w-xs p-0 rounded-lg shadow-lg bg-base-100 text-neutral">
-        <form method="dialog">
-            <button type="button"
-                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                    onclick="document.getElementById('sidebar_menu').close()">✕</button>
-        </form>
-        <nav class="menu p-4">
-            <a href="{% url 'usuario_listar' %}"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Mis transacciones</a>
-            <a href="{% url 'cliente_listar' %}"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Realizar Transacción</a>
-            {% if not request.user.is_authenticated %}
-                <a href="{% url 'seguridad:login' %}"
-                   class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Iniciar Sesión</a>
-            {% endif %}
-            
-            <div class="border-t border-neutral-content my-3"></div>
-
-            <div class="mb-3 flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white">
-                    <span class="text-base font-bold">{{ request.user.nombre|default:'U'|first|upper }}</span>
-                </div>
-                <div>
-                    <span class="font-semibold block">{{ request.user.nombre|default:'Usuario' }}</span>
-                </div>
-            </div>
-            
-            <a href="#"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Perfil</a>
-            <a href="#"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Configuración</a>
-            <a href="{% url 'seguridad:logout' %}"
-               class="block py-2 px-3 rounded text-red-500 hover:bg-red-100 transition">Cerrar Sesión</a>
-        </nav>
-    </div>
-</dialog>

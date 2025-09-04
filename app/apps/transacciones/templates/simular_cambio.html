@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}
+    Simular Cambio
+{% endblock title %}
+{% block content %}
+    <div class="container mx-auto p-8">
+        <h2 class="text-3xl font-bold mb-6 text-center">Simulador de Cambio de Divisas</h2>
+        <!-- Información del Usuario -->
+        <div class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body">
+                <h3 class="card-title">Información del Cliente</h3>
+                {% if user.is_authenticated %}
+                    <p>
+                        <strong>Usuario:</strong> {{ request.user.nombre|default:'Usuario' }}
+                    </p>
+                    <p>
+                        <strong>Segmento:</strong> {{ request.user.segmento|default:'Minorista' }}
+                    </p>
+                    {% if request.user.segmento == 'VIP' %}
+                        <p class="text-green-600">Descuento en comisión: 10%</p>
+                    {% elif request.user.segmento == 'Corporativo' %}
+                        <p class="text-blue-600">Descuento en comisión: 5%</p>
+                    {% else %}
+                        <p class="text-gray-600">Sin descuento en comisión</p>
+                    {% endif %}
+                {% else %}
+                    <p>
+                        <strong>Usuario:</strong> Anónimo
+                    </p>
+                    <p>
+                        <strong>Segmento:</strong> Minorista
+                    </p>
+                    <p class="text-gray-600">Sin descuento en comisión</p>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Formulario de Simulación -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <form method="post" action="{% url 'transacciones:simular_cambio' %}">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Tipo de Operación -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">¿Qué desea hacer?</span>
+                            </label>
+                            <div class="btn-group">
+                                <input type="radio"
+                                       name="tipo_operacion"
+                                       value="compra"
+                                       class="btn"
+                                       aria-label="Quiero Comprar Divisa"
+                                       checked>
+                                <input type="radio"
+                                       name="tipo_operacion"
+                                       value="venta"
+                                       class="btn"
+                                       aria-label="Quiero Vender Divisa">
+                            </div>
+                        </div>
+                        <!-- Moneda Origen -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Moneda que Tengo</span>
+                            </label>
+                            <select name="moneda_origen" class="select select-bordered" required>
+                                <option value="PYG">PYG - Paraguayan Guarani</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="BRL">BRL - Brazilian Real</option>
+                                <!-- Agregar más monedas según necesidad -->
+                            </select>
+                        </div>
+                        <!-- Moneda Destino -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Moneda que Quiero</span>
+                            </label>
+                            <select name="moneda_destino" class="select select-bordered" required>
+                                <option value="PYG">PYG - Paraguayan Guarani</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="BRL">BRL - Brazilian Real</option>
+                                <!-- Agregar más monedas según necesidad -->
+                            </select>
+                        </div>
+                        <!-- Monto -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Monto que Tengo</span>
+                            </label>
+                            <input type="number"
+                                   name="monto"
+                                   step="0.01"
+                                   class="input input-bordered"
+                                   placeholder="Ingrese el monto"
+                                   required>
+                        </div>
+                        <!-- Método de Pago -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Método de Pago</span>
+                            </label>
+                            <select name="metodo_pago" class="select select-bordered" required>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia Bancaria</option>
+                                <option value="tarjeta">Tarjeta de Crédito/Débito</option>
+                                <option value="billetera">Billetera Electrónica</option>
+                            </select>
+                        </div>
+                        <!-- Método de Cobro -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Método de Cobro</span>
+                            </label>
+                            <select name="metodo_cobro" class="select select-bordered" required>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia Bancaria</option>
+                                <option value="cuenta">Cuenta Digital</option>
+                                <option value="billetera">Billetera Electrónica</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% comment %} Mostrar advertencia para billeteras electrónicas en la simulación {% endcomment %}
+                    {% if simulacion and simulacion.metodo_pago == 'billetera' or simulacion and simulacion.metodo_cobro == 'billetera' %}
+                        <div class="alert alert-warning mt-4">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="stroke-current shrink-0 h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <span>Advertencia: Las billeteras electrónicas pueden cobrar comisiones adicionales por parte del proveedor, no incluidas en esta simulación.</span>
+                        </div>
+                    {% endif %}
+                    <!-- No "Calcular" button: la simulación se calcula en vivo en el cliente -->
+                </form>
+            </div>
+        </div>
+        <!-- Resultados de la Simulación (cliente) -->
+        <div id="live-sim-card" class="card bg-base-100 shadow-lg mt-6 hidden">
+            <div class="card-body">
+                <h3 class="card-title">Resultado (Simulación en vivo)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p>
+                            <strong id="label-monto-original">Monto Original:</strong> <span id="monto-original-val">0</span> <span id="moneda-origen-val">-</span>
+                        </p>
+                        <p>
+                            <strong>Tasa de Cambio Efectiva:</strong> <span id="tasa-val">-</span>
+                        </p>
+                        <p class="text-lg font-bold text-primary">
+                            <strong id="label-monto-convertido">Monto a Recibir:</strong> <span id="monto-convertido-val">0</span> <span id="moneda-destino-val">-</span>
+                        </p>
+                    </div>
+                    <div>
+                        <p>
+                            <strong>Segmento aplicado:</strong> <span id="segmento-val">-</span>
+                        </p>
+                    </div>
+                </div>
+                <div id="wallet-warning-live" class="alert alert-warning mt-4 hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span>Advertencia: Las billeteras electrónicas pueden cobrar comisiones adicionales por parte del proveedor, no incluidas en esta simulación.</span>
+                </div>
+                <div class="form-control mt-4">
+                    {% if user.is_authenticated %}
+                        <button id="proceed-btn" class="btn btn-success w-full">Proceder a Realizar Transacción</button>
+                    {% else %}
+                        <button id="proceed-btn" class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Para proceder debe tener un cliente asociado: contacte a un operador o regístrese como cliente.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <script>
+            (function(){
+                const isoDecimals = { PYG: 0, USD: 2, EUR: 2, BRL: 2 };
+
+                // Elements
+                const root = document.getElementById('live-sim-card');
+                const montoInput = document.querySelector('input[name="monto"]');
+                const monedaOrigenSel = document.querySelector('select[name="moneda_origen"]');
+                const monedaDestinoSel = document.querySelector('select[name="moneda_destino"]');
+                const tipoOperacionEls = document.querySelectorAll('input[name="tipo_operacion"]');
+                const metodoPagoSel = document.querySelector('select[name="metodo_pago"]');
+                const metodoCobroSel = document.querySelector('select[name="metodo_cobro"]');
+
+                const montoOriginalVal = document.getElementById('monto-original-val');
+                const monedaOrigenVal = document.getElementById('moneda-origen-val');
+                const tasaVal = document.getElementById('tasa-val');
+                const montoConvertidoVal = document.getElementById('monto-convertido-val');
+                const monedaDestinoVal = document.getElementById('moneda-destino-val');
+                const segmentoVal = document.getElementById('segmento-val');
+                const walletWarning = document.getElementById('wallet-warning-live');
+
+                // Get selected tipo_operacion
+                function getTipoOperacion(){
+                    for(const el of tipoOperacionEls) if(el.checked) return el.value;
+                    return 'compra';
+                }
+
+                function formatNumber(value, currency){
+                    const dec = isoDecimals[currency] !== undefined ? isoDecimals[currency] : 2;
+                    return Number(value).toLocaleString(undefined, {minimumFractionDigits: dec, maximumFractionDigits: dec});
+                }
+
+                async function compute(){
+                    const monto = parseFloat(montoInput.value) || 0;
+                    const origen = monedaOrigenSel.value;
+                    const destino = monedaDestinoSel.value;
+                    const tipo = getTipoOperacion();
+                    const metodoPago = metodoPagoSel.value;
+                    const metodoCobro = metodoCobroSel.value;
+
+                    // show card only if user entered a positive amount
+                    if(monto <= 0){ root.classList.add('hidden'); return; }
+                    root.classList.remove('hidden');
+
+                    const params = new URLSearchParams({
+                        monto: String(monto),
+                        moneda_origen: origen,
+                        moneda_destino: destino,
+                        tipo_operacion: tipo,
+                        metodo_pago: metodoPago,
+                        metodo_cobro: metodoCobro,
+                    });
+
+                    try{
+                        const res = await fetch('{% url "transacciones:api_simular_cambio" %}?' + params.toString(), { method: 'GET', headers: { 'Accept': 'application/json' }});
+                        if(!res.ok) throw new Error('API error');
+                        const data = await res.json();
+
+                        montoOriginalVal.textContent = formatNumber(data.monto_original, data.moneda_origen);
+                        monedaOrigenVal.textContent = data.moneda_origen;
+                        tasaVal.textContent = Number(data.tasa_cambio).toFixed(6) + ' ' + data.moneda_destino;
+                        // show total (monto a recibir) only
+                        montoConvertidoVal.textContent = formatNumber(data.total, data.moneda_destino);
+                        monedaDestinoVal.textContent = data.moneda_destino;
+                        segmentoVal.textContent = '{{ request.user.segmento|default:"Minorista" }}';
+
+                        if(metodoPago === 'billetera' || metodoCobro === 'billetera'){
+                            walletWarning.classList.remove('hidden');
+                        } else {
+                            walletWarning.classList.add('hidden');
+                        }
+
+                    }catch(err){
+                        console.error('Error fetching simulation', err);
+                    }
+                }
+
+                // Attach events
+                [montoInput, monedaOrigenSel, monedaDestinoSel, metodoPagoSel, metodoCobroSel].forEach(el=>el.addEventListener('change', compute));
+                [montoInput].forEach(el=>el.addEventListener('input', compute));
+                tipoOperacionEls.forEach(el=>el.addEventListener('change', compute));
+
+                // Initial compute in case of prefilled form
+                compute();
+            })();
+        </script>
+        <!-- Resultados de la Simulación -->
+        {% if simulacion %}
+            <div class="card bg-base-100 shadow-lg mt-6">
+                <div class="card-body">
+                    <h3 class="card-title">Resultado de la Simulación</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p>
+                                <strong>Monto a
+                                    {% if simulacion.tipo_operacion == 'compra' %}
+                                        Pagar
+                                    {% else %}
+                                        Recibir
+                                    {% endif %}
+                                    :</strong> {{ simulacion.monto_original }} {{ simulacion.moneda_origen }}
+                                </p>
+                                <p>
+                                    <strong>Tasa de Cambio:</strong> 1 {{ simulacion.moneda_origen }} = {{ simulacion.tasa_cambio }} {{ simulacion.moneda_destino }}
+                                </p>
+                                <p class="text-lg font-bold text-primary">
+                                    <strong>Monto a
+                                        {% if simulacion.tipo_operacion == 'compra' %}
+                                            Recibir
+                                        {% else %}
+                                            Pagar
+                                        {% endif %}
+                                        :</strong> {{ simulacion.monto_convertido }} {{ simulacion.moneda_destino }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p>
+                                        <strong>Comisión Base:</strong> {{ simulacion.comision_base }} {{ simulacion.moneda_destino }}
+                                    </p>
+                                    <p>
+                                        <strong>Descuento por Segmento:</strong> {{ simulacion.descuento }}%
+                                    </p>
+                                    <p>
+                                        <strong>Comisión Final:</strong> {{ simulacion.comision_final }} {{ simulacion.moneda_destino }}
+                                    </p>
+                                    <p>
+                                        <strong>Total a
+                                            {% if simulacion.tipo_operacion == 'compra' %}
+                                                Pagar
+                                            {% else %}
+                                                Recibir
+                                            {% endif %}
+                                            :</strong> {{ simulacion.total }} {{ simulacion.moneda_destino }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="form-control mt-4">
+                                    <button class="btn btn-success w-full">Proceder a Realizar Transacción</button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <!-- Notas Adicionales -->
+                    <div class="alert alert-info mt-6">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             class="stroke-current shrink-0 w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        <span>Las tasas de cambio y comisiones son estimativas y pueden variar. Proceda a realizar una transacción para confirmar.</span>
+                    </div>
+                </div>
+            {% endblock content %}
