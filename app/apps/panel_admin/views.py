@@ -17,7 +17,7 @@ from django.views.decorators.http import require_POST
 from .forms import ClienteForm, UsuarioForm
 
 
-def panel_inicio(request: HttpRequest) -> object:
+def panel_inicio(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de inicio del panel de administración.
 
     Args:
@@ -30,7 +30,7 @@ def panel_inicio(request: HttpRequest) -> object:
     return render(request, "panel_inicio.html")
 
 
-def configuracion(request: HttpRequest) -> object:
+def configuracion(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de configuracion de opciones.
 
     Se pasan los siguentes queryset para la configuracion:
@@ -104,7 +104,7 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
 
 
 # CRUD de Usuarios
-def usuario_list(request: HttpRequest) -> object:
+def usuario_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de usuarios y roles en el panel de administración.
 
     Args:
@@ -119,7 +119,7 @@ def usuario_list(request: HttpRequest) -> object:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos})
 
 
-def usuario_create(request: HttpRequest) -> object:
+def usuario_create(request: HttpRequest) -> HttpResponse:
     """Crea un nuevo usuario en el panel de administración.
 
     Args:
@@ -141,7 +141,7 @@ def usuario_create(request: HttpRequest) -> object:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
-def usuario_edit(request: HttpRequest, pk: int) -> object:
+def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita un usuario existente en el panel de administración.
 
     Args:
@@ -165,7 +165,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> object:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
-def usuario_delete(request: HttpRequest, pk: int) -> object:
+def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina un usuario existente en el panel de administración.
 
     Args:
@@ -186,7 +186,7 @@ def usuario_delete(request: HttpRequest, pk: int) -> object:
 
 
 # CRUD de Roles
-def rol_list(request: HttpRequest) -> object:
+def rol_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de roles (grupos) y sus permisos asociados.
 
     Args:
@@ -201,7 +201,7 @@ def rol_list(request: HttpRequest) -> object:
 
 
 # CRUD de Clientes
-def cliente_list(request: HttpRequest) -> object:
+def cliente_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de clientes, tipos de cliente y usuarios en el panel de administración.
 
     Args:
@@ -221,7 +221,7 @@ def cliente_list(request: HttpRequest) -> object:
     )
 
 
-def cliente_create(request: HttpRequest) -> object:
+def cliente_create(request: HttpRequest) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
     Args:
@@ -248,7 +248,7 @@ def cliente_create(request: HttpRequest) -> object:
     )
 
 
-def cliente_edit(request: HttpRequest, pk: int) -> object:
+def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
     Args:
@@ -277,7 +277,7 @@ def cliente_edit(request: HttpRequest, pk: int) -> object:
     )
 
 
-def cliente_delete(request: HttpRequest, pk: int) -> object:
+def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina al cliente y renderiza la lista de clientes actualizada.
 
     Args:
@@ -302,7 +302,7 @@ def cliente_delete(request: HttpRequest, pk: int) -> object:
     )
 
 
-def asociar_cliente_usuario_form(request: HttpRequest) -> object:
+def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     """Muestra el formulario para asociar un cliente a un usuario.
 
     Args:
@@ -317,6 +317,7 @@ def asociar_cliente_usuario_form(request: HttpRequest) -> object:
 
     # Para cada usuario, calcular los clientes disponibles (que no están asociados)
     for usuario in usuarios:
+        # TODO: solucionar implementando de otra forma para no tener errores de Pylance/Intellisense
         usuario.clientes_disponibles = clientes.exclude(id__in=usuario.clientes.values_list("id", flat=True))
         # También guardar referencia a los clientes asociados para facilitar la desasociación
         usuario.clientes_asociados = usuario.clientes.all()
@@ -324,7 +325,7 @@ def asociar_cliente_usuario_form(request: HttpRequest) -> object:
     return render(request, "asociar_cliente_usuario.html", {"clientes": clientes, "usuarios": usuarios})
 
 
-def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> object:
+def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Asocia un cliente a un usuario.
 
     Args:
@@ -344,7 +345,7 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> objec
     return redirect("asociar_cliente_usuario_form")
 
 
-def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> object:
+def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Desasocia un cliente a un usuario.
 
     Args:

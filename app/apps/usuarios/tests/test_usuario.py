@@ -1,5 +1,4 @@
 import pytest
-
 from apps.usuarios.models import Usuario
 
 
