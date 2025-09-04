@@ -13,7 +13,7 @@ class TestClienteModel:
             password="testpass",
         )
         self.cliente = Cliente.objects.create(
-            ruc="12345678901",
+            ruc="1234567-9",
             nombre="Test Cliente",
             email="cliente@example.com",
             telefono="123456789",
@@ -23,7 +23,7 @@ class TestClienteModel:
         self.cliente.usuarios.add(self.usuario)
 
     def test_cliente_creation(self):
-        assert self.cliente.ruc == "12345678901"
+        assert self.cliente.ruc == "1234567-9"
         assert self.cliente.nombre == "Test Cliente"
         assert self.cliente.email == "cliente@example.com"
         assert self.cliente.telefono == "123456789"

@@ -6,13 +6,12 @@ También incluye el CRUD de medios de pago para los clientes.
 
 from datetime import datetime
 
+from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-
-from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
 
@@ -65,7 +64,6 @@ def medios_pago_cliente(request: HttpRequest, cliente_id: int) -> HttpResponse:
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
-    # Obtener todos los medios de pago del cliente (ahora eliminamos físicamente)
     tarjetas = cliente.tarjetacredito_set.all()
     cuentas = cliente.cuentabancaria_set.all()
     billeteras = cliente.billeteraelectronica_set.all()
@@ -146,7 +144,7 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
                 numero_cuenta=request.POST.get("numero_cuenta"),
                 banco=request.POST.get("banco"),
                 titular_cuenta=request.POST.get("titular_cuenta"),
-                ruc_titular=request.POST.get("ruc_titular", ""),
+                documento_titular=request.POST.get("documento_titular", ""),
                 alias=request.POST.get("alias", ""),
             )
             if not cuenta.alias:
@@ -155,6 +153,15 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
             messages.success(request, "Cuenta bancaria agregada exitosamente.")
             return redirect("medios_pago_cliente", cliente_id=cliente.id)
 
+        except ValidationError as e:
+            # Manejar errores de validación del modelo específicamente
+            if hasattr(e, "message_dict"):
+                for field, errors in e.message_dict.items():
+                    for error in errors:
+                        field_name = field.replace('_', ' ').title() if field != '__all__' else 'Error'
+                        messages.error(request, f"{field_name}: {error}")
+            else:
+                messages.error(request, f"Error de validación: {e}")
         except Exception as e:
             messages.error(request, f"Error al crear cuenta bancaria: {e!s}")
 
@@ -272,7 +279,7 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
             cuenta.numero_cuenta = request.POST.get("numero_cuenta", "")
             cuenta.banco = request.POST.get("banco", "")
             cuenta.titular_cuenta = request.POST.get("titular_cuenta", "")
-            cuenta.ruc_titular = request.POST.get("ruc_titular", "")
+            cuenta.documento_titular = request.POST.get("documento_titular", "")
             cuenta.alias = request.POST.get("alias", "")
 
             if not cuenta.alias:

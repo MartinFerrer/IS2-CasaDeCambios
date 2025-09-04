@@ -77,19 +77,41 @@
                                    required
                                    maxlength="100">
                         </div>
-                        <!-- RUC del Titular (opcional) -->
+                        <!-- Documento del Titular -->
                         <div class="form-control w-full">
                             <label class="label">
-                                <span class="label-text font-medium">RUC del Titular</span>
-                                <span class="label-text-alt text-gray-500">(Opcional)</span>
+                                <span class="label-text font-medium">Documento del Titular *</span>
                             </label>
+                            <!-- Selector de tipo de documento -->
+                            <div class="flex gap-4 mb-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio"
+                                           name="tipo_documento"
+                                           value="ruc"
+                                           class="radio radio-secondary"
+                                           checked
+                                           onchange="toggleDocumentType()">
+                                    <span class="label-text">RUC</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio"
+                                           name="tipo_documento"
+                                           value="ci"
+                                           class="radio radio-secondary"
+                                           onchange="toggleDocumentType()">
+                                    <span class="label-text">Cédula de Identidad</span>
+                                </label>
+                            </div>
+                            <!-- Campo para números -->
                             <input type="text"
-                                   name="ruc_titular"
+                                   name="documento_titular"
+                                   id="documento_titular"
                                    class="input input-bordered w-full"
-                                   placeholder="Ej: 12345678-9"
-                                   maxlength="12"
-                                   title="Escriba en formato 12345678-9"
-                                   pattern="[0-9]{1,8}-[0-9]">
+                                   placeholder="Seleccione el tipo de documento"
+                                   maxlength="10"
+                                   pattern="[0-9]*"
+                                   title="Solo números"
+                                   required>
                         </div>
                         <!-- Alias (opcional) -->
                         <div class="form-control w-full">
@@ -125,4 +147,28 @@
             </div>
         </div>
     </div>
+    <script>
+        function toggleDocumentType() {
+            const tipoDocumento = document.querySelector('input[name="tipo_documento"]:checked').value;
+            const inputDocumento = document.getElementById('documento_titular');
+
+            if (tipoDocumento === 'ruc') {
+                inputDocumento.placeholder = 'Ej: 12345678-9';
+                inputDocumento.pattern = "[0-9]{1,8}-[0-9]";
+                inputDocumento.title = 'Escriba en formato 12345678-9';
+            } else {
+                inputDocumento.placeholder = 'Ej: 1234567';
+                inputDocumento.pattern = '[0-9]{1,8}';
+                inputDocumento.title = 'Escriba una cédula válida';
+            }
+            
+            // Limpiar el campo al cambiar
+            inputDocumento.value = '';
+        }
+
+        // Inicializar al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleDocumentType();
+        });
+    </script>
 {% endblock %}
