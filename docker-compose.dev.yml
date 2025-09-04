@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 7432:5432
+
+  web:
+    build:
+      context: ./app
+      cache_from:
+        - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    command: uv run manage.py runserver 0.0.0.0:8000
+    working_dir: /app
+    volumes:
+      # Montar codigo fuente pero excluir .venv
+      - ./app:/app:cached
+      # Volumen anonimo (no montado desde host) para .venv
+      - /app/.venv
+      # Montar CSS generado por Tailwind (no en modo cached)
+      - ./app/static/css/output.css:/app/static/css/output.css:ro
+    ports:
+      - 8000:8000
+    env_file:
+      - ./.env
+    depends_on:
+      db:
+        condition: service_healthy
+    develop:
+      watch:
+        # Sincronizar cambios en codigo fuente
+        - action: sync
+          path: ./app
+          target: /app
+          ignore:
+            - .venv/
+            - __pycache__/
+            - "*.pyc"
+            - "*.pyo"
+            - "*.pyd"
+            - static/css/output.css
+            - static/css/tailwindcss*
+        # Rebuild cuando cambian dependencias
+        - action: rebuild
+          path: ./app/uv.lock
+        - action: rebuild
+          path: ./app/pyproject.toml
+
+  test:
+    build:
+      context: ./app
+      cache_from:
+        - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    command: pytest -v
+    working_dir: /app
+    volumes:
+      - ./app:/app:cached
+      - /app/.venv
+    env_file:
+      - ./.env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

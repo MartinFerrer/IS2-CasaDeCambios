@@ -1,0 +1,84 @@
+# Configuration file for the Sphinx documentation builder.
+
+
+import os
+import sys
+
+import django
+
+# Add the project's source code directory to the path so Sphinx can find it.
+# The 'docs' directory is one level deep, so we go up one level ('..') and
+# to find your app's modules like models, views, etc.
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app")),
+)
+
+
+# Set the Django settings module environment variable
+os.environ["DJANGO_SETTINGS_MODULE"] = "global_exchange_django.settings"
+os.environ["SECRET_KEY"] = "a_fake_secret_key_for_sphinx"
+# This is another key fix for the Sphinx build. It provides a dummy list of
+# allowed hosts to prevent the ImproperlyConfigured exception.
+os.environ["ALLOWED_HOSTS"] = "localhost"
+
+# This call is crucial! It initializes Django's app registry and settings.
+# it tells the sphinx tool to load the django framework and its settings so it can understand the code
+# in the models and views
+django.setup()
+# -- Project information -----------------------------------------------------
+
+
+project = "IS2-CasaDeCambios"
+copyright = "Equipo 4, 2025"
+author = "Martín Ferrer, Fabrizio Daisuke Kawabata Miyamoto, Atilio Sebastián Paredes Pérez, Ian Alexander Torres Marecos, Lucas Daniel Lamas Lezcano"
+release = "0.1.0"
+
+# -- General configuration ---------------------------------------------------
+
+# Add any Sphinx extension module names here, as strings. They can be
+# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
+extensions = [
+    # Enables automatic documentation from docstrings.
+    "sphinx.ext.autodoc",
+    # Adds support for Google-style docstrings. This is a key requirement from your teammate.
+    "sphinx.ext.napoleon",
+    # Automatically links Python type hints in the documentation.
+    "sphinx_autodoc_typehints",
+    # A modern and clean-looking theme for the documentation.
+    "sphinx_rtd_theme",
+]
+
+# set manually the doc language to spanish
+language = "es"
+
+# Set the source file suffixes to allow for reStructuredText (.rst) and Markdown (.md).
+# This is optional but can be useful.
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
+
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = "sphinx"
+
+# The master toctree document.
+master_doc = "index"
+
+# Add any paths that contain templates here, relative to this directory.
+templates_path = ["_templates"]
+
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+# This pattern also affects html_static_path and html_extra_path.
+exclude_patterns = []
+
+# -- Options for HTML output -------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+
+# The theme to use for HTML and HTML Help pages.
+html_theme = "sphinx_rtd_theme"
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files.
+html_static_path = ["_static"]

@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Django (local)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app/manage.py",
+            "args": [
+                "runserver",
+                "8000"
+            ],
+            "django": true,
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env.dev"
+        }
+    ]
+}

@@ -1,0 +1,83 @@
+# Este flujo de trabajo construye la documentación en cada PR y la despliega en cada push a develop.
+
+name: Construir y Publicar Documentación
+
+# Define cuándo debe ejecutarse el flujo de trabajo.
+on:
+  push:
+    # Activa el flujo de trabajo en los 'push' a la rama 'develop'.
+    branches: [ develop ]
+  pull_request:
+    # También se activa en los 'pull requests' a 'develop' para pruebas.
+    branches: [ develop ]
+
+# Una ejecución del flujo de trabajo se compone de uno o más trabajos (jobs).
+jobs:
+  build-docs:
+    # El nombre de este trabajo.
+    name: Construir Documentación
+    # El tipo de máquina en la que se ejecutará el trabajo.
+    runs-on: ubuntu-latest
+    # Establece los permisos necesarios.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    # Los 'steps' representan una secuencia de tareas que se ejecutarán como parte del trabajo.
+    steps:
+      - name: Clonar repositorio
+        # Esta acción clona tu repositorio para que el flujo de trabajo pueda acceder a él.
+        uses: actions/checkout@v4
+
+      - name: Configurar entorno de Python
+        # Esta acción configura un entorno de Python para el trabajo.
+        uses: actions/setup-python@v5
+        with:
+          # Usar la misma versión de Python que tu proyecto.
+          python-version: '3.13'
+
+      - name: Instalar dependencias
+        # Instala las dependencias del proyecto, incluyendo Sphinx.
+        run: |
+          pip install uv
+          cd app
+          uv sync --extra dev
+          cd .. # Vuelve al directorio raíz del proyecto
+
+      - name: Construir la documentación con Sphinx
+        # Este paso ejecuta el comando de Sphinx para construir la documentación.
+        run: |
+          cd app
+          # La documentación se construye en el directorio `docs/_build/html`.
+          uv run --extra dev sphinx-build -b html ../docs ../docs/_build/html
+          echo "La construcción de la documentación ha finalizado con éxito."
+
+      - name: Subir artefacto de documentación
+        # Este paso sube la documentación generada como un artefacto para GitHub Pages.
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Ruta a la documentación HTML generada.
+          path: docs/_build/html
+
+  deploy-docs:
+    name: Desplegar Docs en GitHub Pages
+    # Condición: Ejecutar este trabajo solo si el evento que activó el flujo fue un 'push'.
+    if: github.event_name == 'push'
+    # El trabajo 'deploy' depende de que el trabajo 'build' finalice con éxito.
+    needs: build-docs
+    # Establece los permisos para el despliegue.
+    permissions:
+      pages: write      # Requerido para desplegar en GitHub Pages
+      id-token: write   # Requerido para la autenticación
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar en GitHub Pages
+        # La acción 'deploy-pages' es una acción integrada para el despliegue en GitHub Pages.
+        id: deployment
+        uses: actions/deploy-pages@v4

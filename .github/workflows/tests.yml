@@ -1,0 +1,46 @@
+# Este flujo de trabajo ejecuta las pruebas de Pytest usando Docker Compose.
+
+name: Correr Tests
+
+# Define cuándo debe ejecutarse el flujo de trabajo.
+on:
+  push:
+    # Activa el flujo de trabajo en los 'push' a la rama 'develop'.
+    branches: [ develop ]
+  pull_request:
+    # También se activa en los 'pull requests' que apuntan a 'develop'.
+    branches: [ develop ]
+
+jobs:
+  test:
+    name: Correr Suite de Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositorio
+        # Clona tu repositorio para que el flujo de trabajo pueda acceder al código y a los archivos de Docker.
+        uses: actions/checkout@v4
+      - name: Crear archivo .env a partir de secrets #  paso para crear el archivo .env
+        run: |
+          cat > .env <<'EOF'
+          DEBUG=True
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          ALLOWED_HOSTS=localhost,127.0.0.1
+          SQL_ENGINE=django.db.backends.postgresql
+          SQL_USER=${{ secrets.SQL_USER }}
+          SQL_PASSWORD=${{ secrets.SQL_PASSWORD }}
+          SQL_DATABASE=${{ secrets.SQL_DATABASE }}
+          SQL_HOST=db
+          SQL_PORT=5432
+          DATABASE=postgres
+          DJANGO_SETTINGS_MODULE=global_exchange_django.settings
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+          EOF
+      - name: Ejecutar pruebas con Docker Compose
+        # Este comando inicia los servicios 'db' y 'test' definidos en tu archivo docker-compose.
+        # --build: Asegura que la imagen de Docker se construya con los últimos cambios del código.
+        # --exit-code-from test: Hace que el comando 'up' devuelva el código de salida del contenedor 'test'.
+        # Si las pruebas de pytest pasan, el código de salida es 0 (éxito). Si fallan, es distinto de 0 (fallo),
+        # lo que hará que este paso del workflow falle, como se espera.
+        run: docker compose -f docker-compose.dev.yml up --build --exit-code-from test

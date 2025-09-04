@@ -1,0 +1,4 @@
+Sprint 1
++ Configuración de entorno:
+    - Chat sobre errores al intentar levantar docker: https://g.co/gemini/share/76deb9bbde87
+    - Chat sobre configuración de tests unitarios con pytest: https://g.co/gemini/share/1be585889ef0
