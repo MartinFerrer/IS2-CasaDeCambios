@@ -82,6 +82,7 @@ class CuentaBancaria(MedioDePago):
     """Modelo para cuentas bancarias."""
 
     numero_cuenta = models.CharField(max_length=30)
+    # TODO [SCRUM-112]: dropdown de valores permitidos para banco
     banco = models.CharField(max_length=100)
     titular_cuenta = models.CharField(max_length=100)
     ruc_titular = models.CharField(max_length=12, blank=True)
