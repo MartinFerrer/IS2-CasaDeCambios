@@ -16,12 +16,11 @@ class Divisa(models.Model):
     """Representa una Divisa utilizada en el sistema de cambio.
 
     Este modelo almacena información básica sobre cada Divisa, incluyendo su
-    símbolo, país, estado de activación, y las tasas de cambio y comisiones
-    asociadas.
+    código ISO, nombre y símbolo.
 
     Args:
         idDivisa (UUIDField): Identificador único para la Divisa.
-        codigo (CharField): El código ISO 4317 de la Divisa (e.g 'USD', 'EUR').
+        codigo (CharField): El código ISO 4217 de la Divisa (e.g 'USD', 'EUR').
         nombre (CharField): El nombre de la Divisa (e.g., 'Dólar').
         simbolo (CharField): El símbolo de la Divisa (ej. ₲, $, €).
 
@@ -112,9 +111,9 @@ class TasaCambio(models.Model):
         # Suponiendo que la divisa base (PYG) se puede identificar por un código,
         # un campo booleano 'es_base', o un ID conocido.
         # Por ahora, trabajando con el código 'PYG'.
-        es_Divisa_base = self.divisa_origen.codigo == "PYG" or self.divisa_destino.codigo == "PYG"
+        es_divisa_base = self.divisa_origen.codigo == "PYG" or self.divisa_destino.codigo == "PYG"
 
-        if not es_Divisa_base:
+        if not es_divisa_base:
             raise ValidationError("Una de las divisas en la tasa de cambio debe ser la Divisa base (PYG).")
 
     # Las siguientes funciones no se definen como campos del modelo en Django,
@@ -130,7 +129,12 @@ class TasaCambio(models.Model):
         pass
 
     def consultar_tasa_actual(self) -> Decimal:
-        """Método para consultar la tasa de cambio actual."""
+        """Método para consultar la tasa de cambio actual.
+
+        Retorna el valor actual de la tasa de cambio almacenado en el atributo 'valor'.
+        En esta clase se define la clave primaria (PK) y las restricciones de unicidad
+        para asegurar la integridad de los datos de operaciones de cambio.
+        """
         return self.valor
 
     class Meta:
