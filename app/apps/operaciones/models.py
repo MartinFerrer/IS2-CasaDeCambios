@@ -66,13 +66,13 @@ class TasaCambio(models.Model):
     )
     divisa_origen = models.ForeignKey(
         "Divisa",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name="tasas_origen",
         help_text="La divisa que se va a intercambiar.",
     )
     divisa_destino = models.ForeignKey(
         "Divisa",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name="tasas_destino",
         help_text="La divisa a la cual se va a convertir.",
     )
