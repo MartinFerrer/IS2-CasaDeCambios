@@ -4,9 +4,8 @@
 Define plantillas de URL para la página principal y las vistas de cambio de divisas.
 """
 
-from django.urls import path
-
 from apps.presentacion.views import home
+from django.urls import path
 
 from . import views
 

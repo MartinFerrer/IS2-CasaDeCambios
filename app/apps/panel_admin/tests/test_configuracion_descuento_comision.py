@@ -3,9 +3,8 @@
 from decimal import Decimal
 
 import pytest
-from django.urls import reverse
-
 from apps.usuarios.models import TipoCliente
+from django.urls import reverse
 
 
 @pytest.mark.django_db

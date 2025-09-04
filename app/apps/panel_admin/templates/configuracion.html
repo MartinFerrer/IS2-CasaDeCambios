@@ -78,12 +78,12 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
             // Agregar active al tab seleccionado
             e.target.classList.add('tab-active');
-            
+
             // Ocultar todas las secciones
             document.querySelectorAll('.config-section').forEach(section => {
                 section.classList.add('hidden');
             });
-            
+
             // Mostrar la sección seleccionada
             const targetSection = document.getElementById(e.target.dataset.tab);
             targetSection.classList.remove('hidden');

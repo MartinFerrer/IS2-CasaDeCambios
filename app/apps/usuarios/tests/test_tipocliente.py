@@ -3,7 +3,6 @@
 from decimal import Decimal
 
 import pytest
-
 from apps.usuarios.models import TipoCliente
 
 

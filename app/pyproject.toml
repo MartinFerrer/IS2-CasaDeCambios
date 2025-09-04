@@ -83,9 +83,9 @@ exclude = [".venv", "venv", "build", "dist", ".git"]
 
 [tool.djlint]
 profile = "django"
-ignore = "T003,H030,H031"
+ignore = "T003,H030,H031,H029"
 # T003: Endblock should have name
 # H030: Adding meta description
 # H031: Adding meta keywords
-
+# H029: Consider using lowercase form method values. (Ignoramos por POST, GET, etc.)
 [tool.djlint.per-file-ignores]
