@@ -45,9 +45,23 @@ class Divisa(models.Model):
 
 
 class TasaCambio(models.Model):
-    """Modelo para gestionar las tasas de cambio entre divisas.
+    """Representa la Tasa de Cambio de una divisa a otra.
 
-    Representa el valor de una divisa con respecto a otra en un momento dado.
+    Este modelo almacena el valor de la tasa de cambio entre dos divisas, junto
+    con las comisiones asociadas para la compra y venta. También incluye la fecha
+    en que la tasa entra en vigencia.
+
+    Args:
+        id_tasa_cambio (UUIDField): Identificador único para la tasa de cambio.
+        divisa_origen (ForeignKey): La divisa desde la que se realiza la conversión.
+        divisa_destino (ForeignKey): La divisa a la que se realiza la conversión.
+        valor (DecimalField): El valor de la tasa de cambio.
+        comision_compra (DecimalField): Comisión aplicada al comprar la divisa destino.
+        comision_venta (DecimalField): Comisión aplicada al vender la divisa destino.
+        fecha_vigencia (DateField): Fecha en que la tasa de cambio es válida.
+        hora_vigencia (TimeField): Hora en que la tasa de cambio es válida.
+        activo (BooleanField): Indica si la tasa de cambio está actualmente activa.
+
     """
 
     id_tasa_cambio = models.UUIDField(
@@ -85,6 +99,9 @@ class TasaCambio(models.Model):
     fecha_vigencia = models.DateField(help_text="Fecha a partir de la cual esta tasa es válida.")
     activo = models.BooleanField(
         default=True, help_text="Indica si la tasa de cambio está activa o ha sido desactivada."
+    )
+    hora_vigencia = models.TimeField(
+        null=True, blank=True, help_text="Hora en la que la tasa de cambio entra en vigencia."
     )
 
     def clean(self):
