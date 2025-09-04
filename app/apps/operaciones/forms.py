@@ -23,6 +23,7 @@ class TasaCambioForm(forms.ModelForm):
             "comision_compra",
             "comision_venta",
             "fecha_vigencia",
+            "hora_vigencia",
             "activo",
         ]
         labels = {
