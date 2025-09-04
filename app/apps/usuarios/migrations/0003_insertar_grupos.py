@@ -15,6 +15,7 @@ def crear_grupos_y_asociar(apps, schema_editor):
         grupo, _ = Group.objects.get_or_create(name=nombre)
         grupos[nombre] = grupo
 
+
 class Migration(migrations.Migration):
     dependencies = [
         ("usuarios", "0002_insertar_tipo_clientes"),

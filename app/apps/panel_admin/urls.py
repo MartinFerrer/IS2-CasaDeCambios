@@ -3,9 +3,8 @@
 Define rutas para la gestión de usuarios, roles, clientes y operaciones de asociación.
 """
 
+from apps.panel_admin import views
 from django.urls import path
-
-from . import views
 
 urlpatterns = [
     path("", views.panel_inicio, name="panel_inicio"),
