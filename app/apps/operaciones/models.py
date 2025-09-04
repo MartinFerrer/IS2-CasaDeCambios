@@ -12,7 +12,7 @@ class Divisa(models.Model):
     símbolo, país, estado de activación, y las tasas de cambio y comisiones
     asociadas.
 
-    Args:
+    Argumentos:
         idDivisa (UUIDField): Identificador único para la Divisa.
         codigo (CharField): El código ISO 4217 de la Divisa (e.g 'USD', 'EUR').
         nombre (CharField): El nombre de la Divisa (e.g., 'Dólar').
