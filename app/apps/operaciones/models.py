@@ -19,17 +19,15 @@ class Divisa(models.Model):
     código ISO, nombre y símbolo.
 
     Argumentos:
-        idDivisa (UUIDField): Identificador único para la Divisa.
         codigo (CharField): El código ISO 4217 de la Divisa (e.g 'USD', 'EUR').
         nombre (CharField): El nombre de la Divisa (e.g., 'Dólar').
         simbolo (CharField): El símbolo de la Divisa (ej. ₲, $, €).
 
     """
 
-    idDivisa = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único para la divisa."
+    codigo = models.CharField(
+        primary_key=True, max_length=3, unique=True, help_text="Código ISO 4217 de la divisa (ej. PYG, USD, EUR)."
     )
-    codigo = models.CharField(max_length=3, unique=True, help_text="Código ISO 4217 de la divisa (ej. PYG, USD, EUR).")
     nombre = models.CharField(max_length=50, help_text="Nombre de la divisa (ej. Guaraní, Dólar Estadounidense).")
     simbolo = models.CharField(max_length=5, help_text="Símbolo de la divisa (ej. ₲, $, €).")
 
@@ -50,7 +48,7 @@ class TasaCambio(models.Model):
     con las comisiones asociadas para la compra y venta. También incluye la fecha
     en que la tasa entra en vigencia.
 
-    Args:
+    Argumentos:
         id_tasa_cambio (UUIDField): Identificador único para la tasa de cambio.
         divisa_origen (ForeignKey): La divisa desde la que se realiza la conversión.
         divisa_destino (ForeignKey): La divisa a la que se realiza la conversión.
