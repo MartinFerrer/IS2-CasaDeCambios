@@ -29,35 +29,34 @@
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
-                            <th class="bg-blue-100">Divisa de Origen</th>
                             <th class="bg-blue-100">Divisa de Destino</th>
                             <th class="bg-blue-100">Valor</th>
                             <th class="bg-blue-100">Comisión Compra</th>
                             <th class="bg-blue-100">Comisión Venta</th>
                             <th class="bg-blue-100">Fecha de Vigencia</th>
+                            <th class="bg-blue-100">Hora de Vigencia</th>
                             <th class="bg-blue-100">Estado</th>
                             <th class="bg-blue-100 text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {# Tasas de Cambio Activas #}
                         {% if tasas_de_cambio %}
                             {% for tasa in tasas_de_cambio %}
                                 {% if tasa.activo %}
                                     <tr>
-                                        <td>{{ tasa.divisa_origen }}</td>
                                         <td>{{ tasa.divisa_destino }}</td>
                                         <td>{{ tasa.valor }}</td>
                                         <td>{{ tasa.comision_compra }}</td>
                                         <td>{{ tasa.comision_venta }}</td>
                                         <td>{{ tasa.fecha_vigencia }}</td>
+                                        <td>{{ tasa.hora_vigencia }}</td>
                                         <td>
                                             <span class="badge badge-success">Activa</span>
                                         </td>
                                         <td class="text-center">
-                                            <a href="{% url 'operaciones:tasa_cambio_editar' tasa.idTasaCambio %}"
+                                            <a href="{% url 'operaciones:tasa_cambio_editar' tasa.id_tasa_cambio %}"
                                                class="btn btn-sm btn-outline btn-info">Editar</a>
-                                            <form action="{% url 'operaciones:tasa_cambio_desactivar' tasa.idTasaCambio %}"
+                                            <form action="{% url 'operaciones:tasa_cambio_desactivar' tasa.id_tasa_cambio %}"
                                                   method="post"
                                                   class="inline-block">
                                                 {% csrf_token %}
@@ -67,32 +66,28 @@
                                     </tr>
                                 {% endif %}
                             {% endfor %}
-                            {# Separador entre Activas e Inactivas #}
-                            {% if tasas_de_cambio|length > 0 %}
-                                <tr class="bg-gray-50">
-                                    <td colspan="8" class="text-center py-4">
-                                        <hr class="my-2 border-t border-gray-300">
-                                        <span class="text-xs font-semibold uppercase text-gray-500">Tasas Inactivas</span>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                            {# Tasas de Cambio Inactivas #}
+                            <tr class="bg-gray-50">
+                                <td colspan="8" class="text-center py-4">
+                                    <hr class="my-2 border-t border-gray-300">
+                                    <span class="text-xs font-semibold uppercase text-gray-500">Tasas Desactivadas</span>
+                                </td>
+                            </tr>
                             {% for tasa in tasas_de_cambio %}
                                 {% if not tasa.activo %}
                                     <tr>
-                                        <td>{{ tasa.divisa_origen }}</td>
                                         <td>{{ tasa.divisa_destino }}</td>
                                         <td>{{ tasa.valor }}</td>
                                         <td>{{ tasa.comision_compra }}</td>
                                         <td>{{ tasa.comision_venta }}</td>
                                         <td>{{ tasa.fecha_vigencia }}</td>
+                                        <td>{{ tasa.hora_vigencia }}</td>
                                         <td>
                                             <span class="badge badge-error">Inactiva</span>
                                         </td>
                                         <td class="text-center">
-                                            <a href="{% url 'operaciones:tasa_cambio_editar' tasa.idTasaCambio %}"
+                                            <a href="{% url 'operaciones:tasa_cambio_editar' tasa.id_tasa_cambio %}"
                                                class="btn btn-sm btn-outline btn-info">Editar</a>
-                                            <form action="{% url 'operaciones:tasa_cambio_activar' tasa.idTasaCambio %}"
+                                            <form action="{% url 'operaciones:tasa_cambio_activar' tasa.id_tasa_cambio %}"
                                                   method="post"
                                                   class="inline-block">
                                                 {% csrf_token %}

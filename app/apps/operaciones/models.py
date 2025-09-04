@@ -34,6 +34,11 @@ class Divisa(models.Model):
     simbolo = models.CharField(max_length=5, help_text="Símbolo de la divisa (ej. ₲, $, €).")
 
     class Meta:
+        """Meta información para el modelo Divisa.
+
+        Define detalles como el nombre de la tabla y nombres para la administración.
+        """
+
         db_table = "divisa"
         verbose_name = "Divisa"
         verbose_name_plural = "Divisas"
@@ -68,13 +73,13 @@ class TasaCambio(models.Model):
     )
     divisa_origen = models.ForeignKey(
         "Divisa",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name="tasas_origen",
         help_text="La divisa que se va a intercambiar.",
     )
     divisa_destino = models.ForeignKey(
         "Divisa",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name="tasas_destino",
         help_text="La divisa a la cual se va a convertir.",
     )
