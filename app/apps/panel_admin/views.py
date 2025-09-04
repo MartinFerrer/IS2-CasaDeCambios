@@ -6,14 +6,13 @@ así como la lógica de asociación entre Cliente y Usuario.
 
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from apps.usuarios.models import Cliente, TipoCliente, Usuario
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-
-from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
 from .forms import ClienteForm, UsuarioForm
 
@@ -24,7 +23,7 @@ def panel_inicio(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered panel_inicio.html template.
 
     """
@@ -40,7 +39,7 @@ def configuracion(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered panel_inicio.html template.
 
     """
@@ -64,7 +63,7 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
         request (HttpRequest): Petición HTTP POST que contiene los
             campos numéricos del formulario con los porcentajes de descuento.
 
-    Returns:
+    Retorna:
         HttpResponse: Redirige a la vista 'configuracion'. En caso de error
         añade mensajes mediante `django.contrib.messages` y luego redirige
         también a 'configuracion'.
@@ -111,7 +110,7 @@ def usuario_list(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered usuario_list.html template.
 
     """
@@ -126,7 +125,7 @@ def usuario_create(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered usuario_list.html template or redirect to usuario_listar.
 
     """
@@ -149,7 +148,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> object:
         request: HttpRequest object.
         pk: int, identificador primario del usuario a editar.
 
-    Returns:
+    Retorna:
         HttpResponse: Renderiza el template usuario_list.html con el formulario de edición.
 
     """
@@ -173,7 +172,7 @@ def usuario_delete(request: HttpRequest, pk: int) -> object:
         request: HttpRequest object.
         pk: int, identificador primario del usuario a eliminar.
 
-    Returns:
+    Retorna:
         HttpResponse: Redirige a la lista de usuarios o renderiza el template usuario_list.html.
 
     """
@@ -193,7 +192,7 @@ def rol_list(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered rol_list.html template.
 
     """
@@ -208,7 +207,7 @@ def cliente_list(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered cliente_list.html template.
 
     """
@@ -228,7 +227,7 @@ def cliente_create(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered cliente_list.html template.
 
     """
@@ -256,7 +255,7 @@ def cliente_edit(request: HttpRequest, pk: int) -> object:
         request: HttpRequest object.
         pk: int, identificador primario del cliente a editar.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered cliente_list.html template.
 
     """
@@ -285,7 +284,7 @@ def cliente_delete(request: HttpRequest, pk: int) -> object:
         request: HttpRequest object.
         pk: int, identificador primario del cliente a eliminar.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered cliente_list.html template.
 
     """
@@ -309,7 +308,7 @@ def asociar_cliente_usuario_form(request: HttpRequest) -> object:
     Args:
         request: HttpRequest object.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered cliente_list.html template.
 
     """
@@ -332,7 +331,7 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> objec
         request: HttpRequest object.
         usuario_id: int, identificador del usuario a asociar con el cliente.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered cliente_list.html template.
 
     """
@@ -352,7 +351,7 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> object:
         request: HttpRequest object.
         usuario_id: int, identificador del usuario a desasociar del cliente.
 
-    Returns:
+    Retorna:
         HttpResponse: Rendered cliente_list.html template.
 
     """
