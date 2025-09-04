@@ -8,4 +8,3 @@ Reportes App
 
 .. automodule:: apps.reportes.views
    :members:
-
