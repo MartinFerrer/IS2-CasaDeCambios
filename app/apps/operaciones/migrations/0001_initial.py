@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="Moneda",
+            name="Divisa",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("nombre", models.CharField(max_length=50, unique=True, verbose_name="Nombre")),
@@ -49,15 +49,15 @@ class Migration(migrations.Migration):
                 ("tasa_venta", models.DecimalField(decimal_places=4, max_digits=10, verbose_name="Tasa de Venta")),
                 ("fecha_y_hora", models.DateTimeField(auto_now_add=True, verbose_name="Fecha y Hora")),
                 (
-                    "moneda",
+                    "divisa",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="operaciones.moneda", verbose_name="Moneda"
+                        on_delete=django.db.models.deletion.CASCADE, to="operaciones.divisa", verbose_name="divisa"
                     ),
                 ),
             ],
         ),
         migrations.AddField(
-            model_name="moneda",
+            model_name="divisa",
             name="tipo_de_cambio",
             field=models.ForeignKey(
                 blank=True,
