@@ -4,9 +4,8 @@
 Define plantillas de URL para transacciones y configuración de medios de pago.
 """
 
-from django.urls import path
-
 from apps.presentacion.views import home
+from django.urls import path
 
 from . import views
 

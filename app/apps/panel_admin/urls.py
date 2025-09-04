@@ -3,12 +3,13 @@
 Define rutas para la gestión de usuarios, roles, clientes y operaciones de asociación.
 """
 
+from apps.panel_admin import views
 from django.urls import path
-
-from . import views
 
 urlpatterns = [
     path("", views.panel_inicio, name="panel_inicio"),
+    path("configuracion/", views.configuracion, name="configuracion"),
+    path("configuracion/guardar_comisiones", views.guardar_comisiones, name="guardar_comisiones"),
     path("usuarios/", views.usuario_list, name="usuario_listar"),
     path("usuarios/crear/", views.usuario_create, name="usuario_crear"),
     path("usuarios/<int:pk>/editar/", views.usuario_edit, name="usuario_editar"),

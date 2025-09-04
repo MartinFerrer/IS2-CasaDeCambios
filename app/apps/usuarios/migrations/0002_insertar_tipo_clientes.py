@@ -5,15 +5,16 @@ from django.db import migrations
 
 def insertar_tipos_clientes(apps, schema_editor):
     TipoCliente = apps.get_model("usuarios", "TipoCliente")
-    TipoCliente.objects.bulk_create([
-        TipoCliente(nombre="Minorista"),
-        TipoCliente(nombre="Corporativo"),
-        TipoCliente(nombre="VIP"),
-    ])
+    TipoCliente.objects.bulk_create(
+        [
+            TipoCliente(nombre="Minorista"),
+            TipoCliente(nombre="Corporativo"),
+            TipoCliente(nombre="VIP"),
+        ]
+    )
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("usuarios", "0001_initial"),
     ]

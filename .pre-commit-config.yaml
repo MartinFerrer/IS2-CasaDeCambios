@@ -14,7 +14,7 @@ repos:
       - id: check-docstring-first
       - id: detect-private-key
       - id: name-tests-test
-        args: ["--pytest"]
+        args: ["--pytest-test-first"]
       - id: no-commit-to-branch
         args: ["--branch", "main", "--branch", "develop"]
       - id: check-merge-conflict
