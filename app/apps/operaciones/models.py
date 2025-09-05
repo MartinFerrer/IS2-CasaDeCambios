@@ -87,15 +87,13 @@ class TasaCambio(models.Model):
         help_text="El valor de la divisa de origen en términos de la divisa de destino.",
     )
     comision_compra = models.DecimalField(
-        max_digits=4,
-        decimal_places=0,
-        default=Decimal("0.00"),
+        max_digits=7,
+        decimal_places=3,
         help_text="Monto de comisión por compra en la divisa de destino (Guaraníes).",
     )
     comision_venta = models.DecimalField(
-        max_digits=4,
-        decimal_places=0,
-        default=Decimal("0.00"),
+        max_digits=7,
+        decimal_places=3,
         help_text="Monto de comisión por venta en la divisa de destino (Guaraníes).",
     )
     fecha_actualizacion = models.DateTimeField(

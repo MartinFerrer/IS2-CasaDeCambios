@@ -39,12 +39,7 @@
                                 <label class="label">
                                     <span class="label-text">{{ field.label }}</span>
                                 </label>
-                                {% if field.name == 'activo' %}
-                                    <div class="flex items-center space-x-2">
-                                        {{ field }}
-                                        <span class="label-text">{{ field.label }}</span>
-                                    </div>
-                                {% elif field.name in 'valor,comision_compra,comision_venta' %}
+                                {% if field.name == 'valor' or field.name == 'comision_compra' or field.name == 'comision_venta' %}
                                     {{ field }}
                                     <p class="validator-hint text-sm text-gray-500 mt-1"></p>
                                 {% else %}
@@ -74,4 +69,27 @@
             </div>
         </div>
     </div>
+    <script>
+      // Se seleccionan todos los elementos con la clase 'input validator'
+      const inputElements = document.querySelectorAll('.input.validator');
+
+      // Se itera sobre cada elemento para añadir los listeners
+      inputElements.forEach(inputElement => {
+        // Se escucha el evento 'invalid' para personalizar el mensaje de error
+        inputElement.addEventListener('invalid', function(event) {
+          if (inputElement.validity.rangeUnderflow) {
+            inputElement.setCustomValidity(`El valor debe ser mayor o igual a ${inputElement.min}.`);
+          } else if (inputElement.validity.rangeOverflow) {
+            inputElement.setCustomValidity(`El valor debe ser menor o igual a ${inputElement.max}.`);
+          } else if (inputElement.validity.valueMissing) {
+            inputElement.setCustomValidity('Este campo es obligatorio.');
+          }
+        });
+
+        // Se escucha el evento 'input' para borrar el mensaje de error cuando el usuario empiece a escribir
+        inputElement.addEventListener('input', function(event) {
+          inputElement.setCustomValidity('');
+        });
+      });
+    </script>
 {% endblock content %}
