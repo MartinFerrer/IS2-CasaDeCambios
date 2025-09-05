@@ -1,5 +1,4 @@
 """Configuración de URLs para la aplicación operaciones.
-
 Este módulo define los patrones de URL para operaciones relacionadas con tasas de cambio
 y monedas (divisas), incluyendo operaciones CRUD para ambas.
 """
@@ -18,16 +17,15 @@ urlpatterns = [
     path("admin/tasas/<str:pk>/editar/", views.tasa_cambio_editar, name="tasa_cambio_editar"),
     path("admin/tasas/<str:pk>/desactivar/", views.tasa_cambio_desactivar, name="tasa_cambio_desactivar"),
     path("admin/tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
-    # URL para la vista que muestra el listado de todas las divisa
+    # API endpoint para obtener tasas de cambio actuales
+    path("api/tasas/", views.tasas_cambio_api, name="tasas_cambio_api"),
+    # URLs para divisas
     path("divisa/", views.divisa_listar, name="divisa_list"),
-    # URL para la vista que crea una nueva divisa
     path("divisa/crear/", views.create_divisa, name="create_divisa"),
-    # URL para la vista que muestra los detalles de una divisa específica
     path("divisa/detalles/<str:pk>/", views.divisa_detail, name="divisa_detail"),
-    # Se agrega la URL para editar una divisa, que faltaba
     path("divisa/editar/<str:pk>/", views.edit_divisa, name="edit_divisa"),
-    # URL para la vista que elimina una divisa específica
     path("divisa/eliminar/<str:pk>/", views.delete_divisa, name="delete_divisa"),
-    # URL para la lista de dvisas
     path("divisa/lista/<str:pk>/", views.divisa_listar, name="divisa_list"),
+    path("tasas/api/", views.tasas_cambio_api, name="tasas_cambio_api"),
+    path("tasas/historial/", views.historial_tasas_api, name="historial_tasas_api"),
 ]

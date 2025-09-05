@@ -3,8 +3,9 @@
 Este módulo contiene las vistas CRUD para el modelo TasaCambio.
 """
 
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 
 from .forms import DivisaForm, TasaCambioForm
 from .models import Divisa, TasaCambio
@@ -198,3 +199,85 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
         return redirect("operaciones:tasa_cambio_listar")
     # Redirige de vuelta si no es un POST.
     return redirect("operaciones:tasa_cambio_listar")
+
+
+@require_GET
+def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint que devuelve las tasas de cambio actuales en formato JSON.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        JsonResponse: JSON con las tasas de cambio activas.
+
+    """
+    # Obtener solo las tasas activas, ordenadas por divisa origen
+    tasas = (
+        TasaCambio.objects.filter(activo=True)
+        .select_related("divisa_origen", "divisa_destino")
+        .order_by("divisa_origen__codigo")
+    )
+
+    tasas_data = []
+    for tasa in tasas:
+        # Calcular precio de compra y venta
+        if tasa.divisa_origen.codigo == "PYG":
+            # Si la divisa origen es PYG, entonces vendemos la divisa destino
+            precio_compra = float(tasa.valor) + float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) - float(tasa.comision_venta)
+            divisa_mostrar = tasa.divisa_destino
+        else:
+            # Si la divisa destino es PYG, entonces compramos la divisa origen
+            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
+            divisa_mostrar = tasa.divisa_origen
+
+        tasas_data.append(
+            {
+                "divisa": {
+                    "codigo": divisa_mostrar.codigo,
+                    "nombre": divisa_mostrar.nombre,
+                    "simbolo": divisa_mostrar.simbolo,
+                },
+                "precio_compra": precio_compra,
+                "precio_venta": precio_venta,
+                "fecha_actualizacion": tasa.fecha_actualizacion.isoformat(),
+                "fecha_vigencia": tasa.fecha_vigencia.isoformat(),
+            }
+        )
+
+    return JsonResponse({"tasas": tasas_data, "total": len(tasas_data)})
+
+
+@require_GET
+def historial_tasas_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint que devuelve el historial de tasas de cambio para el gráfico."""
+    tasas = (
+        TasaCambio.objects.filter(activo=True)
+        .select_related("divisa_origen", "divisa_destino")
+        .order_by("fecha_actualizacion")
+    )
+
+    historial = {}
+    for tasa in tasas:
+        # Determinar qué divisa mostrar
+        if tasa.divisa_origen.codigo == "PYG":
+            divisa = tasa.divisa_destino.codigo
+            precio_compra = float(tasa.valor) + float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) - float(tasa.comision_venta)
+        else:
+            divisa = tasa.divisa_origen.codigo
+            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
+
+        # Inicializar estructura si no existe
+        if divisa not in historial:
+            historial[divisa] = {"fechas": [], "compra": [], "venta": []}
+
+        # Agregar datos
+        historial[divisa]["fechas"].append(tasa.fecha_actualizacion.isoformat())
+        historial[divisa]["compra"].append(precio_compra)
+        historial[divisa]["venta"].append(precio_venta)
+
+    return JsonResponse({"historial": historial})
