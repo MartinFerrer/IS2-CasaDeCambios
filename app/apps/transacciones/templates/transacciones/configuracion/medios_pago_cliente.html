@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% block title %}Medios de Pago - {{ cliente.nombre }}{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Medios de Pago</h1>
+                        <p class="text-gray-600">
+                            Cliente: <span class="font-medium">{{ cliente.nombre }}</span> ({{ cliente.ruc }})
+                        </p>
+                    </div>
+                    <a href="{% url 'transacciones:configuracion_medios_pago' %}"
+                       class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver a Clientes
+                    </a>
+                </div>
+            </div>
+            <!-- Tarjetas de Crédito -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                        <svg class="w-6 h-6 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                            </path>
+                        </svg>
+                        Tarjetas de Crédito ({{ tarjetas|length }})
+                    </h2>
+                    <a href="{% url 'transacciones:crear_tarjeta' cliente.id %}"
+                       class="btn btn-primary">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Agregar Tarjeta
+                    </a>
+                </div>
+                {% if tarjetas %}
+                    <div class="grid gap-4 md:grid-cols-2">
+                        {% for tarjeta in tarjetas %}
+                            <div class="card bg-base-100 shadow-md">
+                                <div class="card-body">
+                                    <h3 class="card-title text-lg">
+                                        {% if tarjeta.alias %}
+                                            {{ tarjeta.alias }}
+                                        {% else %}
+                                            {{ tarjeta.generar_alias }}
+                                        {% endif %}
+                                    </h3>
+                                    <div class="text-sm space-y-1">
+                                        <p>
+                                            <span class="font-medium">Número:</span> {{ tarjeta.get_numero_enmascarado }}
+                                        </p>
+                                        <p>
+                                            <span class="font-medium">Titular:</span> {{ tarjeta.nombre_titular }}
+                                        </p>
+                                        <p>
+                                            <span class="font-medium">Vence:</span> {{ tarjeta.fecha_expiracion|date:"m/Y" }}
+                                        </p>
+                                        <p>
+                                            <span class="font-medium">Creada:</span> {{ tarjeta.fecha_creacion|date:"d/m/Y" }}
+                                        </p>
+                                    </div>
+                                    <div class="card-actions justify-end mt-3 gap-2">
+                                        <a href="{% url 'transacciones:editar_tarjeta' cliente.id tarjeta.id %}"
+                                           class="btn btn-outline btn-sm">
+                                            <svg class="w-4 h-4 mr-1"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                </path>
+                                            </svg>
+                                            Editar
+                                        </a>
+                                        <button class="btn btn-error btn-sm"
+                                                onclick="openDeleteModal('tarjeta', {{ tarjeta.id }}, '{{ tarjeta.alias }}')">
+                                            <svg class="w-4 h-4 mr-1"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg>
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 bg-gray-50 rounded-lg">
+                        <p class="text-gray-500">No hay tarjetas de crédito registradas</p>
+                    </div>
+                {% endif %}
+            </div>
+            <!-- Cuentas Bancarias -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                        <svg class="w-6 h-6 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                            </path>
+                        </svg>
+                        Cuentas Bancarias ({{ cuentas|length }})
+                    </h2>
+                    <a href="{% url 'transacciones:crear_cuenta_bancaria' cliente.id %}"
+                       class="btn btn-secondary">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Agregar Cuenta
+                    </a>
+                </div>
+                {% if cuentas %}
+                    <div class="grid gap-4 md:grid-cols-2">
+                        {% for cuenta in cuentas %}
+                            <div class="card bg-base-100 shadow-md">
+                                <div class="card-body">
+                                    <h3 class="card-title text-lg">
+                                        {% if cuenta.alias %}
+                                            {{ cuenta.alias }}
+                                        {% else %}
+                                            {{ cuenta.generar_alias }}
+                                        {% endif %}
+                                    </h3>
+                                    <div class="text-sm space-y-1">
+                                        <p>
+                                            <span class="font-medium">Banco:</span> {{ cuenta.banco }}
+                                        </p>
+                                        <p>
+                                            <span class="font-medium">Cuenta:</span> {{ cuenta.get_numero_enmascarado }}
+                                        </p>
+                                        <p>
+                                            <span class="font-medium">Titular:</span> {{ cuenta.titular_cuenta }}
+                                        </p>
+                                        {% if cuenta.documento_titular %}
+                                            <p>
+                                                <span class="font-medium">N° Documento:</span> {{ cuenta.documento_titular }}
+                                            </p>
+                                        {% endif %}
+                                        <p>
+                                            <span class="font-medium">Creada:</span> {{ cuenta.fecha_creacion|date:"d/m/Y" }}
+                                        </p>
+                                    </div>
+                                    <div class="card-actions justify-end mt-3 gap-2">
+                                        <a href="{% url 'transacciones:editar_cuenta_bancaria' cliente.id cuenta.id %}"
+                                           class="btn btn-outline btn-sm">
+                                            <svg class="w-4 h-4 mr-1"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                </path>
+                                            </svg>
+                                            Editar
+                                        </a>
+                                        <button class="btn btn-error btn-sm"
+                                                onclick="openDeleteModal('cuenta', {{ cuenta.id }}, '{{ cuenta.alias }}')">
+                                            <svg class="w-4 h-4 mr-1"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg>
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 bg-gray-50 rounded-lg">
+                        <p class="text-gray-500">No hay cuentas bancarias registradas</p>
+                    </div>
+                {% endif %}
+            </div>
+            <!-- Billeteras Electrónicas -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                        <svg class="w-6 h-6 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Billeteras Electrónicas ({{ billeteras|length }})
+                    </h2>
+                    <a href="{% url 'transacciones:crear_billetera' cliente.id %}"
+                       class="btn btn-accent">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Agregar Billetera
+                    </a>
+                </div>
+                {% if billeteras %}
+                    <div class="grid gap-4 md:grid-cols-2">
+                        {% for billetera in billeteras %}
+                            <div class="card bg-base-100 shadow-md">
+                                <div class="card-body">
+                                    <h3 class="card-title text-lg">
+                                        {% if billetera.alias %}
+                                            {{ billetera.alias }}
+                                        {% else %}
+                                            {{ billetera.generar_alias }}
+                                        {% endif %}
+                                    </h3>
+                                    <div class="text-sm space-y-1">
+                                        <p>
+                                            <span class="font-medium">Proveedor:</span> {{ billetera.get_proveedor_display }}
+                                        </p>
+                                        <p>
+                                            <span class="font-medium">ID:</span> {{ billetera.identificador }}
+                                        </p>
+                                        {% if billetera.numero_telefono %}
+                                            <p>
+                                                <span class="font-medium">Teléfono:</span> {{ billetera.numero_telefono }}
+                                            </p>
+                                        {% endif %}
+                                        {% if billetera.email_asociado %}
+                                            <p>
+                                                <span class="font-medium">Email:</span> {{ billetera.email_asociado }}
+                                            </p>
+                                        {% endif %}
+                                        <p>
+                                            <span class="font-medium">Creada:</span> {{ billetera.fecha_creacion|date:"d/m/Y" }}
+                                        </p>
+                                    </div>
+                                    <div class="card-actions justify-end mt-3 gap-2">
+                                        <a href="{% url 'transacciones:editar_billetera' cliente.id billetera.id %}"
+                                           class="btn btn-outline btn-sm">
+                                            <svg class="w-4 h-4 mr-1"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                </path>
+                                            </svg>
+                                            Editar
+                                        </a>
+                                        <button class="btn btn-error btn-sm"
+                                                onclick="openDeleteModal('billetera', {{ billetera.id }}, '{{ billetera.alias }}')">
+                                            <svg class="w-4 h-4 mr-1"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                                </path>
+                                            </svg>
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 bg-gray-50 rounded-lg">
+                        <p class="text-gray-500">No hay billeteras electrónicas registradas</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- Modal de confirmación para eliminar medio de pago -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-box">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="closeDeleteModal()">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-red-600 mb-4">Confirmar eliminación</h3>
+            <p class="py-4">
+                ¿Estás seguro de que deseas eliminar el medio de pago "<span id="modalItemName"></span>"?
+            </p>
+            <p class="text-sm text-gray-500 mb-4">Esta acción no se puede deshacer.</p>
+            <div class="modal-action">
+                <form id="deleteForm" method="post" class="inline-block">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-error">Eliminar</button>
+                </form>
+                <button class="btn" onclick="closeDeleteModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Obtener el ID del cliente desde el contexto de Django
+        const clienteId = {{ cliente.id }};
+        
+        function openDeleteModal(tipo, id, alias) {
+            const modal = document.getElementById('deleteModal');
+            const form = document.getElementById('deleteForm');
+            const nombre = document.getElementById('modalItemName');
+
+            // Actualizar el nombre del medio de pago en el modal
+            nombre.textContent = alias;
+
+            // Construir la URL de eliminación con el cliente_id
+            const deleteUrl = `/transacciones/configuracion/cliente/${clienteId}/${tipo}/${id}/eliminar/`;
+            form.action = deleteUrl;
+            
+            // Mostrar el modal
+            modal.classList.add('modal-open');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('modal-open');
+        }
+
+        // Cerrar modal al hacer clic fuera de él
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDeleteModal();
+            }
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Agregar Tarjeta de Crédito - {{ cliente.nombre }}{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Agregar Tarjeta de Crédito</h1>
+                        <p class="text-gray-600">
+                            Cliente: <span class="font-medium">{{ cliente.nombre }}</span>
+                        </p>
+                    </div>
+                    <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
+                       class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver
+                    </a>
+                </div>
+            </div>
+            <!-- Formulario -->
+            <form method="post" class="card bg-base-100 shadow-lg">
+                {% csrf_token %}
+                <div class="card-body">
+                    <h2 class="card-title text-xl mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                            </path>
+                        </svg>
+                        Información de la Tarjeta
+                    </h2>
+                    <!-- Número de tarjeta -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Número de Tarjeta *</span>
+                        </label>
+                        <input type="text"
+                               name="numero_tarjeta"
+                               class="input input-bordered font-mono w-full"
+                               placeholder="Ej: 1234 5678 9012 3456"
+                               pattern=".{19,19}"
+                               title="El número de tarjeta debe tener 16 dígitos."
+                               required>
+                    </div>
+                    <!-- Nombre del titular -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text font-medium">Nombre del Titular *</span>
+                        </label>
+                        <input type="text"
+                               name="nombre_titular"
+                               class="input input-bordered w-full"
+                               placeholder="Ej: Juan Pérez García"
+                               maxlength="100"
+                               required>
+                    </div>
+                    <!-- Fecha de expiración y CVV -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">Fecha de Expiración *</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select name="mes_expiracion"
+                                        class="select select-bordered"
+                                        title="Elija el mes de expiración."
+                                        required>
+                                    <option value="">Mes</option>
+                                    <option value="01">01</option>
+                                    <option value="02">02</option>
+                                    <option value="03">03</option>
+                                    <option value="04">04</option>
+                                    <option value="05">05</option>
+                                    <option value="06">06</option>
+                                    <option value="07">07</option>
+                                    <option value="08">08</option>
+                                    <option value="09">09</option>
+                                    <option value="10">10</option>
+                                    <option value="11">11</option>
+                                    <option value="12">12</option>
+                                </select>
+                                <select name="ano_expiracion"
+                                        class="select select-bordered"
+                                        title="Elija el año de expiración."
+                                        required>
+                                    <option value="">Año</option>
+                                    <option value="2025">2025</option>
+                                    <option value="2026">2026</option>
+                                    <option value="2027">2027</option>
+                                    <option value="2028">2028</option>
+                                    <option value="2029">2029</option>
+                                    <option value="2030">2030</option>
+                                    <option value="2031">2031</option>
+                                    <option value="2032">2032</option>
+                                    <option value="2033">2033</option>
+                                    <option value="2034">2034</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-medium">CVV/CVC *</span>
+                            </label>
+                            <input type="text"
+                                   name="cvv"
+                                   class="input input-bordered font-mono"
+                                   placeholder="Ej: 123"
+                                   pattern="[0-9]{3,4}"
+                                   title="El CVV/CVC debe tener 3 o 4 dígitos."
+                                   maxlength="4"
+                                   required>
+                        </div>
+                    </div>
+                    <!-- Alias personalizado -->
+                    <div class="form-control mb-6 w-full">
+                        <label class="label">
+                            <span class="label-text font-medium">Nombre Personalizado (Opcional)</span>
+                        </label>
+                        <input type="text"
+                               name="alias"
+                               class="input input-bordered w-full"
+                               placeholder="Ej: Mi Tarjeta Personal"
+                               maxlength="50">
+                        <label class="label">
+                            <span class="label-text-alt text-gray-500">Si no se proporciona, se generará automáticamente</span>
+                        </label>
+                    </div>
+                    <!-- Botones -->
+                    <div class="card-actions justify-end gap-2">
+                        <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
+                           class="btn btn-outline">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <svg class="w-4 h-4 mr-2"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Agregar Tarjeta
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+// Formatear número de tarjeta mientras se escribe con espacios cada 4 dígitos
+document.querySelector('input[name="numero_tarjeta"]').addEventListener('input', function(e) {
+    // Remover todo lo que no sea número
+    let value = e.target.value.replace(/\D/g, '');
+    
+    // Formatear con espacios cada 4 dígitos
+    let formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+    
+    // Limitar a 16 dígitos (19 caracteres con espacios)
+    if (value.length > 16) {
+        value = value.substring(0, 16);
+        formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+    }
+    
+    e.target.value = formattedValue;
+});
+
+// Validar CVV - solo números
+document.querySelector('input[name="cvv"]').addEventListener('input', function(e) {
+    e.target.value = e.target.value.replace(/\D/g, '');
+});
+
+// Limpiar espacios del número de tarjeta antes de enviar
+document.querySelector('form').addEventListener('submit', function(e) {
+    const numeroTarjeta = document.querySelector('input[name="numero_tarjeta"]');
+    numeroTarjeta.value = numeroTarjeta.value.replace(/\s/g, '');
+    
+    // Combinar mes y año en formato YYYY-MM-DD para fecha_expiracion
+    const mes = document.querySelector('select[name="mes_expiracion"]').value;
+    const ano = document.querySelector('select[name="ano_expiracion"]').value;
+    
+    if (mes && ano) {
+        // Calcular el último día del mes para la fecha de expiración
+        const ultimoDiaDelMes = new Date(ano, mes, 0).getDate();
+        
+        // Crear un campo hidden con la fecha en formato YYYY-MM-DD
+        const fechaInput = document.createElement('input');
+        fechaInput.type = 'hidden';
+        fechaInput.name = 'fecha_expiracion';
+        fechaInput.value = `${ano}-${mes}-${ultimoDiaDelMes.toString().padStart(2, '0')}`;
+        this.appendChild(fechaInput);
+    }
+});
+    </script>
+{% endblock content %}

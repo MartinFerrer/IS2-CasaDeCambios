@@ -1,8 +1,11 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
+                                        PermissionsMixin)
+from django.core.exceptions import ValidationError
 from django.db import models
+from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
 # TODO [SCRUM-110]: Documentar modelos usuarios
@@ -59,7 +62,7 @@ class TipoCliente(models.Model):
 class Cliente(models.Model):
     """Modelo que representa a un cliente."""
 
-    ruc = models.CharField(max_length=11, unique=True)
+    ruc = models.CharField(max_length=12, unique=True)
     nombre = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     telefono = models.CharField(max_length=15, blank=True)
@@ -75,6 +78,26 @@ class Cliente(models.Model):
 
     # referencia dinámica al modelo de usuario
     usuarios = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="clientes")
+
+    def clean(self):
+        """Validación personalizada del modelo."""
+        super().clean()
+        
+        if self.ruc:
+            # Limpiar el RUC (remover espacios, guiones, etc.)
+            ruc_limpio = limpiar_ruc(self.ruc)
+            
+            # Validar dígito verificador
+            if not validar_ruc_completo(ruc_limpio):
+                raise ValidationError({
+                    'ruc': 'El dígito verificador del RUC no es válido.'
+                })
+            self.ruc = ruc_limpio[:-1]+"-"+ruc_limpio[-1]
+
+    def save(self, *args, **kwargs):
+        """Sobrescribir save para ejecutar validaciones."""
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nombre

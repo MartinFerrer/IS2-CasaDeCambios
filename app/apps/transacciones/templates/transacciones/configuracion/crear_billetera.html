@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Agregar Billetera Electrónica - {{ cliente.nombre }}{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Agregar Billetera Electrónica</h1>
+                        <p class="text-gray-600">
+                            Cliente: <span class="font-medium">{{ cliente.nombre }}</span> ({{ cliente.ruc }})
+                        </p>
+                    </div>
+                    <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
+                       class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Volver
+                    </a>
+                </div>
+            </div>
+            <!-- Formulario -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h2 class="card-title mb-6 flex items-center">
+                        <svg class="w-6 h-6 mr-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Información de la Billetera Electrónica
+                    </h2>
+                    <form method="post" class="space-y-6">
+                        {% csrf_token %}
+                        <!-- Proveedor -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Proveedor *</span>
+                            </label>
+                            <select name="proveedor" class="select select-bordered w-full" required>
+                                <option value="">Seleccionar proveedor</option>
+                                {% for codigo, nombre in proveedores %}<option value="{{ codigo }}">{{ nombre }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <!-- Identificador -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Identificador *</span>
+                            </label>
+                            <input type="text"
+                                   name="identificador"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: usuario123, +595991234567"
+                                   required
+                                   maxlength="50">
+                        </div>
+                        <!-- Número de Teléfono -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Número de Teléfono *</span>
+                                <span class="label-text-alt text-gray-500"></span>
+                            </label>
+                            <input type="tel"
+                                   name="numero_telefono"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: +595991234567"
+                                   maxlength="15"
+                                   required>
+                        </div>
+                        <!-- Email Asociado -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Email Asociado *</span>
+                                <span class="label-text-alt text-gray-500"></span>
+                            </label>
+                            <input type="email"
+                                   name="email_asociado"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: usuario@example.com"
+                                   maxlength="100"
+                                   required>
+                        </div>
+                        <!-- Alias (opcional) -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Alias personalizado</span>
+                                <span class="label-text-alt text-gray-500">(Opcional)</span>
+                            </label>
+                            <input type="text"
+                                   name="alias"
+                                   class="input input-bordered w-full"
+                                   placeholder="Ej: Billetera Principal"
+                                   maxlength="50">
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Si no se especifica, se generará automáticamente</span>
+                            </label>
+                        </div>
+                        <!-- Botones -->
+                        <div class="card-actions justify-end pt-6">
+                            <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
+                               class="btn btn-outline">Cancelar</a>
+                            <button type="submit" class="btn btn-accent">
+                                <svg class="w-4 h-4 mr-2"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Agregar Billetera Electrónica
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
