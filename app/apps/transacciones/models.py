@@ -17,6 +17,7 @@ class MedioDePago(models.Model):
 
     """
 
+    # TODO: Ver si es mejor usar SET_NULL o CASCADE para on_delete de cliente
     cliente = models.ForeignKey("usuarios.Cliente", on_delete=models.CASCADE, related_name="%(class)s_set")
     alias = models.CharField(max_length=50, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
