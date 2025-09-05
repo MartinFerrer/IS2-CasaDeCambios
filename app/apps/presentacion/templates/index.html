@@ -44,9 +44,12 @@
                 </div>
             </div>
             <div class="flex-none w-full lg:w-1/4 bg-base-100 p-6 rounded-box shadow-lg flex flex-col gap-4">
-                <a href="{% url 'simular_cambio' %}" class="btn btn-lg btn-secondary">Simular Cambio</a>
-                <a href="{% url 'comprar_divisa' %}" class="btn btn-lg btn-primary">Comprar Divisa</a>
-                <a href="{% url 'vender_divisa' %}" class="btn btn-lg btn-success">Vender Divisa</a>
+                <a href="{% url 'transacciones:simular_cambio' %}"
+                   class="btn btn-lg btn-secondary">Simular Cambio</a>
+                <a href="{% url 'transacciones:comprar_divisa' %}"
+                   class="btn btn-lg btn-primary">Comprar Divisa</a>
+                <a href="{% url 'transacciones:vender_divisa' %}"
+                   class="btn btn-lg btn-success">Vender Divisa</a>
             </div>
         </div>
     </div>

@@ -4,15 +4,16 @@
 Define plantillas de URL para transacciones y configuración de medios de pago.
 """
 
-from apps.presentacion.views import home
 from django.urls import path
 
 from . import views
 
+app_name = "transacciones"
+
 urlpatterns = [
-    path("", home, name="home"),
     # URLs para transacciones
     path("simular-cambio/", views.simular_cambio_view, name="simular_cambio"),
+    path("api/simular", views.api_simular_cambio, name="api_simular_cambio"),
     path("comprar-divisa/", views.comprar_divisa_view, name="comprar_divisa"),
     path("vender-divisa/", views.vender_divisa_view, name="vender_divisa"),
     # URLs para configuración de medios de pago
