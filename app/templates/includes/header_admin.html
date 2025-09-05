@@ -1,8 +1,8 @@
 {# templates/includes/header_admin.html #}
-<header class="bg-blue-600 text-white shadow-lg p-4">
+<header class="bg-blue-700 text-white shadow-lg p-4">
     <div class="container mx-auto flex flex-wrap justify-between items-center">
         <div class="flex items-center">
-            <a href="{% url 'panel_inicio' %}" class="text-xl font-bold">Global Exchange</a>
+            <a href="{% url 'panel_inicio' %}" class="text-2xl font-bold">Global Exchange - Admin</a>
         </div>
         <div class="lg:hidden">
             <button class="btn btn-ghost"
@@ -16,39 +16,110 @@
                 </svg>
             </button>
         </div>
-        <nav class="hidden lg:flex items-center space-x-6">
-            <a href="{% url 'panel_inicio' %}"
-               class="hover:text-blue-200 transition-colors">Inicio</a>
-            <a href="{% url 'usuario_listar' %}"
-               class="hover:text-blue-200 transition-colors">Usuarios</a>
-            <a href="{% url 'rol_listar' %}"
-               class="hover:text-blue-200 transition-colors">Roles</a>
-            <a href="{% url 'cliente_listar' %}"
-               class="hover:text-blue-200 transition-colors">Clientes</a>
-            <a href="{% url 'asociar_cliente_usuario_form' %}"
-               class="hover:text-blue-200 transition-colors">Asociar Cliente a Usuario</a>
-            <a href="{% url 'configuracion' %}"
-               class="hover:text-blue-200 transition-colors">Configuracion</a>
-            <div class="dropdown dropdown-end ml-6">
-                <label tabindex="0" class="btn btn-ghost btn-circle avatar">
-                    <div class="w-10 rounded-full bg-blue-300 flex items-center justify-center">
-                        <span class="text-lg font-bold text-white">{{ request.user.nombre|default:'U'|first|upper }}</span>
-                    </div>
+        {# Menú de navegación principal (oculto en pantallas pequeñas) #}
+        <nav class="flex-none hidden lg:flex items-center space-x-4">
+            <ul class="menu menu-horizontal px-1">
+                <li>
+                    <a href="{% url 'panel_inicio' %}" class="hover:bg-blue-700 rounded-md">Inicio</a>
+                </li>
+                <li>
+                    <a href="{% url 'usuario_listar' %}"
+                       class="hover:bg-blue-700 rounded-md">Usuarios</a>
+                </li>
+                <li>
+                    <a href="{% url 'rol_listar' %}" class="hover:bg-blue-700 rounded-md">Roles</a>
+                </li>
+                <li>
+                    <a href="{% url 'cliente_listar' %}"
+                       class="hover:bg-blue-700 rounded-md">Clientes</a>
+                </li>
+                <li>
+                    <a href="{% url 'asociar_cliente_usuario_form' %}"
+                       class="hover:bg-blue-700 rounded-md">Asociar Cliente a Usuario</a>
+                </li>
+                <li>
+                    <a href="{% url 'operaciones:divisa_list' %}"
+                       class="hover:bg-blue-700 rounded-md">Divisas</a>
+                </li>
+                <li>
+                    <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                       class="hover:bg-blue-700 rounded-md">Tasas de Cambio</a>
+                </li>
+                <li>
+                    <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+                       class="hover:bg-blue-700 rounded-md">Historial de Tasas de Cambio</a>
+                </li>
+                <li>
+                    <a href="{% url 'configuracion' %}" class="hover:bg-blue-700 rounded-md">Configuración</a>
+                </li>
+            </ul>
+        </nav>
+        {# Menú de usuario desplegable #}
+        <div class="flex-none hidden lg:flex">
+            <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-ghost rounded-btn m-1 hover:text-white">
+                    <span class="mr-2">{{ request.user.nombre|default:'Usuario' }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         viewBox="0 0 20 20"
+                         fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
                 </label>
                 <ul tabindex="0"
-                    class="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 text-blue-800">
-                    <li class="p-2 border-b border-gray-200">
-                        <span class="font-semibold">{{ request.user.nombre|default:'Usuario' }}</span>
-                        <span class="text-xs">{{ request.user.email|default:'Sin email' }}</span>
-                    </li>
+                    class="menu dropdown-content z-[1] p-2 shadow bg-base-100 text-neutral rounded-box w-52">
                     <li>
-                        <a>Mi Perfil</a>
+                        <a>Perfil</a>
                     </li>
-                    <li>
-                        <a href="{% url 'panel_inicio' %}" class="text-red-500">Cerrar Sesión</a>
+                    <li class="border-t border-neutral-content mt-2 pt-2">
+                        <a href="{% url 'seguridad:logout' %}">Cerrar Sesión</a>
                     </li>
                 </ul>
             </div>
-        </nav>
+        </div>
     </div>
 </header>
+{# Sidebar móvil (oculto en pantallas grandes) #}
+<dialog id="sidebar_menu" class="modal">
+    <div class="modal-box w-full max-w-xs p-0 rounded-lg shadow-lg bg-base-100 text-neutral">
+        <form method="dialog">
+            <button type="button"
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    onclick="document.getElementById('sidebar_menu').close()">✕</button>
+        </form>
+        <nav class="menu p-4">
+            <a href="{% url 'panel_inicio' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Inicio</a>
+            <a href="{% url 'usuario_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Usuarios</a>
+            <a href="{% url 'rol_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Roles</a>
+            <a href="{% url 'cliente_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Clientes</a>
+            <a href="{% url 'asociar_cliente_usuario_form' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Asociar Cliente a Usuario</a>
+            <a href="{% url 'operaciones:divisa_list' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Divisas</a>
+            <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Tasas de Cambio</a>
+            <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Historial de Tasas de Cambio</a>
+            <a href="{% url 'configuracion' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Configuración</a>
+            <div class="border-t border-neutral-content my-3"></div>
+            <div class="mb-3 flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white">
+                    <span class="text-base font-bold">{{ request.user.nombre|default:'U'|first|upper }}</span>
+                </div>
+                <div>
+                    <span class="font-semibold block">{{ request.user.nombre|default:'Usuario' }}</span>
+                    <span class="text-xs block text-neutral-500">{{ request.user.email|default:'Sin email' }}</span>
+                </div>
+            </div>
+            <a href="#"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Mi Perfil</a>
+            <a href="{% url 'seguridad:logout' %}"
+               class="block py-2 px-3 rounded text-red-500 hover:bg-red-100 transition">Cerrar Sesión</a>
+        </nav>
+    </div>
+</dialog>

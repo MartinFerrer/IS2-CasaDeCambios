@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block title %}
+    {% if form.instance.pk %}
+        Editar Tasa de Cambio
+    {% else %}
+        Crear Nueva Tasa de Cambio
+    {% endif %}
+{% endblock title %}
+{% block body_class %}
+    bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
+{% endblock body_class %}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock header %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-blue-800 mb-6">
+            {% if form.instance.pk %}
+                Editar Tasa de Cambio
+            {% else %}
+                Crear Nueva Tasa de Cambio
+            {% endif %}
+        </h1>
+        <div class="card bg-white shadow-xl max-w-lg mx-auto">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-error mb-4">
+                            <ul class="list-disc list-inside">
+                                {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    <div class="space-y-4">
+                        {% for field in form %}
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text">{{ field.label }}</span>
+                                </label>
+                                {% if field.name == 'valor' or field.name == 'comision_compra' or field.name == 'comision_venta' %}
+                                    {{ field }}
+                                    <p class="validator-hint text-sm text-gray-500 mt-1"></p>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+                                {% if field.help_text %}<p class="text-sm text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
+                                {% for error in field.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ error }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-4">
+                        <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                           class="btn btn-outline btn-neutral">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if form.instance.pk %}
+                                Guardar Cambios
+                            {% else %}
+                                Crear Tasa
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+      // Se seleccionan todos los elementos con la clase 'input validator'
+      const inputElements = document.querySelectorAll('.input.validator');
+
+      // Se itera sobre cada elemento para añadir los listeners
+      inputElements.forEach(inputElement => {
+        // Se escucha el evento 'invalid' para personalizar el mensaje de error
+        inputElement.addEventListener('invalid', function(event) {
+          if (inputElement.validity.rangeUnderflow) {
+            inputElement.setCustomValidity(`El valor debe ser mayor o igual a ${inputElement.min}.`);
+          } else if (inputElement.validity.rangeOverflow) {
+            inputElement.setCustomValidity(`El valor debe ser menor o igual a ${inputElement.max}.`);
+          } else if (inputElement.validity.valueMissing) {
+            inputElement.setCustomValidity('Este campo es obligatorio.');
+          }
+        });
+
+        // Se escucha el evento 'input' para borrar el mensaje de error cuando el usuario empiece a escribir
+        inputElement.addEventListener('input', function(event) {
+          inputElement.setCustomValidity('');
+        });
+      });
+    </script>
+{% endblock content %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block title %}
+    Historial de Tasas de Cambio
+{% endblock title %}
+{% block body_class %}
+    bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
+{% endblock body_class %}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock header %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-blue-800 mb-6">Historial de Tasas de Cambio</h1>
+        <div class="card bg-white shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-xl text-blue-700">Filtrar Historial</h2>
+                <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Fecha de Inicio</span>
+                        </label>
+                        <input type="date"
+                               name="fecha_inicio"
+                               class="input input-bordered w-full"
+                               value="{{ request.GET.fecha_inicio }}">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Fecha de Fin</span>
+                        </label>
+                        <input type="date"
+                               name="fecha_fin"
+                               class="input input-bordered w-full"
+                               value="{{ request.GET.fecha_fin }}">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Divisa</span>
+                        </label>
+                        <select name="divisa" class="select select-bordered w-full">
+                            <option value="">Todas</option>
+                            {% for divisa in divisas %}
+                                <option value="{{ divisa.codigo }}"
+                                        {% if request.GET.divisa == divisa.codigo %}selected{% endif %}>
+                                    {{ divisa.codigo }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Motivo</span>
+                        </label>
+                        <select name="motivo" class="select select-bordered w-full">
+                            <option value="">Todos</option>
+                            {% for m in motivos %}
+                                <option value="{{ m }}" {% if request.GET.motivo == m %}selected{% endif %}>{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-span-1 md:col-span-4 flex justify-end">
+                        <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card bg-white shadow-xl overflow-auto">
+            <div class="card-body">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th class="bg-blue-100">Fecha y Hora</th>
+                            <th class="bg-blue-100">Divisa Origen</th>
+                            <th class="bg-blue-100">Divisa Destino</th>
+                            <th class="bg-blue-100">Valor (Gs.)</th>
+                            <th class="bg-blue-100">Comisión Compra (Gs.)</th>
+                            <th class="bg-blue-100">Comisión Venta (Gs.)</th>
+                            <th class="bg-blue-100">Estado</th>
+                            <th class="bg-blue-100">Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if historial %}
+                            {% for registro in historial %}
+                                <tr>
+                                    <td>{{ registro.fecha_registro }}</td>
+                                    <td>{{ registro.divisa_origen }}</td>
+                                    <td>{{ registro.divisa_destino }}</td>
+                                    <td>{{ registro.valor|strip_trailing_zeros }}</td>
+                                    <td>{{ registro.comision_compra|strip_trailing_zeros }}</td>
+                                    <td>{{ registro.comision_venta|strip_trailing_zeros }}</td>
+                                    <td>
+                                        {% if registro.activo %}
+                                            <span class="badge badge-success">Activa</span>
+                                        {% else %}
+                                            <span class="badge badge-error">Inactiva</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ registro.motivo }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4">No se encontraron registros en el historial.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

@@ -31,6 +31,14 @@
                                     <a href="{% url 'cliente_listar' %}"
                                        class="btn btn-outline btn-accent w-full my-2">Clientes</a>
                                 </li>
+                                <li>
+                                    <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                                       class="btn btn-outline btn-ghost w-full my-2">Tasas de Cambio</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+                                       class="btn btn-outline btn-warning w-full my-2">Historial de Tasas de Cambio</a>
+                                </li>
                             </ul>
                         </details>
                     </li>
