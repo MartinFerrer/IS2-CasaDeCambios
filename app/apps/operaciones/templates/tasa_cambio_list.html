@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% block title %}
     Listado de Tasas de Cambio
 {% endblock title %}
@@ -30,7 +31,7 @@
                     <thead>
                         <tr>
                             <th class="bg-blue-100">Divisa de Destino</th>
-                            <th class="bg-blue-100">Valor</th>
+                            <th class="bg-blue-100">Valor (Gs.)</th>
                             <th class="bg-blue-100">Comisión Compra (Gs.)</th>
                             <th class="bg-blue-100">Comisión Venta (Gs.)</th>
                             <th class="bg-blue-100">Fecha de Vigencia</th>
@@ -45,22 +46,42 @@
                                 {% if tasa.activo %}
                                     <tr>
                                         <td>{{ tasa.divisa_destino }}</td>
-                                        <td>{{ tasa.valor }}</td>
-                                        <td>{{ tasa.comision_compra }}</td>
-                                        <td>{{ tasa.comision_venta }}</td>
+                                        <td>{{ tasa.valor|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_compra|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_venta|strip_trailing_zeros }}</td>
                                         <td>{{ tasa.fecha_vigencia }}</td>
                                         <td>{{ tasa.hora_vigencia }}</td>
                                         <td>
                                             <span class="badge badge-success">Activa</span>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center flex justify-center space-x-2">
+                                            <!-- Botón Editar -->
                                             <a href="{% url 'operaciones:tasa_cambio_editar' tasa.id_tasa_cambio %}"
-                                               class="btn btn-sm btn-outline btn-info">Editar</a>
+                                               class="btn btn-sm btn-info"
+                                               title="Editar">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-4 w-4"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                    </path>
+                                                </svg>
+                                            </a>
+                                            <!-- Botón Desactivar -->
                                             <form action="{% url 'operaciones:tasa_cambio_desactivar' tasa.id_tasa_cambio %}"
                                                   method="post"
                                                   class="inline-block">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-outline btn-warning ml-2">Desactivar</button>
+                                                <button type="submit" class="btn btn-sm btn-warning" title="Desactivar">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-4 w-4"
+                                                         fill="currentColor"
+                                                         viewBox="0 0 24 24"
+                                                         stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+                                                    </svg>
+                                                </button>
                                             </form>
                                         </td>
                                     </tr>
@@ -76,22 +97,42 @@
                                 {% if not tasa.activo %}
                                     <tr>
                                         <td>{{ tasa.divisa_destino }}</td>
-                                        <td>{{ tasa.valor }}</td>
-                                        <td>{{ tasa.comision_compra }}</td>
-                                        <td>{{ tasa.comision_venta }}</td>
+                                        <td>{{ tasa.valor|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_compra|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_venta|strip_trailing_zeros }}</td>
                                         <td>{{ tasa.fecha_vigencia }}</td>
                                         <td>{{ tasa.hora_vigencia }}</td>
                                         <td>
                                             <span class="badge badge-error">Inactiva</span>
                                         </td>
-                                        <td class="text-center">
+                                        <td class="text-center flex justify-center space-x-2">
+                                            <!-- Botón Editar -->
                                             <a href="{% url 'operaciones:tasa_cambio_editar' tasa.id_tasa_cambio %}"
-                                               class="btn btn-sm btn-outline btn-info">Editar</a>
+                                               class="btn btn-sm btn-info"
+                                               title="Editar">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-4 w-4"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                    </path>
+                                                </svg>
+                                            </a>
+                                            <!-- Botón Activar -->
                                             <form action="{% url 'operaciones:tasa_cambio_activar' tasa.id_tasa_cambio %}"
                                                   method="post"
                                                   class="inline-block">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-outline btn-success ml-2">Activar</button>
+                                                <button type="submit" class="btn btn-sm btn-success" title="Activar">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-4 w-4"
+                                                         fill="none"
+                                                         viewBox="0 0 24 24"
+                                                         stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </button>
                                             </form>
                                         </td>
                                     </tr>

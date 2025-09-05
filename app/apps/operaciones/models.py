@@ -98,7 +98,7 @@ class TasaCambio(models.Model):
         default=Decimal("0.00"),
         help_text="Monto de comisión por venta en la divisa de destino (Guaraníes).",
     )
-    fecha_actualizacion = models.DateField(
+    fecha_actualizacion = models.DateTimeField(
         auto_now=True, help_text="Fecha y hora de la última actualización de la tasa."
     )
     fecha_vigencia = models.DateField(help_text="Fecha a partir de la cual esta tasa es válida.")

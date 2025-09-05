@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% block title %}
     {% if form.instance.pk %}
         Editar Tasa de Cambio
@@ -38,7 +39,17 @@
                                 <label class="label">
                                     <span class="label-text">{{ field.label }}</span>
                                 </label>
-                                {{ field }}
+                                {% if field.name == 'activo' %}
+                                    <div class="flex items-center space-x-2">
+                                        {{ field }}
+                                        <span class="label-text">{{ field.label }}</span>
+                                    </div>
+                                {% elif field.name in 'valor,comision_compra,comision_venta' %}
+                                    {{ field }}
+                                    <p class="validator-hint text-sm text-gray-500 mt-1"></p>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
                                 {% if field.help_text %}<p class="text-sm text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
                                 {% for error in field.errors %}
                                     <label class="label">
