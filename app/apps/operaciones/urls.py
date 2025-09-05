@@ -18,6 +18,7 @@ urlpatterns = [
     path("admin/tasas/<str:pk>/editar/", views.tasa_cambio_editar, name="tasa_cambio_editar"),
     path("admin/tasas/<str:pk>/desactivar/", views.tasa_cambio_desactivar, name="tasa_cambio_desactivar"),
     path("admin/tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
+    path("admin/tasas/historial/", views.tasa_cambio_historial_listar, name="tasa_cambio_historial_listar"),
     # URL para la vista que muestra el listado de todas las divisa
     path("divisa/", views.divisa_listar, name="divisa_list"),
     # URL para la vista que crea una nueva divisa

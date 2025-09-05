@@ -3,11 +3,12 @@
 Este módulo contiene las vistas CRUD para el modelo TasaCambio.
 """
 
+from django.db.models import Q
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import DivisaForm, TasaCambioForm
-from .models import Divisa, TasaCambio
+from .models import Divisa, TasaCambio, TasaCambioHistorial
 
 
 def create_divisa(request):
@@ -131,7 +132,20 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
     if request.method == "POST":
         form = TasaCambioForm(request.POST)
         if form.is_valid():
-            form.save()
+            nueva_tasa = form.save()
+            # Guardar en el historial
+            TasaCambioHistorial.objects.create(
+                tasa_cambio_original=nueva_tasa,
+                divisa_origen=nueva_tasa.divisa_origen,
+                divisa_destino=nueva_tasa.divisa_destino,
+                valor=nueva_tasa.valor,
+                comision_compra=nueva_tasa.comision_compra,
+                comision_venta=nueva_tasa.comision_venta,
+                fecha_vigencia=nueva_tasa.fecha_vigencia,
+                hora_vigencia=nueva_tasa.hora_vigencia,
+                activo=nueva_tasa.activo,
+                motivo="Creación de Tasa",
+            )
             return redirect("operaciones:tasa_cambio_listar")
     else:
         form = TasaCambioForm()
@@ -153,7 +167,20 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
     if request.method == "POST":
         form = TasaCambioForm(request.POST, instance=tasa)
         if form.is_valid():
-            form.save()
+            tasa_editada = form.save()
+            # Guardar en el historial
+            TasaCambioHistorial.objects.create(
+                tasa_cambio_original=tasa_editada,
+                divisa_origen=tasa_editada.divisa_origen,
+                divisa_destino=tasa_editada.divisa_destino,
+                valor=tasa_editada.valor,
+                comision_compra=tasa_editada.comision_compra,
+                comision_venta=tasa_editada.comision_venta,
+                fecha_vigencia=tasa_editada.fecha_vigencia,
+                hora_vigencia=tasa_editada.hora_vigencia,
+                activo=tasa_editada.activo,
+                motivo="Edición de Tasa",
+            )
             return redirect("operaciones:tasa_cambio_listar")
     else:
         form = TasaCambioForm(instance=tasa)
@@ -175,8 +202,20 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
     if request.method == "POST":
         tasa.activo = False
         tasa.save()
+        # Guardar en el historial
+        TasaCambioHistorial.objects.create(
+            tasa_cambio_original=tasa,
+            divisa_origen=tasa.divisa_origen,
+            divisa_destino=tasa.divisa_destino,
+            valor=tasa.valor,
+            comision_compra=tasa.comision_compra,
+            comision_venta=tasa.comision_venta,
+            fecha_vigencia=tasa.fecha_vigencia,
+            hora_vigencia=tasa.hora_vigencia,
+            activo=tasa.activo,
+            motivo="Desactivación de Tasa",
+        )
         return redirect("operaciones:tasa_cambio_listar")
-    # Redirige de vuelta si no es un POST, o podrías usar un template de confirmación.
     return redirect("operaciones:tasa_cambio_listar")
 
 
@@ -195,6 +234,54 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
     if request.method == "POST":
         tasa.activo = True
         tasa.save()
+        # Guardar en el historial
+        TasaCambioHistorial.objects.create(
+            tasa_cambio_original=tasa,
+            divisa_origen=tasa.divisa_origen,
+            divisa_destino=tasa.divisa_destino,
+            valor=tasa.valor,
+            comision_compra=tasa.comision_compra,
+            comision_venta=tasa.comision_venta,
+            fecha_vigencia=tasa.fecha_vigencia,
+            hora_vigencia=tasa.hora_vigencia,
+            activo=tasa.activo,
+            motivo="Activación de Tasa",
+        )
         return redirect("operaciones:tasa_cambio_listar")
-    # Redirige de vuelta si no es un POST.
     return redirect("operaciones:tasa_cambio_listar")
+
+
+def tasa_cambio_historial_listar(request: HttpRequest) -> object:
+    """Renderiza la página de listado del historial de tasas de cambio con filtros.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        HttpResponse: Renderiza el template tasa_cambio_historial_list.html con el contexto del historial filtrado.
+
+    """
+    historial = TasaCambioHistorial.objects.all()
+
+    # Filtros
+    fecha_inicio = request.GET.get("fecha_inicio")
+    fecha_fin = request.GET.get("fecha_fin")
+    divisa = request.GET.get("divisa")
+    motivo = request.GET.get("motivo")
+
+    if fecha_inicio:
+        historial = historial.filter(fecha_registro__gte=fecha_inicio)
+    if fecha_fin:
+        historial = historial.filter(fecha_registro__lte=fecha_fin)
+    if divisa:
+        historial = historial.filter(Q(divisa_origen__codigo=divisa) | Q(divisa_destino__codigo=divisa))
+    if motivo:
+        historial = historial.filter(motivo__icontains=motivo)
+
+    context = {
+        "historial": historial,
+        "divisas": Divisa.objects.all(),  # Para el filtro de divisas
+        "motivos": TasaCambioHistorial.objects.values_list("motivo", flat=True).distinct(),  # Para el filtro de motivos
+    }
+
+    return render(request, "tasa_cambio_historial_list.html", context)
