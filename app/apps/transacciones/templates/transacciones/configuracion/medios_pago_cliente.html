@@ -12,7 +12,8 @@
                             Cliente: <span class="font-medium">{{ cliente.nombre }}</span> ({{ cliente.ruc }})
                         </p>
                     </div>
-                    <a href="{% url 'configuracion_medios_pago' %}" class="btn btn-outline">
+                    <a href="{% url 'transacciones:configuracion_medios_pago' %}"
+                       class="btn btn-outline">
                         <svg class="w-4 h-4 mr-2"
                              fill="none"
                              stroke="currentColor"
@@ -36,7 +37,8 @@
                         </svg>
                         Tarjetas de Crédito ({{ tarjetas|length }})
                     </h2>
-                    <a href="{% url 'crear_tarjeta' cliente.id %}" class="btn btn-primary">
+                    <a href="{% url 'transacciones:crear_tarjeta' cliente.id %}"
+                       class="btn btn-primary">
                         <svg class="w-4 h-4 mr-2"
                              fill="none"
                              stroke="currentColor"
@@ -73,7 +75,7 @@
                                         </p>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
-                                        <a href="{% url 'editar_tarjeta' cliente.id tarjeta.id %}"
+                                        <a href="{% url 'transacciones:editar_tarjeta' cliente.id tarjeta.id %}"
                                            class="btn btn-outline btn-sm">
                                             <svg class="w-4 h-4 mr-1"
                                                  fill="none"
@@ -119,7 +121,7 @@
                         </svg>
                         Cuentas Bancarias ({{ cuentas|length }})
                     </h2>
-                    <a href="{% url 'crear_cuenta_bancaria' cliente.id %}"
+                    <a href="{% url 'transacciones:crear_cuenta_bancaria' cliente.id %}"
                        class="btn btn-secondary">
                         <svg class="w-4 h-4 mr-2"
                              fill="none"
@@ -162,7 +164,7 @@
                                         </p>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
-                                        <a href="{% url 'editar_cuenta_bancaria' cliente.id cuenta.id %}"
+                                        <a href="{% url 'transacciones:editar_cuenta_bancaria' cliente.id cuenta.id %}"
                                            class="btn btn-outline btn-sm">
                                             <svg class="w-4 h-4 mr-1"
                                                  fill="none"
@@ -208,7 +210,8 @@
                         </svg>
                         Billeteras Electrónicas ({{ billeteras|length }})
                     </h2>
-                    <a href="{% url 'crear_billetera' cliente.id %}" class="btn btn-accent">
+                    <a href="{% url 'transacciones:crear_billetera' cliente.id %}"
+                       class="btn btn-accent">
                         <svg class="w-4 h-4 mr-2"
                              fill="none"
                              stroke="currentColor"
@@ -252,7 +255,7 @@
                                         </p>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
-                                        <a href="{% url 'editar_billetera' cliente.id billetera.id %}"
+                                        <a href="{% url 'transacciones:editar_billetera' cliente.id billetera.id %}"
                                            class="btn btn-outline btn-sm">
                                             <svg class="w-4 h-4 mr-1"
                                                  fill="none"

@@ -12,7 +12,7 @@
                             Cliente: <span class="font-medium">{{ cliente.nombre }}</span>
                         </p>
                     </div>
-                    <a href="{% url 'medios_pago_cliente' cliente.id %}"
+                    <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
                        class="btn btn-outline">
                         <svg class="w-4 h-4 mr-2"
                              fill="none"
@@ -136,7 +136,7 @@
                     </div>
                     <!-- Botones -->
                     <div class="card-actions justify-end gap-2">
-                        <a href="{% url 'medios_pago_cliente' cliente.id %}"
+                        <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
                            class="btn btn-outline">Cancelar</a>
                         <button type="submit" class="btn btn-primary">
                             <svg class="w-4 h-4 mr-2"

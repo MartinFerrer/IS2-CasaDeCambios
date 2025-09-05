@@ -13,7 +13,7 @@
                         </p>
                         <p class="text-sm text-gray-500">Cuenta: {{ cuenta.alias }}</p>
                     </div>
-                    <a href="{% url 'medios_pago_cliente' cliente.pk %}"
+                    <a href="{% url 'transacciones:medios_pago_cliente' cliente.pk %}"
                        class="btn btn-outline">
                         <svg class="w-4 h-4 mr-2"
                              fill="none"
@@ -136,7 +136,7 @@
                         </div>
                         <!-- Botones -->
                         <div class="card-actions justify-end pt-6">
-                            <a href="{% url 'medios_pago_cliente' cliente.pk %}"
+                            <a href="{% url 'transacciones:medios_pago_cliente' cliente.pk %}"
                                class="btn btn-outline">Cancelar</a>
                             <button type="submit" class="btn btn-primary">
                                 <svg class="w-4 h-4 mr-2"

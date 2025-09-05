@@ -173,7 +173,7 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
             tarjeta.save()
 
             messages.success(request, "Tarjeta de crédito agregada exitosamente.")
-            return redirect("medios_pago_cliente", cliente_id=cliente.pk)
+            return redirect("transacciones:medios_pago_cliente", cliente_id=cliente.pk)
 
         except ValidationError as e:
             # Manejar errores de validación del modelo específicamente
@@ -218,7 +218,7 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
                 cuenta.alias = cuenta.generar_alias()
             cuenta.save()
             messages.success(request, "Cuenta bancaria agregada exitosamente.")
-            return redirect("medios_pago_cliente", cliente_id=cliente.id)
+            return redirect("transacciones:medios_pago_cliente", cliente_id=cliente.id)
 
         except ValidationError as e:
             # Manejar errores de validación del modelo específicamente
@@ -264,7 +264,7 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
                 billetera.alias = billetera.generar_alias()
             billetera.save()
             messages.success(request, "Billetera electrónica agregada exitosamente.")
-            return redirect("medios_pago_cliente", cliente_id=cliente.id)
+            return redirect("transacciones:medios_pago_cliente", cliente_id=cliente.id)
 
         except Exception as e:
             messages.error(request, f"Error al crear billetera: {e!s}")
@@ -309,7 +309,7 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
 
             tarjeta.save()
             messages.success(request, "Tarjeta actualizada exitosamente.")
-            return redirect("medios_pago_cliente", cliente_id=tarjeta.cliente.id)
+            return redirect("transacciones:medios_pago_cliente", cliente_id=tarjeta.cliente.id)
 
         except ValidationError as e:
             if hasattr(e, "message_dict"):
@@ -354,7 +354,7 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
 
             cuenta.save()
             messages.success(request, "Cuenta bancaria actualizada exitosamente.")
-            return redirect("medios_pago_cliente", cliente_id=cuenta.cliente.id)
+            return redirect("transacciones:medios_pago_cliente", cliente_id=cuenta.cliente.id)
 
         except ValidationError as e:
             if hasattr(e, "message_dict"):
@@ -399,7 +399,7 @@ def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> Ht
 
             billetera.save()
             messages.success(request, "Billetera electrónica actualizada exitosamente.")
-            return redirect("medios_pago_cliente", cliente_id=billetera.cliente.id)
+            return redirect("transacciones:medios_pago_cliente", cliente_id=billetera.cliente.id)
 
         except ValidationError as e:
             if hasattr(e, "message_dict"):
@@ -441,17 +441,10 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
         medio = get_object_or_404(BilleteraElectronica, id=medio_id, cliente__usuarios=request.user)
     else:
         messages.error(request, "Tipo de medio de pago inválido.")
-        return redirect("configuracion_medios_pago")
+        return redirect("transacciones:configuracion_medios_pago")
 
-    if request.method == "POST":
-        cliente_id = medio.cliente.id
-        medio.delete()  # Eliminación física
-        messages.success(request, f"{tipo.title()} eliminada exitosamente.")
-        return redirect("medios_pago_cliente", cliente_id=cliente_id)
-
-    contexto = {
-        "medio": medio,
-        "tipo": tipo,
-        "cliente": medio.cliente,
-    }
-    return render(request, "transacciones/configuracion/confirmar_eliminar.html", contexto)
+    # Eliminar directamente sin página de confirmación
+    cliente_id = medio.cliente.id
+    medio.delete()  # Eliminación física
+    messages.success(request, f"{tipo.title()} eliminada exitosamente.")
+    return redirect("transacciones:medios_pago_cliente", cliente_id=cliente_id)
