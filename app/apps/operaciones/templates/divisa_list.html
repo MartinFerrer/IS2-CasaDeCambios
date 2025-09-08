@@ -8,8 +8,7 @@
     <div class="container mx-auto px-4 py-8 flex-grow">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <h1 class="text-2xl font-bold text-blue-800">Lista de Divisas</h1>
-            <button class="btn btn-primary"
-                    onclick="document.getElementById('modal_crear_divisa').showModal()">
+            <button class="btn btn-primary" onclick="document.getElementById('modal_crear_divisa').showModal()">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5 mr-2"
                      fill="none"
@@ -26,87 +25,281 @@
                 <table class="w-full text-left">
                     <thead>
                         <tr>
-                            <th class="bg-blue-100 px-4 py-2 font-semibold text-blue-800 rounded-tl-lg">Código</th>
-                            <th class="bg-blue-100 px-4 py-2 font-semibold text-blue-800">Nombre</th>
-                            <th class="bg-blue-100 px-4 py-2 font-semibold text-blue-800">Símbolo</th>
-                            <th class="bg-blue-100 px-4 py-2 font-semibold text-blue-800 rounded-tr-lg text-center">Acciones</th>
+                            <th class="bg-blue-100 p-4 text-blue-900 font-semibold rounded-tl-lg">Código</th>
+                            <th class="bg-blue-100 p-4 text-blue-900 font-semibold">Nombre</th>
+                            <th class="bg-blue-100 p-4 text-blue-900 font-semibold">Símbolo</th>
+                            <th class="bg-blue-100 p-4 text-blue-900 font-semibold text-right rounded-tr-lg">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% if divisas %}
-                            {% for divisa in divisas %}
-                                <tr class="hover:bg-gray-100 transition-colors duration-200 border-b border-gray-200">
-                                    <td class="px-4 py-3">{{ divisa.codigo }}</td>
-                                    <td class="px-4 py-3">{{ divisa.nombre }}</td>
-                                    <td class="px-4 py-3">{{ divisa.simbolo }}</td>
-                                    <td class="px-4 py-3 text-center">
-                                        <a href="{% url 'operaciones:divisa_detail' divisa.pk %}"
-                                           class="text-blue-600 hover:text-blue-900 mx-1">Ver</a>
-                                        <a href="{% url 'operaciones:edit_divisa' divisa.pk %}"
-                                           class="text-indigo-600 hover:text-indigo-900 mx-1">Editar</a>
-                                        <a href="{% url 'operaciones:delete_divisa' divisa.pk %}"
-                                           class="text-red-600 hover:text-red-900 mx-1">Eliminar</a>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="4" class="px-4 py-3 text-center text-gray-500 italic">No hay Divisas para mostrar.</td>
-                            </tr>
-                        {% endif %}
+                        {% for divisa in object_list %}
+                        <tr class="border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors duration-200">
+                            <td class="p-4">{{ divisa.codigo }}</td>
+                            <td class="p-4">{{ divisa.nombre }}</td>
+                            <td class="p-4">{{ divisa.simbolo }}</td>
+                            <td class="p-4 text-right">
+                                <a href="{% url 'operaciones:edit_divisa' pk=divisa.pk %}" class="btn btn-sm btn-info">Editar</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-    <!-- Modal para crear nueva divisa -->
-    <dialog id="modal_crear_divisa" class="modal">
-        <div class="modal-box w-11/12 max-w-2xl p-6 bg-white rounded-xl shadow-xl">
-            <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-            </form>
-            <h3 class="text-2xl font-bold text-gray-800 mb-6">Crear Nueva Divisa</h3>
-            <form id="crear-divisa-form"
-                  method="post"
-                  action="{% url 'operaciones:create_divisa' %}">
+    
+    <!-- Modal para crear divisa -->
+    <dialog id="modal_crear_divisa" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box w-full max-w-sm rounded-box shadow-2xl bg-white p-6">
+            <h3 class="font-bold text-lg text-blue-800 mb-4">Crear Divisa</h3>
+            <form id="crear-divisa-form" method="POST" action="{% url 'operaciones:crear_divisa' %}">
                 {% csrf_token %}
-                <div class="mb-4">
-                    <label for="id_codigo" class="block text-gray-700 font-medium mb-2">Código:</label>
+                <div class="form-control w-full mb-4 relative">
+                    <label class="label">
+                        <span class="label-text">Código</span>
+                    </label>
                     <input type="text"
                            name="codigo"
-                           id="id_codigo"
+                           id="id_codigo_modal"
                            required
                            maxlength="3"
-                           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
+                           class="input input-bordered w-full"
+                           placeholder="Ej. USD, EUR, PYG">
+                    <ul id="suggestions-modal" class="bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10 hidden absolute w-full mt-2"></ul>
                 </div>
-                <div class="mb-6">
-                    <label for="id_nombre" class="block text-gray-700 font-medium mb-2">Nombre:</label>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre</span>
+                    </label>
                     <input type="text"
                            name="nombre"
-                           id="id_nombre"
-                           required
-                           maxlength="50"
-                           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
+                           id="id_nombre_modal"
+                           readonly
+                           class="input input-bordered w-full bg-gray-100 cursor-not-allowed">
                 </div>
-                <div class="mb-6">
-                    <label for="id_simbolo" class="block text-gray-700 font-medium mb-2">Símbolo:</label>
+
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Símbolo</span>
+                    </label>
                     <input type="text"
                            name="simbolo"
-                           id="id_simbolo"
-                           required
-                           maxlength="5"
-                           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
+                           id="id_simbolo_modal"
+                           readonly
+                           class="input input-bordered w-full bg-gray-100 cursor-not-allowed">
                 </div>
-                <div class="flex justify-end space-x-2">
-                    <button type="button"
-                            class="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-full hover:bg-gray-300 transition-colors duration-200 shadow-lg"
-                            onclick="document.getElementById('modal_crear_divisa').close()">Cancelar</button>
-                    <button type="submit"
-                            class="px-6 py-2 bg-indigo-600 text-white font-medium rounded-full hover:bg-indigo-700 transition-colors duration-200 shadow-lg">
-                        Guardar
-                    </button>
+                
+                <div id="form-errors" class="text-error text-sm hidden"></div>
+
+                <div class="modal-action flex justify-end items-center mt-6">
+                    <button type="button" class="btn btn-sm btn-outline close-modal-btn">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-primary ml-2">Guardar</button>
                 </div>
             </form>
         </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log("=== DROPDOWN DEBUG ===");
+                
+                const form = document.getElementById('crear-divisa-form');
+                const codigoInput = document.getElementById('id_codigo_modal');
+                const nombreInput = document.getElementById('id_nombre_modal');
+                const simboloInput = document.getElementById('id_simbolo_modal');
+                const suggestionsList = document.getElementById('suggestions-modal');
+                const modal = document.getElementById('modal_crear_divisa');
+                const errorDiv = document.getElementById('form-errors');
+                let allCurrencies = [];
+
+                console.log("Elements found:", {codigoInput, suggestionsList});
+
+                const clearFields = () => {
+                    nombreInput.value = '';
+                    simboloInput.value = '';
+                };
+
+                const closeModal = () => {
+                    modal.close();
+                    clearFields();
+                    suggestionsList.classList.add('hidden');
+                    errorDiv.classList.add('hidden');
+                };
+
+                const closeButton = document.querySelector('.close-modal-btn');
+                    if (closeButton) {
+                        closeButton.addEventListener('click', closeModal);
+                    }
+
+                // Close modal when clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+
+                const fetchCurrencies = async () => {
+                    try {
+                        const apiUrl = "/operaciones/admin/divisas/api/";
+                        console.log("Fetching from URL:", apiUrl);
+                        
+                        const response = await fetch(apiUrl);
+                        console.log("Response status:", response.status);
+                        
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        
+                        allCurrencies = await response.json();
+                        console.log("Currencies loaded:", allCurrencies.length, "items");
+                        
+                    } catch (error) {
+                        console.error("Error fetching currencies:", error);
+                        clearFields();
+                    }
+                };
+
+                codigoInput.addEventListener('input', (e) => {
+                    const query = e.target.value.trim().toUpperCase();
+                    console.log("Input event! Query:", query);
+                    
+                    suggestionsList.innerHTML = '';
+                    clearFields();
+
+                    if (query.length < 1) {
+                        console.log("Query too short, hiding suggestions");
+                        suggestionsList.classList.add('hidden');
+                        return;
+                    }
+
+                    if (allCurrencies.length === 0) {
+                        console.log("No currencies loaded yet");
+                        return;
+                    }
+
+                    const filteredCurrencies = allCurrencies.filter(currency =>
+                        currency.codigo && currency.codigo.toUpperCase().includes(query) || 
+                        (currency.nombre && currency.nombre.toUpperCase().includes(query))
+                    );
+
+                    console.log("Filtered results:", filteredCurrencies.length);
+                    
+                    if (filteredCurrencies.length > 0) {
+                        filteredCurrencies.forEach(currency => {
+                            const li = document.createElement('li');
+                            li.textContent = `${currency.codigo} - ${currency.nombre || 'N/A'} (${currency.simbolo || 'N/A'})`;
+                            li.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                            li.addEventListener('click', () => {
+                                console.log("Selected:", currency.codigo);
+                                codigoInput.value = currency.codigo;
+                                nombreInput.value = currency.nombre || '';
+                                simboloInput.value = currency.simbolo || '';
+                                suggestionsList.classList.add('hidden');
+                            });
+                            suggestionsList.appendChild(li);
+                        });
+                        suggestionsList.classList.remove('hidden');
+                        console.log("Showing suggestions");
+                    } else {
+                        suggestionsList.classList.add('hidden');
+                        console.log("No matches found");
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!codigoInput.contains(e.target) && !suggestionsList.contains(e.target)) {
+                        suggestionsList.classList.add('hidden');
+                    }
+                });
+
+                const updateCurrencyTable = (divisa) => {
+                    console.log("Updating table with:", divisa);
+                    
+                    const tbody = document.querySelector('.card-body table tbody');
+                    if (!tbody) {
+                        console.error("Table body not found!");
+                        window.location.reload(); 
+                        return;
+                    }
+                
+                    const emptyRow = tbody.querySelector('tr.empty-message');
+                    if (emptyRow) {
+                        emptyRow.remove();
+                    }
+                    
+                    const newRow = document.createElement('tr');
+                    newRow.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200';
+                    
+                    const editUrl = "{% url 'operaciones:edit_divisa' pk=123456 %}".replace('123456', divisa.pk);
+                    
+                    newRow.innerHTML = `
+                        <td class="p-4">${divisa.codigo}</td>
+                        <td class="p-4">${divisa.nombre}</td>
+                        <td class="p-4">${divisa.simbolo || ''}</td>
+                        <td class="p-4 text-right">
+                            <a href="${editUrl}" class="btn btn-sm btn-info">Editar</a>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(newRow);
+                    console.log("New currency added to table");
+                };
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    errorDiv.classList.add('hidden');
+
+                    const formData = new FormData(form);
+
+                    try {
+                        console.log("Submitting form to:", "{% url 'operaciones:crear_divisa' %}");
+                        
+                        const response = await fetch("{% url 'operaciones:crear_divisa' %}", {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+
+                        const data = await response.json();
+                        console.log("Server response:", data);
+
+                        if (response.ok && data.success) {
+                            console.log("Divisa created successfully:", data.divisa);
+                            
+                            closeModal();
+                            
+                            updateCurrencyTable(data.divisa);
+                            
+                        } else {
+                            let errorHtml = '';
+                            if (data.errors) {
+                                for (const field in data.errors) {
+                                    data.errors[field].forEach(error => {
+                                        errorHtml += `<p>${field}: ${error}</p>`;
+                                    });
+                                }
+                            } else {
+                                errorHtml = `<p>Error: ${data.message || 'Ocurrió un error inesperado.'}</p>`;
+                            }
+                            errorDiv.innerHTML = errorHtml;
+                            errorDiv.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        console.error("Error submitting form:", error);
+                        errorDiv.innerHTML = `<p>Ocurrió un error de red.</p>`;
+                        errorDiv.classList.remove('hidden');
+                    }
+                });
+
+                fetchCurrencies();
+            });
+        </script>
     </dialog>
+
+    <script>
+        console.log("Main page JavaScript loaded!");
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM fully loaded!");
+        });
+    </script>
 {% endblock %}

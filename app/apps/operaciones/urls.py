@@ -21,13 +21,11 @@ urlpatterns = [
     # URL para la vista que muestra el listado de todas las divisa
     path("admin/divisa/", views.divisa_listar, name="divisa_list"),
     # URL para la vista que crea una nueva divisa
-    path("admin/divisa/crear/", views.create_divisa, name="create_divisa"),
-    # URL para la vista que muestra los detalles de una divisa específica
-    path("admin/divisa/detalles/<str:pk>/", views.divisa_detail, name="divisa_detail"),
+    path("admin/divisa/crear/", views.crear_divisa, name="crear_divisa"),
     # Se agrega la URL para editar una divisa, que faltaba
     path("admin/divisa/editar/<str:pk>/", views.edit_divisa, name="edit_divisa"),
     # URL para la vista que elimina una divisa específica
-    path("admin/divisa/eliminar/<str:pk>/", views.delete_divisa, name="delete_divisa"),
-    # URL para la lista de divisas
-    path("admin/divisa/lista/<str:pk>/", views.divisa_listar, name="divisa_list"),
+    path("admin/divisa/delete/<str:pk>/", views.delete_divisa, name="delete_divisa"),
+    # URL para obtener las divisas en formato JSON
+    path("admin/divisas/api/", views.obtener_divisas, name="api_divisas"),
 ]
