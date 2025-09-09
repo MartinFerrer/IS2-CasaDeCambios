@@ -25,11 +25,14 @@ class Divisa(models.Model):
 
     """
 
-    codigo = models.CharField(
-        primary_key=True, max_length=3, unique=True, help_text="Código ISO 4217 de la divisa (ej. PYG, USD, EUR)."
+    codigo = models.CharField(primary_key=True, max_length=3, unique=True, help_text="(ej. PYG, USD, EUR).")
+    nombre = models.CharField(max_length=50, help_text="(ej. Guaraní, Dólar Estadounidense).")
+    simbolo = models.CharField(max_length=5, help_text="(ej. ₲, $, €).")
+    estado = models.CharField(
+        max_length=10,
+        choices=[("activa", "Activa"), ("inactiva", "Inactiva")],
+        default="Activa",
     )
-    nombre = models.CharField(max_length=50, help_text="Nombre de la divisa (ej. Guaraní, Dólar Estadounidense).")
-    simbolo = models.CharField(max_length=5, help_text="Símbolo de la divisa (ej. ₲, $, €).")
 
     class Meta:
         db_table = "divisa"

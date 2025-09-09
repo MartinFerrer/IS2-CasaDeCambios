@@ -71,14 +71,16 @@ class DivisaForm(forms.ModelForm):
         """
 
         model = Divisa
-        fields = ["codigo", "nombre", "simbolo"]
+        fields = ["codigo", "nombre", "simbolo", "estado"]
         labels = {
             "codigo": "Código",
             "nombre": "Nombre",
             "simbolo": "Símbolo",
+            "estado": "Estado",
         }
         widgets = {
             "codigo": forms.TextInput(attrs={"class": "form-control"}),
             "nombre": forms.TextInput(attrs={"class": "form-control"}),
             "simbolo": forms.TextInput(attrs={"class": "form-control"}),
+            "estado": forms.Select(attrs={"class": "select select-bordered w-full"}),
         }

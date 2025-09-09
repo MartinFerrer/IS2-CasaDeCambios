@@ -28,21 +28,140 @@
                             <th class="bg-blue-100 p-4 text-blue-900 font-semibold rounded-tl-lg">Código</th>
                             <th class="bg-blue-100 p-4 text-blue-900 font-semibold">Nombre</th>
                             <th class="bg-blue-100 p-4 text-blue-900 font-semibold">Símbolo</th>
+                            <th class="bg-blue-100 p-4 text-blue-900 font-semibold">Estado</th>
                             <th class="bg-blue-100 p-4 text-blue-900 font-semibold text-right rounded-tr-lg">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for divisa in object_list %}
-                        <tr class="border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors duration-200">
-                            <td class="p-4">{{ divisa.codigo }}</td>
-                            <td class="p-4">{{ divisa.nombre }}</td>
-                            <td class="p-4">{{ divisa.simbolo }}</td>
-                            <td class="p-4 text-right">
-                                <a href="{% url 'operaciones:edit_divisa' pk=divisa.pk %}" class="btn btn-sm btn-info">Editar</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+    {% for divisa in object_list %}
+    <tr class="border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors duration-200">
+        <td class="p-4">{{ divisa.codigo }}</td>
+        <td class="p-4">{{ divisa.nombre }}</td>
+        <td class="p-4">{{ divisa.simbolo }}</td>
+        <td class="p-4">
+            <span class="badge {% if divisa.estado == 'activa' %}badge-success{% else %}badge-error{% endif %}">
+                {{ divisa.estado|title }}
+            </span>
+        </td>
+        <td class="p-4 text-right space-x-2">
+            <button class="btn btn-sm btn-info"
+                    onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').showModal()">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-4 w-4"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </button>
+            
+            <button class="btn btn-sm btn-error"
+                    onclick="document.getElementById('modal_eliminar_divisa_{{ divisa.pk }}').showModal()">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-4 w-4"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        </td>
+    </tr>
+    
+    <dialog id="modal_editar_divisa_{{ divisa.pk }}" class="modal">
+        <div class="modal-box w-11/12 max-w-2xl">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').close()">
+                    ✕
+                </button>
+            </form>
+            <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Divisa</h3>
+            <form method="post"
+                  action="{% url 'operaciones:edit_divisa' divisa.pk %}"
+                  class="space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Código</span>
+                        </label>
+                        <input type="text"
+                               name="codigo"
+                               value="{{ divisa.codigo }}"
+                               class="input input-bordered"
+                               required />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Nombre</span>
+                        </label>
+                        <input type="text"
+                               name="nombre"
+                               value="{{ divisa.nombre }}"
+                               class="input input-bordered"
+                               required />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Símbolo</span>
+                        </label>
+                        <input type="text"
+                               name="simbolo"
+                               value="{{ divisa.simbolo }}"
+                               class="input input-bordered" />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Estado</span>
+                        </label>
+                        <select name="estado" class="select select-bordered w-full" required>
+                            <option value="activa" {% if divisa.estado == 'activa' %}selected{% endif %}>Activa</option>
+                            <option value="inactiva" {% if divisa.estado == 'inactiva' %}selected{% endif %}>Inactiva</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-action mt-4">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button"
+                            class="btn"
+                            onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').close()">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+    
+    <dialog id="modal_eliminar_divisa_{{ divisa.pk }}" class="modal">
+        <div class="modal-box w-11/12 max-w-md">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="document.getElementById('modal_eliminar_divisa_{{ divisa.pk }}').close()">
+                    ✕
+                </button>
+            </form>
+            <h3 class="font-bold text-lg text-red-600 mb-4">¿Eliminar Divisa?</h3>
+            <p class="mb-6 text-gray-700">
+                ¿Estás seguro que deseas eliminar la divisa <span class="font-semibold">{{ divisa.codigo }} - {{ divisa.nombre }}</span>?
+            </p>
+            <form method="post" action="{% url 'operaciones:delete_divisa' divisa.pk %}">
+                {% csrf_token %}
+                <div class="modal-action mt-4 flex justify-end space-x-2">
+                    <button type="submit" class="btn btn-error">Eliminar</button>
+                    <button type="button"
+                            class="btn"
+                            onclick="document.getElementById('modal_eliminar_divisa_{{ divisa.pk }}').close()">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+    {% endfor %}
+</tbody>
                 </table>
             </div>
         </div>
@@ -89,6 +208,15 @@
                            readonly
                            class="input input-bordered w-full bg-gray-100 cursor-not-allowed">
                 </div>
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Estado</span>
+                    </label>
+                    <select name="estado" class="select select-bordered w-full" required>
+                        <option value="activa" selected>Activa</option>
+                        <option value="inactiva">Inactiva</option>
+                    </select>
+                </div>
                 
                 <div id="form-errors" class="text-error text-sm hidden"></div>
 
@@ -130,7 +258,6 @@
                         closeButton.addEventListener('click', closeModal);
                     }
 
-                // Close modal when clicking outside
                 modal.addEventListener('click', (e) => {
                     if (e.target === modal) {
                         closeModal();
@@ -210,36 +337,8 @@
                 });
 
                 const updateCurrencyTable = (divisa) => {
-                    console.log("Updating table with:", divisa);
-                    
-                    const tbody = document.querySelector('.card-body table tbody');
-                    if (!tbody) {
-                        console.error("Table body not found!");
-                        window.location.reload(); 
-                        return;
-                    }
-                
-                    const emptyRow = tbody.querySelector('tr.empty-message');
-                    if (emptyRow) {
-                        emptyRow.remove();
-                    }
-                    
-                    const newRow = document.createElement('tr');
-                    newRow.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200';
-                    
-                    const editUrl = "{% url 'operaciones:edit_divisa' pk=123456 %}".replace('123456', divisa.pk);
-                    
-                    newRow.innerHTML = `
-                        <td class="p-4">${divisa.codigo}</td>
-                        <td class="p-4">${divisa.nombre}</td>
-                        <td class="p-4">${divisa.simbolo || ''}</td>
-                        <td class="p-4 text-right">
-                            <a href="${editUrl}" class="btn btn-sm btn-info">Editar</a>
-                        </td>
-                    `;
-                    
-                    tbody.appendChild(newRow);
-                    console.log("New currency added to table");
+                     console.log("Divisa created successfully, reloading page...");
+                     window.location.reload(); 
                 };
 
                 form.addEventListener('submit', async (e) => {
