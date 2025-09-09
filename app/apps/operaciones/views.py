@@ -144,7 +144,7 @@ def divisa_listar(request: HttpRequest) -> object:
 def tasa_cambio_listar(request: HttpRequest) -> object:
     """Renderiza la página de listado de tasas de cambio.
 
-    Argumento:
+    Args:
         request: Objeto HttpRequest.
 
     Retorna:
@@ -168,7 +168,20 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
     if request.method == "POST":
         form = TasaCambioForm(request.POST)
         if form.is_valid():
-            form.save()
+            nueva_tasa = form.save()
+            # Guardar en el historial
+            TasaCambioHistorial.objects.create(
+                tasa_cambio_original=nueva_tasa,
+                divisa_origen=nueva_tasa.divisa_origen,
+                divisa_destino=nueva_tasa.divisa_destino,
+                valor=nueva_tasa.valor,
+                comision_compra=nueva_tasa.comision_compra,
+                comision_venta=nueva_tasa.comision_venta,
+                fecha_vigencia=nueva_tasa.fecha_vigencia,
+                hora_vigencia=nueva_tasa.hora_vigencia,
+                activo=nueva_tasa.activo,
+                motivo="Creación de Tasa",
+            )
             return redirect("operaciones:tasa_cambio_listar")
     else:
         form = TasaCambioForm()
@@ -190,7 +203,20 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
     if request.method == "POST":
         form = TasaCambioForm(request.POST, instance=tasa)
         if form.is_valid():
-            form.save()
+            tasa_editada = form.save()
+            # Guardar en el historial
+            TasaCambioHistorial.objects.create(
+                tasa_cambio_original=tasa_editada,
+                divisa_origen=tasa_editada.divisa_origen,
+                divisa_destino=tasa_editada.divisa_destino,
+                valor=tasa_editada.valor,
+                comision_compra=tasa_editada.comision_compra,
+                comision_venta=tasa_editada.comision_venta,
+                fecha_vigencia=tasa_editada.fecha_vigencia,
+                hora_vigencia=tasa_editada.hora_vigencia,
+                activo=tasa_editada.activo,
+                motivo="Edición de Tasa",
+            )
             return redirect("operaciones:tasa_cambio_listar")
     else:
         form = TasaCambioForm(instance=tasa)
@@ -212,8 +238,20 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
     if request.method == "POST":
         tasa.activo = False
         tasa.save()
+        # Guardar en el historial
+        TasaCambioHistorial.objects.create(
+            tasa_cambio_original=tasa,
+            divisa_origen=tasa.divisa_origen,
+            divisa_destino=tasa.divisa_destino,
+            valor=tasa.valor,
+            comision_compra=tasa.comision_compra,
+            comision_venta=tasa.comision_venta,
+            fecha_vigencia=tasa.fecha_vigencia,
+            hora_vigencia=tasa.hora_vigencia,
+            activo=tasa.activo,
+            motivo="Desactivación de Tasa",
+        )
         return redirect("operaciones:tasa_cambio_listar")
-    # Redirige de vuelta si no es un POST, o podrías usar un template de confirmación.
     return redirect("operaciones:tasa_cambio_listar")
 
 
@@ -232,6 +270,136 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
     if request.method == "POST":
         tasa.activo = True
         tasa.save()
+        # Guardar en el historial
+        TasaCambioHistorial.objects.create(
+            tasa_cambio_original=tasa,
+            divisa_origen=tasa.divisa_origen,
+            divisa_destino=tasa.divisa_destino,
+            valor=tasa.valor,
+            comision_compra=tasa.comision_compra,
+            comision_venta=tasa.comision_venta,
+            fecha_vigencia=tasa.fecha_vigencia,
+            hora_vigencia=tasa.hora_vigencia,
+            activo=tasa.activo,
+            motivo="Activación de Tasa",
+        )
         return redirect("operaciones:tasa_cambio_listar")
-    # Redirige de vuelta si no es un POST.
     return redirect("operaciones:tasa_cambio_listar")
+
+
+@require_GET
+def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint que devuelve las tasas de cambio actuales en formato JSON.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        JsonResponse: JSON con las tasas de cambio activas.
+
+    """
+    # Obtener solo las tasas activas, ordenadas por divisa origen
+    tasas = (
+        TasaCambio.objects.filter(activo=True)
+        .select_related("divisa_origen", "divisa_destino")
+        .order_by("divisa_origen__codigo")
+    )
+
+    tasas_data = []
+    for tasa in tasas:
+        # Calcular precio de compra y venta
+        if tasa.divisa_origen.codigo == "PYG":
+            # Si la divisa origen es PYG, entonces vendemos la divisa destino
+            precio_compra = float(tasa.valor) + float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) - float(tasa.comision_venta)
+            divisa_mostrar = tasa.divisa_destino
+        else:
+            # Si la divisa destino es PYG, entonces compramos la divisa origen
+            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
+            divisa_mostrar = tasa.divisa_origen
+
+        tasas_data.append(
+            {
+                "divisa": {
+                    "codigo": divisa_mostrar.codigo,
+                    "nombre": divisa_mostrar.nombre,
+                    "simbolo": divisa_mostrar.simbolo,
+                },
+                "precio_compra": precio_compra,
+                "precio_venta": precio_venta,
+                "fecha_actualizacion": tasa.fecha_actualizacion.isoformat(),
+                "fecha_vigencia": tasa.fecha_vigencia.isoformat(),
+            }
+        )
+
+    return JsonResponse({"tasas": tasas_data, "total": len(tasas_data)})
+
+
+@require_GET
+def historial_tasas_api(request: HttpRequest) -> JsonResponse:
+    """API endpoint que devuelve el historial de tasas de cambio para el gráfico."""
+    tasas = (
+        TasaCambio.objects.filter(activo=True)
+        .select_related("divisa_origen", "divisa_destino")
+        .order_by("fecha_actualizacion")
+    )
+
+    historial = {}
+    for tasa in tasas:
+        # Determinar qué divisa mostrar
+        if tasa.divisa_origen.codigo == "PYG":
+            divisa = tasa.divisa_destino.codigo
+            precio_compra = float(tasa.valor) + float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) - float(tasa.comision_venta)
+        else:
+            divisa = tasa.divisa_origen.codigo
+            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
+
+        # Inicializar estructura si no existe
+        if divisa not in historial:
+            historial[divisa] = {"fechas": [], "compra": [], "venta": []}
+
+        # Agregar datos
+        historial[divisa]["fechas"].append(tasa.fecha_actualizacion.isoformat())
+        historial[divisa]["compra"].append(precio_compra)
+        historial[divisa]["venta"].append(precio_venta)
+
+    return JsonResponse({"historial": historial})
+
+
+def tasa_cambio_historial_listar(request: HttpRequest) -> object:
+    """Renderiza la página de listado del historial de tasas de cambio con filtros.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        HttpResponse: Renderiza el template tasa_cambio_historial_list.html con el contexto del historial filtrado.
+
+    """
+    historial = TasaCambioHistorial.objects.all()
+
+    # Filtros
+    fecha_inicio = request.GET.get("fecha_inicio")
+    fecha_fin = request.GET.get("fecha_fin")
+    divisa = request.GET.get("divisa")
+    motivo = request.GET.get("motivo")
+
+    if fecha_inicio:
+        historial = historial.filter(fecha_registro__gte=fecha_inicio)
+    if fecha_fin:
+        historial = historial.filter(fecha_registro__lte=fecha_fin)
+    if divisa:
+        historial = historial.filter(Q(divisa_origen__codigo=divisa) | Q(divisa_destino__codigo=divisa))
+    if motivo:
+        historial = historial.filter(motivo__icontains=motivo)
+
+    context = {
+        "historial": historial,
+        "divisas": Divisa.objects.all(),  # Para el filtro de divisas
+        "motivos": TasaCambioHistorial.objects.values_list("motivo", flat=True).distinct(),  # Para el filtro de motivos
+    }
+
+    return render(request, "tasa_cambio_historial_list.html", context)

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}
+    Configuración de Medios de Pago
+{% endblock title %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Configuración de Medios de Pago</h1>
+                <p class="text-gray-600">Selecciona un cliente para gestionar sus medios de pago</p>
+            </div>
+            <!-- Lista de Clientes -->
+            {% if clientes %}
+                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {% for cliente in clientes %}
+                        <div class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
+                            <div class="card-body">
+                                <h2 class="card-title text-lg">{{ cliente.nombre }}</h2>
+                                <div class="text-sm text-gray-600 space-y-1">
+                                    <p>
+                                        <span class="font-medium">RUC:</span> {{ cliente.ruc }}
+                                    </p>
+                                    <p>
+                                        <span class="font-medium">Email:</span> {{ cliente.email }}
+                                    </p>
+                                    {% if cliente.telefono %}
+                                        <p>
+                                            <span class="font-medium">Teléfono:</span> {{ cliente.telefono }}
+                                        </p>
+                                    {% endif %}
+                                    <p>
+                                        <span class="font-medium">Tipo:</span> {{ cliente.tipo_cliente.nombre|default:"No definido" }}
+                                    </p>
+                                </div>
+                                <div class="card-actions justify-end mt-4">
+                                    <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
+                                       class="btn btn-primary btn-sm">
+                                        <svg class="w-4 h-4 mr-2"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                                            </path>
+                                        </svg>
+                                        Gestionar Medios de Pago
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <div class="w-24 h-24 mx-auto mb-4 text-gray-300">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-900 mb-2">No hay clientes asociados</h3>
+                    <p class="text-gray-600 mb-6">
+                        Aún no tienes clientes asociados a tu usuario. Contacta con un administrador para vincular clientes.
+                    </p>
+                </div>
+            {% endif %}
+            <!-- Botón para volver -->
+            <div class="mt-8">
+                <a href="{% url 'presentacion:home' %}" class="btn btn-outline">
+                    <svg class="w-4 h-4 mr-2"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver al Inicio
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
