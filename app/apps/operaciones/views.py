@@ -30,10 +30,11 @@ def crear_divisa(request):
                     "success": True,
                     "message": "Divisa creada exitosamente",
                     "divisa": {
-                        "pk": str(divisa.pk),  # Ensure PK is string
+                        "pk": str(divisa.pk),
                         "codigo": divisa.codigo,
                         "nombre": divisa.nombre,
                         "simbolo": divisa.simbolo,
+                        "estado": divisa.estado,
                     },
                 },
                 status=201,
@@ -41,7 +42,7 @@ def crear_divisa(request):
         else:
             return JsonResponse({"success": False, "errors": form.errors}, status=400)
     form = DivisaForm()
-    return render(request, "operaciones/crear_divisa.html", {"form": form})
+    return render(request, "operaciones/divisa_list.html", {"form": form})
 
 
 def obtener_divisas(request: HttpRequest) -> JsonResponse:
@@ -83,15 +84,14 @@ def edit_divisa(request, pk):
     """
     divisa = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
-        form = DivisaForm(request.POST, instance=divisa)
-        if form.is_valid():
-            form.save()
-            return redirect("operaciones:divisa_list")
-    else:
-        form = DivisaForm(instance=divisa)
-    divisas = Divisa.objects.all().order_by("codigo")
+        divisa.codigo = request.POST.get("codigo")
+        divisa.nombre = request.POST.get("nombre")
+        divisa.simbolo = request.POST.get("simbolo")
+        divisa.estado = request.POST.get("estado")
+        divisa.save()
+        return redirect("operaciones:divisa_list")
 
-    return render(request, "divisa_list.html", {"form": form, "divisa": divisa, "object_list": divisas})
+    return redirect("operaciones:divisa_list")
 
 
 def delete_divisa(request, pk):
@@ -135,11 +135,9 @@ def divisa_listar(request: HttpRequest) -> object:
         HttpResponse: La página HTML con la lista de divisas.
     """
     divisas = Divisa.objects.all().order_by("codigo")
-    # ===== ADD DEBUG PRINT =====
     print(f"DEBUG divisa_listar: Found {divisas.count()} currencies in database")
     for divisa in divisas:
         print(f"DEBUG: {divisa.pk} - {divisa.codigo} - {divisa.nombre}")
-    # ===== END DEBUG PRINT =====
     return render(request, "divisa_list.html", {"object_list": divisas})
 
 
