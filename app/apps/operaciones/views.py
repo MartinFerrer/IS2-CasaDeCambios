@@ -4,12 +4,14 @@ Este módulo contiene las vistas CRUD para el modelo TasaCambio.
 """
 
 import pycountry
+from django.db.models import Q
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 from forex_python.converter import CurrencyCodes
 
 from .forms import DivisaForm, TasaCambioForm
-from .models import Divisa, TasaCambio
+from .models import Divisa, TasaCambio, TasaCambioHistorial
 
 
 def crear_divisa(request):
