@@ -238,9 +238,7 @@
             </form>
         </div>
         <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                console.log("=== DROPDOWN DEBUG ===");
-                
+            document.addEventListener('DOMContentLoaded', () => {                
                 const form = document.getElementById('crear-divisa-form');
                 const codigoInput = document.getElementById('id_codigo_modal');
                 const nombreInput = document.getElementById('id_nombre_modal');
@@ -249,8 +247,6 @@
                 const modal = document.getElementById('modal_crear_divisa');
                 const errorDiv = document.getElementById('form-errors');
                 let allCurrencies = [];
-
-                console.log("Elements found:", {codigoInput, suggestionsList});
 
                 const clearFields = () => {
                     nombreInput.value = '';
@@ -277,17 +273,11 @@
 
                 const fetchCurrencies = async () => {
                     try {
-                        const apiUrl = "/operaciones/admin/divisas/api/";
-                        console.log("Fetching from URL:", apiUrl);
-                        
-                        const response = await fetch(apiUrl);
-                        console.log("Response status:", response.status);
-                        
+                        const apiUrl = "/operaciones/admin/divisas/api/";                        
+                        const response = await fetch(apiUrl);                        
                         if (!response.ok) throw new Error('Network response was not ok');
                         
-                        allCurrencies = await response.json();
-                        console.log("Currencies loaded:", allCurrencies.length, "items");
-                        
+                        allCurrencies = await response.json();                        
                     } catch (error) {
                         console.error("Error fetching currencies:", error);
                         clearFields();
@@ -296,19 +286,16 @@
 
                 codigoInput.addEventListener('input', (e) => {
                     const query = e.target.value.trim().toUpperCase();
-                    console.log("Input event! Query:", query);
                     
                     suggestionsList.innerHTML = '';
                     clearFields();
 
                     if (query.length < 1) {
-                        console.log("Query too short, hiding suggestions");
                         suggestionsList.classList.add('hidden');
                         return;
                     }
 
                     if (allCurrencies.length === 0) {
-                        console.log("No currencies loaded yet");
                         return;
                     }
 
@@ -316,8 +303,6 @@
                         currency.codigo && currency.codigo.toUpperCase().includes(query) || 
                         (currency.nombre && currency.nombre.toUpperCase().includes(query))
                     );
-
-                    console.log("Filtered results:", filteredCurrencies.length);
                     
                     if (filteredCurrencies.length > 0) {
                         filteredCurrencies.forEach(currency => {
@@ -325,7 +310,6 @@
                             li.textContent = `${currency.codigo} - ${currency.nombre || 'N/A'} (${currency.simbolo || 'N/A'})`;
                             li.className = 'p-2 cursor-pointer hover:bg-gray-100';
                             li.addEventListener('click', () => {
-                                console.log("Selected:", currency.codigo);
                                 codigoInput.value = currency.codigo;
                                 nombreInput.value = currency.nombre || '';
                                 simboloInput.value = currency.simbolo || '';
@@ -334,10 +318,8 @@
                             suggestionsList.appendChild(li);
                         });
                         suggestionsList.classList.remove('hidden');
-                        console.log("Showing suggestions");
                     } else {
                         suggestionsList.classList.add('hidden');
-                        console.log("No matches found");
                     }
                 });
 
@@ -348,7 +330,6 @@
                 });
 
                 const updateCurrencyTable = (divisa) => {
-                     console.log("Divisa created successfully, reloading page...");
                      window.location.reload(); 
                 };
 
@@ -358,9 +339,7 @@
 
                     const formData = new FormData(form);
 
-                    try {
-                        console.log("Submitting form to:", "{% url 'operaciones:crear_divisa' %}");
-                        
+                    try {                        
                         const response = await fetch("{% url 'operaciones:crear_divisa' %}", {
                             method: 'POST',
                             body: formData,
@@ -371,10 +350,8 @@
                         });
 
                         const data = await response.json();
-                        console.log("Server response:", data);
 
                         if (response.ok && data.success) {
-                            console.log("Divisa created successfully:", data.divisa);
                             
                             closeModal();
                             
@@ -405,11 +382,4 @@
             });
         </script>
     </dialog>
-
-    <script>
-        console.log("Main page JavaScript loaded!");
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM fully loaded!");
-        });
-    </script>
 {% endblock %}

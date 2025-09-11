@@ -18,9 +18,9 @@ urlpatterns = [
     path("admin/tasas/<str:pk>/desactivar/", views.tasa_cambio_desactivar, name="tasa_cambio_desactivar"),
     path("admin/tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
     path("admin/tasas/historial/", views.tasa_cambio_historial_listar, name="tasa_cambio_historial_listar"),
-    # URL para la vista que muestra el listado de todas las divisa
+    path("admin/tasas/historial/", views.historial_tasas_api, name="historial_tasas_api"),
     # API endpoint para obtener tasas de cambio actuales
-    path("api/tasas/", views.tasas_cambio_api, name="tasas_cambio_api"),
+    path("admin/tasas/api/", views.tasas_cambio_api, name="tasas_cambio_api"),
     # URLs para divisas
     # URL para la vista que muestra el listado de todas las divisa
     path("admin/divisa/", views.divisa_listar, name="divisa_list"),
@@ -32,6 +32,4 @@ urlpatterns = [
     path("admin/divisa/delete/<str:pk>/", views.delete_divisa, name="delete_divisa"),
     # URL para obtener las divisas en formato JSON
     path("admin/divisas/api/", views.obtener_divisas, name="api_divisas"),
-    path("tasas/api/", views.tasas_cambio_api, name="tasas_cambio_api"),
-    path("tasas/historial/", views.historial_tasas_api, name="historial_tasas_api"),
 ]
