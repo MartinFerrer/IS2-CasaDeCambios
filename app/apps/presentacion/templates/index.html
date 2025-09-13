@@ -208,53 +208,41 @@ class TasasManager {
             this.showError();
         }
     }
-    getFlagEmoji(codigo) {
-        switch(codigo) {
-            case 'USD': return '🇺🇸';
-            case 'EUR': return '🇪🇺';
-            case 'BRL': return '🇧🇷';
-            case 'ARS': return '🇦🇷';
-            case 'PYG': return '🇵🇾';
-            default: return '🏳️'; // bandera genérica
+renderTasas(tasas) {
+        const fragment = document.createDocumentFragment();
+        tasas.forEach((tasa, index) => {
+            const row = document.createElement('tr');
+            row.className = index % 2 === 0
+                ? 'bg-white border-b border-gray-200 hover:bg-gray-50'
+                : 'bg-gray-50 border-b border-gray-200 hover:bg-gray-100';
+            row.innerHTML = `
+                <td class="py-3 px-4 flex items-center gap-4">
+                    <img src="${tasa.divisa.flag_url}" alt="${tasa.divisa.codigo} flag" class="w-8 h-6 object-cover rounded-sm">
+                    <div class="flex flex-col">
+                        <span class="font-semibold text-lg">${tasa.divisa.codigo}</span>
+                        <span class="text-sm text-gray-500">${tasa.divisa.nombre}</span>
+                    </div>
+                </td>
+                <td class="py-3 px-4 text-center font-mono">
+                    ${this.formatNumber(tasa.precio_compra)}
+                </td>
+                <td class="py-3 px-4 text-center font-mono">
+                    ${this.formatNumber(tasa.precio_venta)}
+                </td>
+            `;
+            fragment.appendChild(row);
+        });
+        this.tasasTbody.innerHTML = '';
+        this.tasasTbody.appendChild(fragment);
+
+        const thead = document.querySelector('#tasas-container thead');
+        if (thead) {
+            thead.className = 'bg-gray-100';
+            thead.querySelectorAll('th').forEach(th => {
+                th.classList.add('py-2', 'px-4', 'border-b', 'border-gray-300', 'text-left');
+            });
         }
     }
-    renderTasas(tasas) {
-    const fragment = document.createDocumentFragment();
-    tasas.forEach((tasa, index) => {
-        const row = document.createElement('tr');
-        // Filas alternadas muy sutiles y línea delgada
-        row.className = index % 2 === 0
-            ? 'bg-white border-b border-gray-200 hover:bg-gray-50'
-            : 'bg-gray-50 border-b border-gray-200 hover:bg-gray-100';
-        row.innerHTML = `
-            <td class="py-3 px-4 flex items-center gap-4">
-                <span class="text-2xl">${this.getFlagEmoji(tasa.divisa.codigo)}</span>
-                <div class="flex flex-col">
-                    <span class="font-semibold text-lg">${tasa.divisa.codigo}</span>
-                    <span class="text-sm text-gray-500">${tasa.divisa.nombre}</span>
-                </div>
-            </td>
-            <td class="py-3 px-4 text-center font-mono">
-                ${this.formatNumber(tasa.precio_compra)}
-            </td>
-            <td class="py-3 px-4 text-center font-mono">
-                ${this.formatNumber(tasa.precio_venta)}
-            </td>
-        `;
-        fragment.appendChild(row);
-    });
-    this.tasasTbody.innerHTML = '';
-    this.tasasTbody.appendChild(fragment);
-
-    // Encabezado más oscuro y minimalista
-    const thead = document.querySelector('#tasas-container thead');
-    if (thead) {
-        thead.className = 'bg-gray-100';
-        thead.querySelectorAll('th').forEach(th => {
-            th.classList.add('py-2', 'px-4', 'border-b', 'border-gray-300', 'text-left');
-        });
-    }
-}
 
 
 

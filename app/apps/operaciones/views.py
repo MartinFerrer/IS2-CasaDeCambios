@@ -12,6 +12,7 @@ from forex_python.converter import CurrencyCodes
 
 from .forms import DivisaForm, TasaCambioForm
 from .models import Divisa, TasaCambio, TasaCambioHistorial
+from .utils import get_flag_url_from_currency
 
 
 def crear_divisa(request):
@@ -291,7 +292,7 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
 
 @require_GET
 def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
-    """API endpoint que devuelve las tasas de cambio actuales en formato JSON.
+    """Devuelve las tasas de cambio actuales en formato JSON.
 
     Args:
         request: Objeto HttpRequest.
@@ -327,6 +328,7 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
                     "codigo": divisa_mostrar.codigo,
                     "nombre": divisa_mostrar.nombre,
                     "simbolo": divisa_mostrar.simbolo,
+                    "flag_url": get_flag_url_from_currency(divisa_mostrar.codigo),
                 },
                 "precio_compra": precio_compra,
                 "precio_venta": precio_venta,
@@ -340,7 +342,7 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
 
 @require_GET
 def historial_tasas_api(request: HttpRequest) -> JsonResponse:
-    """API endpoint que devuelve el historial de tasas de cambio para el gráfico."""
+    """Devuelve el historial de tasas de cambio para el gráfico."""
     tasas = (
         TasaCambio.objects.filter(activo=True)
         .select_related("divisa_origen", "divisa_destino")
