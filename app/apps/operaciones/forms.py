@@ -9,6 +9,7 @@ Incluye:
 from decimal import Decimal
 
 from django import forms
+from django.utils import timezone
 
 from .models import Divisa, TasaCambio
 
@@ -23,12 +24,9 @@ class TasaCambioForm(forms.ModelForm):
         help_text="La divisa desde la cual se realiza la conversión. (Fijo en PYG)",
     )
 
-    # Sobrescribimos el campo de Divisa de Destino para que no muestre PYG
-    divisa_destino = forms.ModelChoiceField(
-        queryset=Divisa.objects.exclude(codigo="PYG"),
-        label="Divisa de Destino",
-        help_text="Seleccione la divisa de destino para la tasa de cambio.",
-    )
+    # El campo divisa_destino se define en __init__ para evitar problemas de asignación de queryset
+
+    # __init__ method is now defined only once at line 123
 
     class Meta:
         """Clase Meta para TasaCambioForm."""
@@ -62,12 +60,14 @@ class TasaCambioForm(forms.ModelForm):
         }
         widgets = {
             "fecha_vigencia": forms.DateInput(attrs={"class": "input input-bordered w-full", "type": "date"}),
-            "hora_vigencia": forms.TimeInput(attrs={"class": "input input-bordered w-full", "type": "time"}),
+            "hora_vigencia": forms.TimeInput(
+                attrs={"class": "input input-bordered w-full", "type": "time", "value": "07:00"}
+            ),
             "valor": forms.NumberInput(
                 attrs={
                     "class": "input input-bordered w-full validator",
                     "type": "number",
-                    "min": "0",
+                    "min": "1",
                     "step": "0.001",
                     "required": "required",
                     "title": "El valor no puede ser un número negativo.",
@@ -98,6 +98,19 @@ class TasaCambioForm(forms.ModelForm):
             ),
         }
 
+    def clean(self):
+        """Valida que la combinación de fecha_vigencia y hora_vigencia no sea anterior a la fecha y hora actual."""
+        cleaned_data = super().clean()
+        fecha = cleaned_data.get("fecha_vigencia")
+        hora = cleaned_data.get("hora_vigencia")
+        if fecha and hora:
+            vigencia_datetime = timezone.make_aware(timezone.datetime.combine(fecha, hora))
+            if vigencia_datetime < timezone.now():
+                raise forms.ValidationError(
+                    "La fecha y hora de vigencia no pueden ser anteriores a la fecha y hora actual."
+                )
+        return cleaned_data
+
     def __init__(self, *args, **kwargs):
         """Inicializa el formulario y aplica clases de DaisyUI a los widgets."""
         super().__init__(*args, **kwargs)
@@ -105,6 +118,26 @@ class TasaCambioForm(forms.ModelForm):
         self.fields["divisa_origen"].initial = Divisa.objects.get(codigo="PYG")
         self.fields["divisa_origen"].disabled = True
 
+        # Excluir todas las divisas que ya están como destino en cualquier TasaCambio
+        used_divisas = TasaCambio.objects.all()
+        if self.instance and self.instance.pk:
+            used_divisas = used_divisas.exclude(pk=self.instance.pk)
+        used_divisas_ids = used_divisas.values_list("divisa_destino", flat=True)
+
+        # Mostrar solo divisas activas/inactivas que no estén ya en uso (excepto la actual de la instancia)
+        available_divisas = (
+            Divisa.objects.exclude(codigo="PYG")
+            .filter(estado__in=["activa", "inactiva"])
+            .exclude(pk__in=used_divisas_ids)
+        )
+        if self.instance and self.instance.pk and self.instance.divisa_destino_id:
+            available_divisas = available_divisas | Divisa.objects.filter(pk=self.instance.divisa_destino_id)
+
+        self.fields["divisa_destino"] = forms.ModelChoiceField(
+            queryset=available_divisas,
+            label="Divisa de Destino",
+            help_text="Seleccione la divisa de destino para la tasa de cambio.",
+        )
         self.fields["divisa_destino"].widget.attrs.update({"class": "select select-bordered w-full"})
 
         # Después de que el formulario se inicializa (y carga los datos de la instancia),
@@ -116,16 +149,10 @@ class TasaCambioForm(forms.ModelForm):
                 self.fields["comision_compra"].initial = ""
             if self.instance.comision_venta == Decimal("0.00"):
                 self.fields["comision_venta"].initial = ""
-        else:
-            # Para una nueva instancia de formulario, simplemente establecemos los valores iniciales como vacíos
-            self.fields["valor"].initial = ""
-            self.fields["comision_compra"].initial = ""
-            self.fields["comision_venta"].initial = ""
 
-        # Aplica las clases de estilo de DaisyUI a los otros widgets
+        # Aplicar clases de DaisyUI a todos los campos
         for field_name, field in self.fields.items():
             if field_name == "activo":
-                # El campo booleano usa un widget CheckboxInput
                 field.widget.attrs.update({"class": "checkbox"})
             elif field_name not in [
                 "divisa_origen",
