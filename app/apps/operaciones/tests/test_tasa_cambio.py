@@ -4,11 +4,10 @@ import datetime
 from decimal import Decimal
 
 import pytest
+from apps.operaciones.models import Divisa, TasaCambio
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.utils import timezone
-
-from app.apps.operaciones.models import Divisa, TasaCambio
 
 
 @pytest.mark.django_db

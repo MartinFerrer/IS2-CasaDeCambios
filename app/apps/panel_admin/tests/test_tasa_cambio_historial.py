@@ -4,9 +4,8 @@ import datetime
 from decimal import Decimal
 
 import pytest
+from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
 from django.utils import timezone
-
-from app.apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
 
 
 @pytest.mark.django_db
