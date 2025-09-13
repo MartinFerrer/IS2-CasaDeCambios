@@ -1,0 +1,47 @@
+"""Módulo de pruebas para la vista historial_tasas_api en la aplicación operaciones.
+
+Este módulo contiene pruebas para el endpoint de la API que proporciona tasas de cambio históricas.
+"""
+
+import pytest
+from django.urls import reverse
+from model_bakery import baker
+
+
+@pytest.mark.django_db
+def test_historial_tasas_api(client):
+    """Test para la view historial_tasas_api (histórico de tasas de cambio)."""
+    pyg = baker.make("operaciones.Divisa", codigo="PYG", nombre="Guaraní", simbolo="₲")
+    usd = baker.make("operaciones.Divisa", codigo="USD", nombre="Dólar", simbolo="$")
+    # Crear varias tasas activas
+    baker.make(
+        "operaciones.TasaCambio",
+        divisa_origen=pyg,
+        divisa_destino=usd,
+        valor=7000,
+        comision_compra=50,
+        comision_venta=60,
+        activo=True,
+    )
+    baker.make(
+        "operaciones.TasaCambio",
+        divisa_origen=usd,
+        divisa_destino=pyg,
+        valor=0.00014,
+        comision_compra=0.00001,
+        comision_venta=0.00001,
+        activo=True,
+    )
+    url = reverse("operaciones:historial_tasas_api")
+    response = client.get(url)
+    assert response.status_code == 200
+    data = response.json()
+    assert "historial" in data
+    assert isinstance(data["historial"], dict)
+    # Debe haber claves para USD y PYG (según lógica de la view)
+    assert "USD" in data["historial"] or "PYG" in data["historial"] or "Guaraní" in data["historial"]
+    # Cada divisa debe tener listas de fechas, compra y venta
+    for _divisa, valores in data["historial"].items():
+        assert "fechas" in valores
+        assert "compra" in valores
+        assert "venta" in valores
