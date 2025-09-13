@@ -24,7 +24,7 @@ def test_custom_user_creation_form_valid():
 
 @pytest.mark.django_db
 def test_custom_user_creation_form_password_mismatch():
-    """Test that the form is invalid if passwords do not match."""
+    """Prueba que el formulario es inválido si las contraseñas no coinciden."""
     form = CustomUserCreationForm(
         data={
             "nombre": "Test User",
