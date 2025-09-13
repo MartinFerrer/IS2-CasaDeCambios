@@ -10,7 +10,7 @@ from apps.seguridad.forms import CustomUserCreationForm
 
 @pytest.mark.django_db
 def test_custom_user_creation_form_valid():
-    """Test that the custom user creation form is valid with correct data."""
+    """Prueba que el formulario de creación de usuario personalizado es válido con datos correctos."""
     form = CustomUserCreationForm(
         data={
             "nombre": "Test User",
