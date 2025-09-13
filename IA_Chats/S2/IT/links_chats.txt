@@ -1,3 +1,5 @@
 Sprint 2
 + Main menu
     - https://g.co/gemini/share/fe6dd577f986
++ Vista de tasas de cambio, mostrar banderas de países
+    - https://g.co/gemini/share/d50c0da8d366
