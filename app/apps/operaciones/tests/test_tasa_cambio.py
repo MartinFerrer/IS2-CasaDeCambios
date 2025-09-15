@@ -6,7 +6,6 @@ from decimal import Decimal
 import pytest
 from apps.operaciones.models import Divisa, TasaCambio
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
 from django.utils import timezone
 
 
@@ -16,8 +15,12 @@ class TestTasaCambioModel:
 
     def setup_method(self):
         """Configura las divisas base para los tests."""
-        self.divisa_pyg = Divisa.objects.get_or_create(codigo="PYG", nombre="Guaraní", simbolo="₲", estado="activa")
-        self.divisa_usd = Divisa.objects.get_or_create(codigo="USD", nombre="Dólar", simbolo="$", estado="activa")
+        self.divisa_pyg, _ = Divisa.objects.get_or_create(
+            codigo="PYG", defaults={"nombre": "Guaraní", "simbolo": "₲", "estado": "activa"}
+        )
+        self.divisa_usd, _ = Divisa.objects.get_or_create(
+            codigo="USD", defaults={"nombre": "Dólar", "simbolo": "$", "estado": "activa"}
+        )
 
     def test_valor_negativo_no_permitido(self):
         """No debe permitirse val|or negativo en la tasa de cambio."""
@@ -91,7 +94,9 @@ class TestTasaCambioModel:
 
     def test_clean_invalid_base_currency(self):
         """Valida que clean() lance ValidationError si ninguna divisa es PYG."""
-        divisa_eur = Divisa.objects.create(codigo="EUR", nombre="Euro", simbolo="€", estado="activa")
+        divisa_eur, _ = Divisa.objects.get_or_create(
+            codigo="EUR", defaults={"nombre": "Euro", "simbolo": "€", "estado": "activa"}
+        )
         tasa = TasaCambio(
             divisa_origen=divisa_eur,
             divisa_destino=self.divisa_usd,
@@ -147,7 +152,7 @@ class TestTasaCambioModel:
             hora_vigencia=datetime.time(7, 0),
             activo=True,
         )
-        with pytest.raises(IntegrityError):
+        with pytest.raises(ValidationError):
             # Debe fallar por restricción de unicidad
             TasaCambio.objects.create(
                 divisa_origen=self.divisa_pyg,
