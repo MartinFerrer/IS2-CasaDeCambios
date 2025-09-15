@@ -3,43 +3,81 @@
 Este módulo contiene las vistas CRUD para el modelo TasaCambio.
 """
 
+import pycountry
 from django.db.models import Q
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
+from forex_python.converter import CurrencyCodes
 
 from .forms import DivisaForm, TasaCambioForm
 from .models import Divisa, TasaCambio, TasaCambioHistorial
 
 
-def create_divisa(request):
+def crear_divisa(request):
     """View para crear una nueva divisa.
 
-    Args:
+    Argumento:
         request: La solicitud HTTP.
     Retorna:
         HttpResponse: el formulario de creación o la redirección después de guardar.
 
     """
     if request.method == "POST":
-        # si se envía el formulario, se vinculan los datos al formulario
         form = DivisaForm(request.POST)
         if form.is_valid():
-            # si el formulario es válido, guarda la nueva instancia de divisa en la base de datos
             divisa = form.save()
-            return redirect("operaciones:divisa_list", pk=divisa.pk)  # Redirige a la vista de detalle con el namespace
-    else:
-        # si es una solicitud GET, crea un formulario vacío
-        form = DivisaForm()
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Divisa creada exitosamente",
+                    "divisa": {
+                        "pk": str(divisa.pk),
+                        "codigo": divisa.codigo,
+                        "nombre": divisa.nombre,
+                        "simbolo": divisa.simbolo,
+                        "estado": divisa.estado,
+                    },
+                },
+                status=201,
+            )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors}, status=400)
+    form = DivisaForm()
+    return render(request, "operaciones/divisa_list.html", {"form": form})
 
-    # renderiza el formulario en la plantilla
-    return render(request, "crear_divisa.html", {"form": form})
+
+def obtener_divisas(request: HttpRequest) -> JsonResponse:
+    """Obtiene las divisas disponibles en el sistema y las devuelve como un JSON.
+
+    Esta vista utiliza la librería `pycountry` para obtener una lista de códigos
+    ISO de divisas.
+
+    Argumentos:
+        request: La solicitud HTTP.
+
+    Returns:
+        JsonResponse: Una respuesta HTTP con una lista de diccionarios de divisas.
+
+    """
+    c = CurrencyCodes()
+    data = []
+    # mantengo el ingles para que tenga coherencia con las librerias
+    for currency in pycountry.currencies:
+        codigo = getattr(currency, "alpha_3", None)
+        if not codigo:
+            continue
+        nombre = getattr(currency, "name", "Desconocida")
+        simbolo = c.get_symbol(codigo)
+        data.append({"codigo": codigo, "nombre": nombre, "simbolo": simbolo})
+
+    return JsonResponse(data, safe=False)
 
 
 def edit_divisa(request, pk):
     """View para editar una divisa existente.
 
-    Args:
+    Argumentos:
         request: La solicitud HTTP.
         pk: El identificador de la divisa a editar.
     Retorna:
@@ -48,20 +86,20 @@ def edit_divisa(request, pk):
     """
     divisa = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
-        form = DivisaForm(request.POST, instance=divisa)
-        if form.is_valid():
-            form.save()
-            return redirect("operaciones:divisa_detail", pk=divisa.pk)
-    else:
-        form = DivisaForm(instance=divisa)
+        divisa.codigo = request.POST.get("codigo")
+        divisa.nombre = request.POST.get("nombre")
+        divisa.simbolo = request.POST.get("simbolo")
+        divisa.estado = request.POST.get("estado")
+        divisa.save()
+        return redirect("operaciones:divisa_list")
 
-    return render(request, "crear_divisa.html", {"form": form, "divisa": divisa})
+    return redirect("operaciones:divisa_list")
 
 
 def delete_divisa(request, pk):
     """View para eliminar una divisa específica.
 
-    Args:
+    Argumento:
         request: La solicitud HTTP.
         pk: El identificador de la divisa a eliminar.
     Retorna:
@@ -72,13 +110,13 @@ def delete_divisa(request, pk):
     if request.method == "POST":
         divisa.delete()
         return redirect("operaciones:divisa_list")  # Redirige a la lista de divisas después de eliminar
-    return render(request, "divisa_list.html", {"divisa": divisa})
+    return redirect("operaciones:divisa_detail", pk=pk)
 
 
 def divisa_detail(request, pk):
     """View para mostrar los detalles de una divisa específica.
 
-    Args:
+    Argumento:
         request: La solicitud HTTP.
         pk: El identificador de la divisa a mostrar.
     Retorna:
@@ -89,21 +127,20 @@ def divisa_detail(request, pk):
     return render(request, "divisa_detalle.html", {"divisa": divisa})
 
 
-def divisa_listar(request):
-    """View para mostrar las divisas.
+def divisa_listar(request: HttpRequest) -> object:
+    """Muestra el listado de todas las divisas en el sistema.
 
-    Args:
+    Argumentos:
         request: La solicitud HTTP.
 
     Retorna:
-        HttpResponse: Renderiza el template divisa_list.html con el contexto de las divisas.
-
+        HttpResponse: La página HTML con la lista de divisas.
     """
-    divisas = Divisa.objects.all().order_by("nombre")
-    context = {
-        "divisas": divisas,
-    }
-    return render(request, "divisa_list.html", context)
+    divisas = Divisa.objects.all().order_by("codigo")
+    print(f"DEBUG divisa_listar: Found {divisas.count()} currencies in database")
+    for divisa in divisas:
+        print(f"DEBUG: {divisa.pk} - {divisa.codigo} - {divisa.nombre}")
+    return render(request, "divisa_list.html", {"object_list": divisas})
 
 
 def tasa_cambio_listar(request: HttpRequest) -> object:
@@ -123,7 +160,7 @@ def tasa_cambio_listar(request: HttpRequest) -> object:
 def tasa_cambio_crear(request: HttpRequest) -> object:
     """Crea una nueva tasa de cambio.
 
-    Args:
+    Argumento:
         request: Objeto HttpRequest.
 
     Retorna:
@@ -156,7 +193,7 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
 def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
     """Edita una tasa de cambio existente.
 
-    Args:
+    Argumento:
         request: Objeto HttpRequest.
         pk: str, el identificador único (UUID) de la tasa de cambio a editar.
 
@@ -191,7 +228,7 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
 def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
     """Desactiva una tasa de cambio existente.
 
-    Args:
+    Argumento:
         request: Objeto HttpRequest.
         pk: str, el identificador único (UUID) de la tasa de cambio a desactivar.
 
@@ -223,7 +260,7 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
 def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
     """Activa una tasa de cambio existente.
 
-    Args:
+    Argumento:
         request: Objeto HttpRequest.
         pk: str, el identificador único (UUID) de la tasa de cambio a activar.
 
