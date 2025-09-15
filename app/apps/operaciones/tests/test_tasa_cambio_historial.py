@@ -14,13 +14,13 @@ class TestTasaCambioHistorialModel:
 
     def setup_method(self):
         """Configura divisas y una tasa de cambio base para los tests."""
-        self.divisa_pyg = Divisa.objects.create(codigo="PYG", nombre="Guaraní", simbolo="₲", estado="activa")
-        self.divisa_usd = Divisa.objects.create(codigo="USD", nombre="Dólar", simbolo="$", estado="activa")
+        self.divisa_pyg = Divisa.objects.get_or_create(codigo="PYG", nombre="Guaraní", simbolo="₲", estado="activa")
+        self.divisa_usd = Divisa.objects.get_or_create(codigo="USD", nombre="Dólar", simbolo="$", estado="activa")
         self.tasa = TasaCambio.objects.create(
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
             valor=Decimal("7000.000"),
-            comision_compra=Decimal("10.000"),
+            comision_compra=Decimal("10.000|"),
             comision_venta=Decimal("15.000"),
             fecha_vigencia=timezone.now().date(),
             hora_vigencia=datetime.time(7, 0),

@@ -16,11 +16,11 @@ class TestTasaCambioModel:
 
     def setup_method(self):
         """Configura las divisas base para los tests."""
-        self.divisa_pyg = Divisa.objects.create(codigo="PYG", nombre="Guaraní", simbolo="₲", estado="activa")
-        self.divisa_usd = Divisa.objects.create(codigo="USD", nombre="Dólar", simbolo="$", estado="activa")
+        self.divisa_pyg = Divisa.objects.get_or_create(codigo="PYG", nombre="Guaraní", simbolo="₲", estado="activa")
+        self.divisa_usd = Divisa.objects.get_or_create(codigo="USD", nombre="Dólar", simbolo="$", estado="activa")
 
     def test_valor_negativo_no_permitido(self):
-        """No debe permitirse valor negativo en la tasa de cambio."""
+        """No debe permitirse val|or negativo en la tasa de cambio."""
         with pytest.raises(ValidationError):
             TasaCambio.objects.create(
                 divisa_origen=self.divisa_pyg,
