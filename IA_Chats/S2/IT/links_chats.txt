@@ -3,3 +3,13 @@ Sprint 2
     - https://g.co/gemini/share/fe6dd577f986
 + Vista de tasas de cambio, mostrar banderas de países
     - https://g.co/gemini/share/d50c0da8d366
++ Vista de tasas de cambio, mostrar banderas de países
+    - https://g.co/gemini/share/d50c0da8d366
++CRUD Tasas
+    - https://g.co/gemini/share/c8c42a9787a6
++Merge monedas y tasas
+    - https://g.co/gemini/share/904a56584bc1
++Bug fixes de formulario crear tasas
+    - https://g.co/gemini/share/3b2c37165b93
++Auditoría de tasas
+    - https://g.co/gemini/share/0725e3219d64

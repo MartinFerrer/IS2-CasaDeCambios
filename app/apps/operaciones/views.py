@@ -313,8 +313,8 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
         # Calcular precio de compra y venta
         if tasa.divisa_origen.codigo == "PYG":
             # Si la divisa origen es PYG, entonces vendemos la divisa destino
-            precio_compra = float(tasa.valor) + float(tasa.comision_compra)
-            precio_venta = float(tasa.valor) - float(tasa.comision_venta)
+            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
+            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
             divisa_mostrar = tasa.divisa_destino
         else:
             # Si la divisa destino es PYG, entonces compramos la divisa origen
@@ -383,6 +383,8 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
         HttpResponse: Renderiza el template tasa_cambio_historial_list.html con el contexto del historial filtrado.
 
     """
+    from datetime import datetime
+
     historial = TasaCambioHistorial.objects.all()
 
     # Filtros
@@ -394,16 +396,26 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
     if fecha_inicio:
         historial = historial.filter(fecha_registro__gte=fecha_inicio)
     if fecha_fin:
-        historial = historial.filter(fecha_registro__lte=fecha_fin)
+        # Hacer que la fecha de fin sea inclusiva hasta el final del día
+        try:
+            fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d")
+            fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+            historial = historial.filter(fecha_registro__lte=fecha_fin_dt)
+        except Exception:
+            historial = historial.filter(fecha_registro__lte=fecha_fin)
     if divisa:
         historial = historial.filter(Q(divisa_origen__codigo=divisa) | Q(divisa_destino__codigo=divisa))
     if motivo:
         historial = historial.filter(motivo__icontains=motivo)
 
+    # Obtener motivos únicos (sin duplicados)
+    motivos_queryset = TasaCambioHistorial.objects.values_list("motivo", flat=True).distinct()
+    motivos_unicos = sorted(set(motivos_queryset))
+
     context = {
         "historial": historial,
         "divisas": Divisa.objects.all(),  # Para el filtro de divisas
-        "motivos": TasaCambioHistorial.objects.values_list("motivo", flat=True).distinct(),  # Para el filtro de motivos
+        "motivos": motivos_unicos,  # Motivos únicos para el filtro
     }
 
     return render(request, "tasa_cambio_historial_list.html", context)
