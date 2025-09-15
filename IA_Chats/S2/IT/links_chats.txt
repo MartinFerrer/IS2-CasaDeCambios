@@ -3,6 +3,8 @@ Sprint 2
     - https://g.co/gemini/share/fe6dd577f986
 + Vista de tasas de cambio, mostrar banderas de países
     - https://g.co/gemini/share/d50c0da8d366
++ Vista de tasas de cambio, mostrar banderas de países
+    - https://g.co/gemini/share/d50c0da8d366
 +CRUD Tasas
     - https://g.co/gemini/share/c8c42a9787a6
 +Merge monedas y tasas
