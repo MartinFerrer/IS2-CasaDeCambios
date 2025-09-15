@@ -106,14 +106,27 @@ class TasaCambio(models.Model):
     )
 
     def clean(self):
-        """Valida que una de las divisas en la tasa de cambio sea la Divisa base (PYG)."""
-        # Suponiendo que la divisa base (PYG) se puede identificar por un código,
-        # un campo booleano 'es_base', o un ID conocido.
-        # Por ahora, trabajando con el código 'PYG'.
+        """Valida que una de las divisas en la tasa de cambio sea la Divisa base (PYG) y que los valores sean positivos."""
+        # Validar que una de las divisas sea PYG
         es_divisa_base = self.divisa_origen.codigo == "PYG" or self.divisa_destino.codigo == "PYG"
-
         if not es_divisa_base:
             raise ValidationError("Una de las divisas en la tasa de cambio debe ser la Divisa base (PYG).")
+
+        # Validar que el valor sea positivo
+        if self.valor is not None and self.valor <= 0:
+            raise ValidationError("El valor de la tasa de cambio debe ser positivo.")
+
+        # Validar que las comisiones sean no negativas
+        if self.comision_compra is not None and self.comision_compra < 0:
+            raise ValidationError("La comisión de compra no puede ser negativa.")
+
+        if self.comision_venta is not None and self.comision_venta < 0:
+            raise ValidationError("La comisión de venta no puede ser negativa.")
+
+    def save(self, *args, **kwargs):
+        """Guarda el objeto después de validar los datos."""
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     # Las siguientes funciones no se definen como campos del modelo en Django,
     # sino como métodos de la clase para encapsular la lógica de negocio.
