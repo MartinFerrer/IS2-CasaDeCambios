@@ -12,6 +12,7 @@ from forex_python.converter import CurrencyCodes
 
 from .forms import DivisaForm, TasaCambioForm
 from .models import Divisa, TasaCambio, TasaCambioHistorial
+from .utils import get_flag_url_from_currency
 
 
 def crear_divisa(request):
@@ -327,6 +328,7 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
                     "codigo": divisa_mostrar.codigo,
                     "nombre": divisa_mostrar.nombre,
                     "simbolo": divisa_mostrar.simbolo,
+                    "flag_url": get_flag_url_from_currency(divisa_mostrar.codigo),
                 },
                 "precio_compra": precio_compra,
                 "precio_venta": precio_venta,
