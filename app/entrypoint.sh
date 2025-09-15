@@ -12,7 +12,11 @@ fi
 
 # Run migrations
 echo "Running migrations..."
-uv run python manage.py migrate
+if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
+  uv run python manage.py migrate
+else
+  echo "Skipping migrations (RUN_MIGRATIONS!=1)"
+fi
 
 # Collect static files if in production
 if [ "${DEBUG}" = "False" ] || [ "${DEBUG}" = "false" ] || [ "${DEBUG}" = "0" ]; then

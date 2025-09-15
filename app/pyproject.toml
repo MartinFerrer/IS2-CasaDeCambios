@@ -5,7 +5,7 @@ description = "Sistema Global Exchange"
 readme = "README.md"
 requires-python = ">=3.13"
 authors = [
-    { name = "Martín Ferrer", email = "martinferrer2010@fpuna.edu.py" },
+    { name = "Martín Ferrer Canese", email = "martinferrer2010@fpuna.edu.py" },
     { name = "Fabrizio Daisuke Kawabata Miyamoto", email = "fabrizziokawabata@fpuna.edu.py" },
     { name = "Atilio Sebastián Paredes Pérez", email = "atilioparedes973@fpuna.edu.py" },
     { name = "Ian Alexander Torres Marecos", email = "iantorressm@fpuna.edu.py" },
@@ -19,10 +19,13 @@ dependencies = [
     "psycopg[binary]",
     "plotly==6.3.0",
     "gunicorn==23.0",
-    "dj-database-url",        # parse DATABASE_URL easily
-    "python-dotenv",          # load .env in dev if desired
+    "dj-database-url", # parse DATABASE_URL easily
+    "python-dotenv", # load .env in dev if desired
     "pytest>=8.4.1",
     "pytest-django>=4.11.1",
+    "environ>=1.0",
+    "pycountry>=24.6.1",
+    "forex-python>=1.9.2",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +39,7 @@ dev = [
     "pyright>=1.1.403",
     "pre-commit>=4.3.0",
     "djlint>=1.36.4",
+    "model-bakery>=1.16.0",
 ]
 
 [build-system]
@@ -65,8 +69,13 @@ select = [
 ignore = [
     "RUF012", # Mutable class attributes should be annotated with typing.ClassVar
     "D203",   # Ignore incompatible rule for blank lines before class, there should be line before class
-    "D213",   # Ignore incompatible rule for multi-line summary, multi-line comment should be in first line
+    "D213",   # Ignore incompatible rule for multi-line summary, multi-line comment should be in first
+    "D105",   # Ignore missing docstring in magic method
 ]
+
+# Allow autofixing selected with --fix flag
+fixable = ["A", "B", "C", "D", "E", "F", "I", "N", "RUF", "W"]
+unfixable = []
 
 [tool.ruff]
 line-length = 120
@@ -77,9 +86,9 @@ exclude = [".venv", "venv", "build", "dist", ".git"]
 
 [tool.djlint]
 profile = "django"
-ignore = "T003,H030,H031"
+ignore = "T003,H030,H031,H029"
 # T003: Endblock should have name
 # H030: Adding meta description
 # H031: Adding meta keywords
-
+# H029: Consider using lowercase form method values. (Ignoramos por POST, GET, etc.)
 [tool.djlint.per-file-ignores]

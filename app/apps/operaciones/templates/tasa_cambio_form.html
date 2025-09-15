@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block title %}
+    {% if form.instance.pk %}
+        Editar Tasa de Cambio
+    {% else %}
+        Crear Nueva Tasa de Cambio
+    {% endif %}
+{% endblock title %}
+{% block body_class %}
+    bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
+{% endblock body_class %}
+{% block header %}
+    {% include "includes/header_admin.html" %}
+{% endblock header %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-blue-800 mb-6">
+            {% if form.instance.pk %}
+                Editar Tasa de Cambio
+            {% else %}
+                Crear Nueva Tasa de Cambio
+            {% endif %}
+        </h1>
+        <div class="card bg-white shadow-xl max-w-lg mx-auto">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-error mb-4">
+                            <ul class="list-disc list-inside">
+                                {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    <div class="space-y-4">
+                        {% for field in form %}
+                            <div class="form-control w-full">
+                                {% if field.name == 'divisa_origen' %}
+                                    <label class="label">
+                                        <span class="label-text">{{ field.label }}</span>
+                                    </label>
+                                    <input type="text"
+                                           value="{{ field.value }}"
+                                           class="input input-bordered w-full"
+                                           disabled>
+                                    <p class="text-sm text-gray-500 mt-1">{{ field.help_text }}</p>
+                                    <input type="hidden" name="{{ field.name }}" value="{{ field.value }}">
+                                {% elif field.name == 'activo' %}
+                                    <div class="flex items-center space-x-2">
+                                        <label class="label cursor-pointer p-0">
+                                            <span class="label-text text-base font-medium text-gray-700">Activa</span>
+                                            <input type="checkbox"
+                                                   name="activo"
+                                                   class="toggle toggle-primary"
+                                                   {% if field.value %}checked{% endif %}>
+                                        </label>
+                                        <div class="tooltip" tabindex="0">
+                                            <button type="button"
+                                                    class="btn btn-ghost btn-circle btn-sm"
+                                                    onclick="showMessage()">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     class="h-4 w-4 stroke-current">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                            <div class="tooltip-message">
+                                                Desmarca la casilla solamente si la casa de cambios no acepta transacciones para esta tasa en este momento, así esta no aparecerá a los clientes aunque entre en vigencia.
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <label class="label">
+                                        <span class="label-text">{{ field.label }}</span>
+                                    </label>
+                                    {% if field.name == 'valor' or field.name == 'comision_compra' or field.name == 'comision_venta' %}
+                                        {{ field }}
+                                        <p class="validator-hint text-sm text-gray-500 mt-1"></p>
+                                    {% else %}
+                                        {{ field }}
+                                    {% endif %}
+                                    {% if field.help_text %}<p class="text-sm text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
+                                    {% for error in field.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ error }}</span>
+                                        </label>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-6 flex justify-end space-x-4">
+                        <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                           class="btn btn-outline btn-neutral">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if form.instance.pk %}
+                                Guardar Cambios
+                            {% else %}
+                                Crear Tasa
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <style>
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-message {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltip-message,
+        .tooltip:focus-within .tooltip-message {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+    <script>
+        function showMessage() {
+            const tooltipMessage = document.querySelector('.tooltip-message');
+            tooltipMessage.style.visibility = 'visible';
+            tooltipMessage.style.opacity = '1';
+
+            setTimeout(() => {
+                tooltipMessage.style.visibility = 'hidden';
+                tooltipMessage.style.opacity = '0';
+            }, 3000);
+        }
+
+        const inputElements = document.querySelectorAll('.input.validator');
+
+        inputElements.forEach(inputElement => {
+            inputElement.addEventListener('invalid', function(event) {
+                if (inputElement.validity.rangeUnderflow) {
+                    inputElement.setCustomValidity(`El valor debe ser mayor o igual a ${inputElement.min}.`);
+                } else if (inputElement.validity.rangeOverflow) {
+                    inputElement.setCustomValidity(`El valor debe ser menor o igual a ${inputElement.max}.`);
+                } else if (inputElement.validity.valueMissing) {
+                    inputElement.setCustomValidity('Este campo es obligatorio.');
+                }
+            });
+
+            inputElement.addEventListener('input', function(event) {
+                inputElement.setCustomValidity('');
+            });
+        });
+    </script>
+{% endblock content %}

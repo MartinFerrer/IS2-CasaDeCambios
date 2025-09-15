@@ -55,9 +55,7 @@ def find_tailwind_bin():
 
     if not os.path.exists(bin_path):
         os.makedirs(os.path.dirname(bin_path), exist_ok=True)
-        base_url = (
-            f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
-        )
+        base_url = f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
         download_file(f"{base_url}/tailwindcss-{platform_name}", bin_path)
 
     return bin_path
@@ -77,9 +75,7 @@ def download_tailwind_linux():
         return bin_path
 
     os.makedirs(os.path.dirname(bin_path), exist_ok=True)
-    base_url = (
-        f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
-    )
+    base_url = f"https://github.com/tailwindlabs/tailwindcss/releases/download/{version}"
     download_file(f"{base_url}/{bin_name}", bin_path)
     return bin_path
 

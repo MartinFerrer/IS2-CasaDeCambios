@@ -1,47 +1,54 @@
+{# templates/includes/header.html #}
 <header class="navbar bg-blue-700 text-white shadow-lg p-4">
-  <div class="container mx-auto flex justify-between items-center">
-    <div class="flex-1">
-      <!-- Cambio de panel_inicio a home para que el logo de Global siempre lleve a home -->
-      <a href="{% url 'home' %}"
-         class="btn btn-ghost text-2xl font-semibold hover:text-white">Global Exchange</a>
+    <div class="container mx-auto flex justify-between items-center">
+        <div class="flex-1">
+            <!-- Cambio de panel_inicio a home para que el logo de Global siempre lleve a home -->
+            <a href="{% url 'presentacion:home' %}"
+               class="btn btn-ghost text-2xl font-semibold hover:text-white">Global Exchange</a>
+        </div>
+        <nav class="flex-none hidden lg:flex items-center space-x-4">
+            <ul class="menu menu-horizontal px-1">
+                <li>
+                    <!--Acá poner alguna url para ver transacciones u otra vista-->
+                    <a href="{% url 'presentacion:home' %}"
+                       class="hover:bg-blue-600 rounded-md">Mis transacciones</a>
+                </li>
+                <li>
+                    <a href="{% url 'presentacion:home' %}"
+                       class="hover:bg-blue-600 rounded-md">Realizar Transacción</a>
+                </li>
+                {% if not request.user.is_authenticated %}
+                    <li>
+                        <a href="{% url 'seguridad:login' %}"
+                           class="hover:bg-blue-600 rounded-md">Iniciar Sesión</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        <div class="flex-none">
+            <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-ghost rounded-btn m-1 hover:text-white">
+                    <span class="mr-2">{{ request.user.nombre|default:'Usuario' }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         viewBox="0 0 20 20"
+                         fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                </label>
+                <ul tabindex="0"
+                    class="menu dropdown-content z-[1] p-2 shadow bg-base-100 text-neutral rounded-box w-52">
+                    <li>
+                        <a>Perfil</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'transacciones:configuracion_medios_pago' %}">Configuración</a>
+                    </li>
+                    <li class="border-t border-neutral-content mt-2 pt-2">
+                        <a href="{% url 'seguridad:logout' %}">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
-    <nav class="flex-none hidden lg:flex items-center space-x-4">
-      <ul class="menu menu-horizontal px-1">
-        <li>
-          <!--Acá poner alguna url para ver transacciones u otra vista-->
-          <a href="{% url 'usuario_listar' %}"
-             class="hover:bg-blue-600 rounded-md">Mis transacciones</a>
-        </li>
-        <li>
-          <!--Acá poner alguna url para realizar transacciones u otra vista-->
-          <a href="{% url 'cliente_listar' %}"
-             class="hover:bg-blue-600 rounded-md">Realizar Transacción</a>
-        </li>
-      </ul>
-    </nav>
-    <div class="flex-none">
-      <div class="dropdown dropdown-end">
-        <label tabindex="0" class="btn btn-ghost rounded-btn m-1 hover:text-white">
-          <span class="mr-2">{{ request.user.nombre|default:'Usuario' }}</span>
-          <svg xmlns="http://www.w3.org/2000/svg"
-               class="h-5 w-5"
-               viewBox="0 0 20 20"
-               fill="currentColor">
-            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-          </svg>
-        </label>
-        <ul tabindex="0"
-            class="menu dropdown-content z-[1] p-2 shadow bg-base-100 text-neutral rounded-box w-52">
-          <li>
-            <a>Perfil</a>
-          </li>
-          <li>
-            <a>Configuración</a>
-          </li>
-          <li class="border-t border-neutral-content mt-2 pt-2">
-            <a>Cerrar Sesión</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </header>
+</header>
