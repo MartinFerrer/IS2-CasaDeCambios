@@ -62,7 +62,6 @@ def obtener_divisas(request: HttpRequest) -> JsonResponse:
     """
     c = CurrencyCodes()
     data = []
-    # mantengo el ingles para que tenga coherencia con las librerias
     for currency in pycountry.currencies:
         codigo = getattr(currency, "alpha_3", None)
         if not codigo:
@@ -86,7 +85,6 @@ def edit_divisa(request, pk):
     """
     divisa = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
-        divisa.codigo = request.POST.get("codigo")
         divisa.nombre = request.POST.get("nombre")
         divisa.simbolo = request.POST.get("simbolo")
         divisa.estado = request.POST.get("estado")
@@ -109,7 +107,7 @@ def delete_divisa(request, pk):
     divisa = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
         divisa.delete()
-        return redirect("operaciones:divisa_list")  # Redirige a la lista de divisas después de eliminar
+        return redirect("operaciones:divisa_list")
     return redirect("operaciones:divisa_detail", pk=pk)
 
 
