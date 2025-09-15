@@ -97,6 +97,7 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     elif metodo_pago.startswith("billetera"):
         tipo_medio_pago = "billetera"
 
+    # Calcular según las fórmulas corregidas
     if tipo == "compra":
         # Cliente da PYG y recibe divisa
         # Precio final compra = precio base + (comisión compra - (comisión compra * descuento por segmento))
@@ -108,7 +109,7 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
         monto_efectivo_para_cambio = monto - float(comision_medio_pago)
 
         # Calcular divisa que se recibe con el monto efectivo (después de comisión del medio)
-        converted = monto_efectivo_para_cambio * float(tc_efectiva)  # Monto en divisa destino
+        converted = monto_efectivo_para_cambio / float(tc_efectiva)  # Monto en divisa destino
         comision_final = float(comision_efectiva)
         total_antes_comision_medio = monto / float(tc_efectiva)  # Para mostrar diferencia
         total = converted
