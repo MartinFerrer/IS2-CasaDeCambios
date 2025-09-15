@@ -33,105 +33,358 @@
                         </tr>
                     </thead>
                     <tbody>
-    {% for divisa in object_list %}
-    <tr class="border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors duration-200">
-        <td class="p-4">{{ divisa.codigo }}</td>
-        <td class="p-4">{{ divisa.nombre }}</td>
-        <td class="p-4">{{ divisa.simbolo }}</td>
-        <td class="p-4">
-            <span class="badge {% if divisa.estado == 'activa' %}badge-success{% else %}badge-error{% endif %}">
-                {{ divisa.estado|title }}
-            </span>
-        </td>
-        <td class="p-4 text-right space-x-2">
-            <button class="btn btn-sm btn-info"
-                    onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').showModal()">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     class="h-4 w-4"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-            </button>
-            
-            <button class="btn btn-sm btn-error"
-                    onclick="document.getElementById('modal_eliminar_divisa_{{ divisa.pk }}').showModal()">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     class="h-4 w-4"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-            </button>
-        </td>
-    </tr>
-    
-    <dialog id="modal_editar_divisa_{{ divisa.pk }}" class="modal">
-        <div class="modal-box w-11/12 max-w-2xl">
-            <form method="dialog">
-                <button type="button"
-                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                        onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').close()">
-                    ✕
-                </button>
-            </form>
-            <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Divisa</h3>
-            <form method="post"
-                  action="{% url 'operaciones:edit_divisa' divisa.pk %}"
-                  class="space-y-4">
+                        {% for divisa in object_list %}
+                            <tr class="border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors duration-200">
+                                <td class="p-4">{{ divisa.codigo }}</td>
+                                <td class="p-4">{{ divisa.nombre }}</td>
+                                <td class="p-4">{{ divisa.simbolo }}</td>
+                                <td class="p-4">
+                                    <span class="badge {% if divisa.estado == 'activa' %}badge-success{% else %}badge-error{% endif %}">
+                                        {{ divisa.estado|title }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-right space-x-2">
+                                    <button class="btn btn-sm btn-info"
+                                            onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').showModal()">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             class="h-4 w-4"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </button>
+                                    <button class="btn btn-sm btn-error"
+                                            onclick="document.getElementById('modal_eliminar_divisa_{{ divisa.pk }}').showModal()">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                             class="h-4 w-4"
+                                             fill="none"
+                                             viewBox="0 0 24 24"
+                                             stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            <dialog id="modal_editar_divisa_{{ divisa.pk }}" class="modal">
+                                <div class="modal-box w-11/12 max-w-2xl">
+                                    <form method="dialog">
+                                        <button type="button"
+                                                class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').close()">
+                                            ✕
+                                        </button>
+                                    </form>
+                                    <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Divisa</h3>
+                                    <form method="post"
+                                          action="{% url 'operaciones:edit_divisa' divisa.pk %}"
+                                          class="space-y-4">
+                                        {% csrf_token %}
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="form-control">
+                                                <label class="label">
+                                                    <span class="label-text">Código</span>
+                                                </label>
+                                                <input type="text"
+                                                       name="codigo"
+                                                       value="{{ divisa.codigo }}"
+                                                       class="input input-bordered"
+                                                       required />
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">
+                                                    <span class="label-text">Nombre</span>
+                                                </label>
+                                                <input type="text"
+                                                       name="nombre"
+                                                       value="{{ divisa.nombre }}"
+                                                       class="input input-bordered"
+                                                       required />
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">
+                                                    <span class="label-text">Símbolo</span>
+                                                </label>
+                                                <input type="text"
+                                                       name="simbolo"
+                                                       value="{{ divisa.simbolo }}"
+                                                       class="input input-bordered" />
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">
+                                                    <span class="label-text">Estado</span>
+                                                </label>
+                                                <select name="estado" class="select select-bordered w-full" required>
+                                                    <option value="activa" {% if divisa.estado == 'activa' %}selected{% endif %}>Activa</option>
+                                                    <option value="inactiva"
+                                                            {% if divisa.estado == 'inactiva' %}selected{% endif %}>
+                                                        Inactiva
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-action mt-4">
+                                            <button type="submit" class="btn btn-primary">Guardar</button>
+                                            <button type="button"
+                                                    class="btn"
+                                                    onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').close()">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </dialog>
+                            <dialog id="modal_eliminar_divisa_{{ divisa.pk }}" class="modal">
+                                <div class="modal-box w-11/12 max-w-md">
+                                    <form method="dialog">
+                                        <button type="button"
+                                                class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                                                onclick="document.getElementById('modal_eliminar_divisa_{{ divisa.pk }}').close()">
+                                            ✕
+                                        </button>
+                                    </form>
+                                    <h3 class="font-bold text-lg text-red-600 mb-4">¿Eliminar Divisa?</h3>
+                                    <p class="mb-6 text-gray-700">
+                                        ¿Estás seguro que deseas eliminar la divisa <span class="font-semibold">{{ divisa.codigo }} - {{ divisa.nombre }}</span>?
+                                    </p>
+                                    <form method="post"
+                                          action="{% url 'operaciones:delete_divisa' divisa.pk %}">
+                                        {% csrf_token %}
+                                        <div class="modal-action mt-4 flex justify-end space-x-2">
+                                            <button type="submit" class="btn btn-error">Eliminar</button>
+                                            <button type="button"
+                                                    class="btn"
+                                                    onclick="document.getElementById('modal_eliminar_divisa_{{ divisa.pk }}').close()">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </dialog>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-12">
+                                    <div class="flex flex-col items-center justify-center text-gray-400">
+                                        <svg class="w-16 h-16 mb-4"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z">
+                                            </path>
+                                        </svg>
+                                        <p class="text-xl font-medium mb-2">No hay Divisas registradas</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Modal para crear divisa -->
+    <dialog id="modal_crear_divisa" class="modal modal-bottom sm:modal-middle">
+        <div class="modal-box w-full max-w-sm rounded-box shadow-2xl bg-white p-6">
+            <h3 class="font-bold text-lg text-blue-800 mb-4">Crear Divisa</h3>
+            <form id="crear-divisa-form"
+                  method="POST"
+                  action="{% url 'operaciones:crear_divisa' %}">
                 {% csrf_token %}
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Código</span>
-                        </label>
-                        <input type="text"
-                               name="codigo"
-                               value="{{ divisa.codigo }}"
-                               class="input input-bordered"
-                               required />
-                    </div>
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Nombre</span>
-                        </label>
-                        <input type="text"
-                               name="nombre"
-                               value="{{ divisa.nombre }}"
-                               class="input input-bordered"
-                               required />
-                    </div>
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Símbolo</span>
-                        </label>
-                        <input type="text"
-                               name="simbolo"
-                               value="{{ divisa.simbolo }}"
-                               class="input input-bordered" />
-                    </div>
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Estado</span>
-                        </label>
-                        <select name="estado" class="select select-bordered w-full" required>
-                            <option value="activa" {% if divisa.estado == 'activa' %}selected{% endif %}>Activa</option>
-                            <option value="inactiva" {% if divisa.estado == 'inactiva' %}selected{% endif %}>Inactiva</option>
-                        </select>
-                    </div>
+                <div class="form-control w-full mb-4 relative">
+                    <label class="label">
+                        <span class="label-text">Código</span>
+                    </label>
+                    <input type="text"
+                           name="codigo"
+                           id="id_codigo_modal"
+                           required
+                           maxlength="3"
+                           class="input input-bordered w-full"
+                           placeholder="Ej. USD, EUR, PYG">
+                    <ul id="suggestions-modal"
+                        class="bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10 hidden absolute w-full mt-2">
+                    </ul>
                 </div>
-                <div class="modal-action mt-4">
-                    <button type="submit" class="btn btn-primary">Guardar</button>
-                    <button type="button"
-                            class="btn"
-                            onclick="document.getElementById('modal_editar_divisa_{{ divisa.pk }}').close()">
-                        Cancelar
-                    </button>
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Nombre</span>
+                    </label>
+                    <input type="text"
+                           name="nombre"
+                           id="id_nombre_modal"
+                           readonly
+                           class="input input-bordered w-full bg-gray-100 cursor-not-allowed">
+                </div>
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Símbolo</span>
+                    </label>
+                    <input type="text"
+                           name="simbolo"
+                           id="id_simbolo_modal"
+                           readonly
+                           class="input input-bordered w-full bg-gray-100 cursor-not-allowed">
+                </div>
+                <div class="form-control w-full mb-4">
+                    <label class="label">
+                        <span class="label-text">Estado</span>
+                    </label>
+                    <select name="estado" class="select select-bordered w-full" required>
+                        <option value="activa" selected>Activa</option>
+                        <option value="inactiva">Inactiva</option>
+                    </select>
+                </div>
+                <div id="form-errors" class="text-error text-sm hidden"></div>
+                <div class="modal-action flex justify-end items-center mt-6">
+                    <button type="button" class="btn btn-sm btn-outline close-modal-btn">Cancelar</button>
+                    <button type="submit" class="btn btn-sm btn-primary ml-2">Guardar</button>
                 </div>
             </form>
         </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const form = document.getElementById('crear-divisa-form');
+                const codigoInput = document.getElementById('id_codigo_modal');
+                const nombreInput = document.getElementById('id_nombre_modal');
+                const simboloInput = document.getElementById('id_simbolo_modal');
+                const suggestionsList = document.getElementById('suggestions-modal');
+                const modal = document.getElementById('modal_crear_divisa');
+                const errorDiv = document.getElementById('form-errors');
+                let allCurrencies = [];
+
+                const clearFields = () => {
+                    nombreInput.value = '';
+                    simboloInput.value = '';
+                };
+
+                const closeModal = () => {
+                    modal.close();
+                    clearFields();
+                    suggestionsList.classList.add('hidden');
+                    errorDiv.classList.add('hidden');
+                };
+
+                const closeButton = document.querySelector('.close-modal-btn');
+                    if (closeButton) {
+                        closeButton.addEventListener('click', closeModal);
+                    }
+
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+
+                const fetchCurrencies = async () => {
+                    try {
+                        const apiUrl = "/operaciones/admin/divisas/api/";
+                        const response = await fetch(apiUrl);
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        allCurrencies = await response.json();
+                    } catch (error) {
+                        console.error("Error fetching currencies:", error);
+                        clearFields();
+                    }
+                };
+
+                codigoInput.addEventListener('input', (e) => {
+                    const query = e.target.value.trim().toUpperCase();
+
+                    suggestionsList.innerHTML = '';
+                    clearFields();
+
+                    if (query.length < 1) {
+                        suggestionsList.classList.add('hidden');
+                        return;
+                    }
+
+                    if (allCurrencies.length === 0) {
+                        return;
+                    }
+
+                    const filteredCurrencies = allCurrencies.filter(currency =>
+                        currency.codigo && currency.codigo.toUpperCase().includes(query) ||
+                        (currency.nombre && currency.nombre.toUpperCase().includes(query))
+                    );
+
+                    if (filteredCurrencies.length > 0) {
+                        filteredCurrencies.forEach(currency => {
+                            const li = document.createElement('li');
+                            li.textContent = `${currency.codigo} - ${currency.nombre || 'N/A'} (${currency.simbolo || 'N/A'})`;
+                            li.className = 'p-2 cursor-pointer hover:bg-gray-100';
+                            li.addEventListener('click', () => {
+                                codigoInput.value = currency.codigo;
+                                nombreInput.value = currency.nombre || '';
+                                simboloInput.value = currency.simbolo || '';
+                                suggestionsList.classList.add('hidden');
+                            });
+                            suggestionsList.appendChild(li);
+                        });
+                        suggestionsList.classList.remove('hidden');
+                    } else {
+                        suggestionsList.classList.add('hidden');
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!codigoInput.contains(e.target) && !suggestionsList.contains(e.target)) {
+                        suggestionsList.classList.add('hidden');
+                    }
+                });
+
+                const updateCurrencyTable = (divisa) => {
+                     window.location.reload();
+                };
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    errorDiv.classList.add('hidden');
+
+                    const formData = new FormData(form);
+
+                    try {
+                        const response = await fetch("{% url 'operaciones:crear_divisa' %}", {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+
+                            closeModal();
+
+                            updateCurrencyTable(data.divisa);
+
+                        } else {
+                            let errorHtml = '';
+                            if (data.errors) {
+                                for (const field in data.errors) {
+                                    data.errors[field].forEach(error => {
+                                        errorHtml += `<p>${field}: ${error}</p>`;
+                                    });
+                                }
+                            } else {
+                                errorHtml = `<p>Error: ${data.message || 'Ocurrió un error inesperado.'}</p>`;
+                            }
+                            errorDiv.innerHTML = errorHtml;
+                            errorDiv.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        console.error("Error submitting form:", error);
+                        errorDiv.innerHTML = `<p>Ocurrió un error de red.</p>`;
+                        errorDiv.classList.remove('hidden');
+                    }
+                });
+
+                fetchCurrencies();
+            });
+        </script>
     </dialog>
     
     <dialog id="modal_eliminar_divisa_{{ divisa.pk }}" class="modal">
