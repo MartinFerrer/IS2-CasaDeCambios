@@ -11,7 +11,7 @@ def test_asociar_cliente_usuario_form_view(client):
     tipo = TipoCliente.objects.create(nombre="TipoA")
     _usuario = Usuario.objects.create(nombre="U1", email="u1@x.com", password="p", activo=True)
     Cliente.objects.create(
-        ruc="123", nombre="C1", email="c1@x.com", telefono="1234", direccion="Dir", tipo_cliente=tipo
+        ruc="80000005-5", nombre="C1", email="c1@x.com", telefono="1234", direccion="Dir", tipo_cliente=tipo
     )
     url = reverse("asociar_cliente_usuario_form")
     response = client.get(url)
@@ -26,7 +26,7 @@ def test_asociar_cliente_usuario_post_view(client):
     tipo = TipoCliente.objects.create(nombre="TipoB")
     usuario = Usuario.objects.create(nombre="U2", email="u2@x.com", password="p", activo=True)
     cliente = Cliente.objects.create(
-        ruc="456", nombre="C2", email="c2@x.com", telefono="5678", direccion="Dir2", tipo_cliente=tipo
+        ruc="80000006-4", nombre="C2", email="c2@x.com", telefono="5678", direccion="Dir2", tipo_cliente=tipo
     )
     url = reverse("asociar_cliente_usuario_post", args=[usuario.pk])
     data = {"cliente_id": cliente.pk}
@@ -41,7 +41,7 @@ def test_desasociar_cliente_usuario_view(client):
     tipo = TipoCliente.objects.create(nombre="TipoC")
     usuario = Usuario.objects.create(nombre="U3", email="u3@x.com", password="p", activo=True)
     cliente = Cliente.objects.create(
-        ruc="789", nombre="C3", email="c3@x.com", telefono="9999", direccion="Dir3", tipo_cliente=tipo
+        ruc="80000007-3", nombre="C3", email="c3@x.com", telefono="9999", direccion="Dir3", tipo_cliente=tipo
     )
     cliente.usuarios.add(usuario)
     url = reverse("desasociar_cliente_usuario", args=[usuario.pk])

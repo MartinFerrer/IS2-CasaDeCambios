@@ -10,8 +10,9 @@ def test_cliente_list_view(client):
     """Verifica que la vista de lista de clientes responde correctamente y contiene los objetos esperados."""
     tipo = TipoCliente.objects.create(nombre="Tipo1")
     _usuario = Usuario.objects.create(nombre="U1", email="u1@x.com", password="p", activo=True)
+    # formato de RUC válido: base 80000001, dv=9 → 800000019
     Cliente.objects.create(
-        ruc="123", nombre="C1", email="c1@x.com", telefono="1234", direccion="Dir", tipo_cliente=tipo
+        ruc="80000001-9", nombre="C1", email="c1@x.com", telefono="1234", direccion="Dir", tipo_cliente=tipo
     )
     url = reverse("cliente_listar")
     response = client.get(url)
@@ -27,7 +28,7 @@ def test_cliente_create_view(client):
     tipo = TipoCliente.objects.create(nombre="Tipo2")
     url = reverse("cliente_listar")
     data = {
-        "ruc": "456",
+        "ruc": "80000002-8",
         "nombre": "C2",
         "email": "c2@x.com",
         "telefono": "5678",
@@ -44,11 +45,11 @@ def test_cliente_edit_view(client):
     """Verifica que se puede editar un cliente mediante la vista correspondiente."""
     tipo = TipoCliente.objects.create(nombre="Tipo3")
     cliente = Cliente.objects.create(
-        ruc="789", nombre="C3", email="c3@x.com", telefono="9999", direccion="Dir3", tipo_cliente=tipo
+        ruc="80000003-7", nombre="C3", email="c3@x.com", telefono="9999", direccion="Dir3", tipo_cliente=tipo
     )
     url = reverse("cliente_editar", args=[cliente.pk])
     data = {
-        "ruc": "789",
+        "ruc": "80000003-7",
         "nombre": "C3-editado",
         "email": "c3@x.com",
         "telefono": "9999",
@@ -66,7 +67,7 @@ def test_cliente_delete_view(client):
     """Verifica que se puede eliminar un cliente mediante la vista correspondiente."""
     tipo = TipoCliente.objects.create(nombre="Tipo4")
     cliente = Cliente.objects.create(
-        ruc="000", nombre="C4", email="c4@x.com", telefono="0000", direccion="Dir4", tipo_cliente=tipo
+        ruc="80000004-6", nombre="C4", email="c4@x.com", telefono="0000", direccion="Dir4", tipo_cliente=tipo
     )
     url = reverse("cliente_eliminar", args=[cliente.pk])
     response = client.post(url)
