@@ -19,8 +19,8 @@ dependencies = [
     "psycopg[binary]",
     "plotly==6.3.0",
     "gunicorn==23.0",
-    "dj-database-url",        # parse DATABASE_URL easily
-    "python-dotenv",          # load .env in dev if desired
+    "dj-database-url", # parse DATABASE_URL easily
+    "python-dotenv", # load .env in dev if desired
     "pytest>=8.4.1",
     "pytest-django>=4.11.1",
     "environ>=1.0",
