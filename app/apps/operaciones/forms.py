@@ -24,10 +24,6 @@ class TasaCambioForm(forms.ModelForm):
         help_text="La divisa desde la cual se realiza la conversión. (Fijo en PYG)",
     )
 
-    # El campo divisa_destino se define en __init__ para evitar problemas de asignación de queryset
-
-    # __init__ method is now defined only once at line 123
-
     class Meta:
         """Clase Meta para TasaCambioForm."""
 
@@ -133,6 +129,7 @@ class TasaCambioForm(forms.ModelForm):
         if self.instance and self.instance.pk and self.instance.divisa_destino_id:
             available_divisas = available_divisas | Divisa.objects.filter(pk=self.instance.divisa_destino_id)
 
+        # El campo divisa_destino se define en __init__ para evitar problemas de asignación de queryset
         self.fields["divisa_destino"] = forms.ModelChoiceField(
             queryset=available_divisas,
             label="Divisa de Destino",
