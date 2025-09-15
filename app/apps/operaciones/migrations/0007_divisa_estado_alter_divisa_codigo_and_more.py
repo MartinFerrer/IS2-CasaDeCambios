@@ -4,30 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('operaciones', '0006_tasacambiohistorial'),
+        ("operaciones", "0006_tasacambiohistorial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='divisa',
-            name='estado',
-            field=models.CharField(choices=[('activa', 'Activa'), ('inactiva', 'Inactiva')], default='Activa', max_length=10),
+            model_name="divisa",
+            name="estado",
+            field=models.CharField(
+                choices=[("activa", "Activa"), ("inactiva", "Inactiva")], default="Activa", max_length=10
+            ),
         ),
         migrations.AlterField(
-            model_name='divisa',
-            name='codigo',
-            field=models.CharField(help_text='(ej. PYG, USD, EUR).', max_length=3, primary_key=True, serialize=False, unique=True),
+            model_name="divisa",
+            name="codigo",
+            field=models.CharField(
+                help_text="(ej. PYG, USD, EUR).", max_length=3, primary_key=True, serialize=False, unique=True
+            ),
         ),
         migrations.AlterField(
-            model_name='divisa',
-            name='nombre',
-            field=models.CharField(help_text='(ej. Guaraní, Dólar Estadounidense).', max_length=50),
+            model_name="divisa",
+            name="nombre",
+            field=models.CharField(help_text="(ej. Guaraní, Dólar Estadounidense).", max_length=50),
         ),
         migrations.AlterField(
-            model_name='divisa',
-            name='simbolo',
-            field=models.CharField(help_text='(ej. ₲, $, €).', max_length=5),
+            model_name="divisa",
+            name="simbolo",
+            field=models.CharField(help_text="(ej. ₲, $, €).", max_length=5),
         ),
     ]
