@@ -120,11 +120,9 @@ class TasaCambioForm(forms.ModelForm):
             used_divisas = used_divisas.exclude(pk=self.instance.pk)
         used_divisas_ids = used_divisas.values_list("divisa_destino", flat=True)
 
-        # Mostrar solo divisas activas/inactivas que no estén ya en uso (excepto la actual de la instancia)
+        # Mostrar solo divisas activas
         available_divisas = (
-            Divisa.objects.exclude(codigo="PYG")
-            .filter(estado__in=["activa", "inactiva"])
-            .exclude(pk__in=used_divisas_ids)
+            Divisa.objects.exclude(codigo="PYG").filter(estado="activa").exclude(pk__in=used_divisas_ids)
         )
         if self.instance and self.instance.pk and self.instance.divisa_destino_id:
             available_divisas = available_divisas | Divisa.objects.filter(pk=self.instance.divisa_destino_id)
