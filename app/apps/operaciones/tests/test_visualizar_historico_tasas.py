@@ -3,8 +3,11 @@
 Este módulo contiene pruebas para el endpoint de la API que proporciona tasas de cambio históricas.
 """
 
+import datetime
+
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from model_bakery import baker
 
 
@@ -22,6 +25,7 @@ def test_historial_tasas_api(client):
         comision_compra=50,
         comision_venta=60,
         activo=True,
+        fecha_actualizacion=timezone.now(),
     )
     baker.make(
         "operaciones.TasaCambio",
@@ -31,6 +35,7 @@ def test_historial_tasas_api(client):
         comision_compra=0.00001,
         comision_venta=0.00001,
         activo=True,
+        fecha_actualizacion=timezone.now() + datetime.timedelta(minutes=1),
     )
     url = reverse("operaciones:historial_tasas_api")
     response = client.get(url)

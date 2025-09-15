@@ -20,7 +20,7 @@ class TestTasaCambioHistorialModel:
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
             valor=Decimal("7000.000"),
-            comision_compra=Decimal("10.000|"),
+            comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
             fecha_vigencia=timezone.now().date(),
             hora_vigencia=datetime.time(7, 0),
