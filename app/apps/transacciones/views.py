@@ -5,6 +5,7 @@ También incluye el CRUD de medios de pago para los clientes.
 """
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Dict
 
 from django.contrib import messages
@@ -14,67 +15,157 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 
+from apps.operaciones.models import Divisa, TasaCambio
 from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
 
 
-def _compute_simulation(params: Dict, user) -> Dict:
+def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     """Cálculo centralizado de la simulación.
 
-    params: dict con keys: monto (float), moneda_origen, moneda_destino, tipo_operacion, metodo_pago, metodo_cobro
+    params: dict con keys: monto (float), divisa_seleccionada, tipo_operacion,
+    metodo_pago, metodo_cobro
     user: request.user (puede ser AnonymousUser)
-    Retorna diccionario con campos: monto_original, moneda_origen, moneda_destino, tasa_cambio, monto_convertido, descuento, comision_base, comision_final, total, tipo_operacion, metodo_pago, metodo_cobro
-    """
-    # Tasas de ejemplo relativas a PYG
-    rates_to_pyg = {"PYG": 1.0, "USD": 7000.0, "EUR": 7600.0, "BRL": 1300.0}
-    iso_decimals = {"PYG": 0, "USD": 2, "EUR": 2, "BRL": 2}
+    cliente_id: ID del cliente seleccionado para la simulación
 
+    Todas las transacciones son desde/hacia PYG:
+    - Compra: cliente da PYG y recibe divisa seleccionada
+    - Venta: cliente da divisa seleccionada y recibe PYG
+    """
     monto = float(params.get("monto") or 0)
-    origen = params.get("moneda_origen") or "PYG"
-    destino = params.get("moneda_destino") or "USD"
+    divisa_seleccionada = params.get("divisa_seleccionada") or "USD"
     tipo = params.get("tipo_operacion") or "compra"
     metodo_pago = params.get("metodo_pago") or "efectivo"
     metodo_cobro = params.get("metodo_cobro") or "efectivo"
 
-    # ratios
-    rate = rates_to_pyg.get(origen, 1.0) / rates_to_pyg.get(destino, 1.0)
-    converted = monto * rate
+    # Obtener cliente seleccionado para descuentos
+    cliente = None
+    if cliente_id:
+        try:
+            cliente = Cliente.objects.get(pk=cliente_id)
+        except Cliente.DoesNotExist:
+            pass
 
-    # Comisiones
-    commission_pct = {"compra": 0.01, "venta": 0.015}
-    base_pct = commission_pct.get(tipo, 0.01)
-    comision_base = converted * base_pct
+    # Determinar monedas origen y destino según tipo de operación
+    if tipo == "compra":
+        moneda_origen = "PYG"
+        moneda_destino = divisa_seleccionada
+    else:  # venta
+        moneda_origen = divisa_seleccionada
+        moneda_destino = "PYG"
 
-    # Descuento por segmento
-    segmento = getattr(user, "segmento", None) or "Minorista"
-    segmento_discount = {"VIP": 0.10, "Corporativo": 0.05, "Minorista": 0.0}
-    descuento_pct = segmento_discount.get(segmento, 0.0)
-    comision_final = comision_base * (1 - descuento_pct)
+    # Buscar tasa de cambio activa (siempre con PYG como origen en la BD)
+    tasa_cambio = None
+    try:
+        tasa_cambio = TasaCambio.objects.filter(
+            divisa_origen__codigo="PYG", divisa_destino__codigo=divisa_seleccionada, activo=True
+        ).first()
+    except Exception:
+        pass
 
-    # Total a recibir por el cliente (se asume comision descontada del monto convertido)
-    total = converted - comision_final
+    # Si no hay tasa de cambio, usar valores por defecto
+    if not tasa_cambio:
+        # Tasas de ejemplo relativas a PYG
+        rates_to_pyg = {"USD": 7000.0, "EUR": 7600.0, "BRL": 1300.0}
+        pb_dolar = Decimal(str(rates_to_pyg.get(divisa_seleccionada, 7000.0)))
+        comision_com = Decimal("50.0")  # Comisión de compra por defecto
+        comision_vta = Decimal("75.0")  # Comisión de venta por defecto
+    else:
+        pb_dolar = tasa_cambio.valor
+        comision_com = tasa_cambio.comision_compra
+        comision_vta = tasa_cambio.comision_venta
+
+    # Obtener descuento por segmento del cliente
+    pordes = Decimal("0.0")
+    if cliente and cliente.tipo_cliente:
+        pordes = cliente.tipo_cliente.descuento_sobre_comision
+
+    # Definir comisiones por tipo de medio de pago
+    comisiones_medios = {
+        "efectivo": Decimal("0.0"),  # 0%
+        "cuenta": Decimal("0.0"),  # 0%
+        "tarjeta": Decimal("5.0"),  # 5%
+        "billetera": Decimal("3.0"),  # 3%
+    }
+
+    # Determinar tipo de medio de pago para comisión
+    tipo_medio_pago = "efectivo"  # Por defecto
+    if metodo_pago.startswith("tarjeta"):
+        tipo_medio_pago = "tarjeta"
+    elif metodo_pago.startswith("cuenta"):
+        tipo_medio_pago = "cuenta"
+    elif metodo_pago.startswith("billetera"):
+        tipo_medio_pago = "billetera"
+
+    # Calcular según las fórmulas corregidas
+    if tipo == "compra":
+        # Cliente da PYG y recibe divisa
+        # Precio final compra = precio base + (comisión compra - (comisión compra * descuento por segmento))
+        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
+        tc_efectiva = pb_dolar + comision_efectiva
+
+        # Aplicar comisión del medio de pago al monto que se paga en PYG
+        comision_medio_pago = Decimal(str(monto)) * comisiones_medios[tipo_medio_pago] / Decimal("100")
+        monto_efectivo_para_cambio = monto - float(comision_medio_pago)
+
+        # Calcular divisa que se recibe con el monto efectivo (después de comisión del medio)
+        converted = monto_efectivo_para_cambio / float(tc_efectiva)  # Monto en divisa destino
+        comision_final = float(comision_efectiva)
+        total_antes_comision_medio = monto / float(tc_efectiva)  # Para mostrar diferencia
+        total = converted
+        tasa_display = float(tc_efectiva)
+    else:  # venta
+        # Cliente da divisa y recibe PYG
+        # Precio final venta = precio base - (comisión venta - (comisión venta * descuento por segmento))
+        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
+        tc_efectiva = pb_dolar - comision_efectiva
+        converted = monto * float(tc_efectiva)  # Monto en PYG antes de comisión medio
+        comision_final = float(comision_efectiva)
+        total_antes_comision_medio = converted
+
+        # Aplicar comisión del medio de pago al recibir PYG
+        comision_medio_pago = (
+            Decimal(str(total_antes_comision_medio)) * comisiones_medios[tipo_medio_pago] / Decimal("100")
+        )
+        total = total_antes_comision_medio - float(comision_medio_pago)
+        tasa_display = float(tc_efectiva)
 
     return {
         "monto_original": round(monto, 6),
-        "moneda_origen": origen,
-        "moneda_destino": destino,
-        "tasa_cambio": rate,
+        "moneda_origen": moneda_origen,
+        "moneda_destino": moneda_destino,
+        "tasa_cambio": tasa_display,
         "monto_convertido": round(converted, 6),
-        "comision_base": round(comision_base, 6),
-        "descuento": round(descuento_pct * 100, 2),
+        "comision_base": round(float(comision_com if tipo == "compra" else comision_vta), 6),
+        "descuento": round(float(pordes), 2),
         "comision_final": round(comision_final, 6),
+        "comision_medio_pago_tipo": tipo_medio_pago,
+        "comision_medio_pago_porcentaje": float(comisiones_medios[tipo_medio_pago]),
+        "comision_medio_pago_monto": round(float(comision_medio_pago), 6),
+        "total_antes_comision_medio": round(total_antes_comision_medio, 6),
         "total": round(total, 6),
         "tipo_operacion": tipo,
         "metodo_pago": metodo_pago,
         "metodo_cobro": metodo_cobro,
-        "iso_decimals": iso_decimals.get(destino, 2),
     }
 
 
 def simular_cambio_view(request: HttpRequest) -> HttpResponse:
     """Página de simulación de cambio."""
-    return render(request, "simular_cambio.html")
+    # Obtener clientes disponibles para el usuario autenticado
+    clientes = []
+    if request.user.is_authenticated:
+        clientes = Cliente.objects.filter(usuarios=request.user)
+
+    # Obtener divisas disponibles (excluyendo PYG que siempre es origen/destino)
+    divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
+
+    context = {
+        "clientes": clientes,
+        "divisas": divisas,
+    }
+    return render(request, "simular_cambio.html", context)
 
 
 @require_GET
@@ -84,8 +175,139 @@ def api_simular_cambio(request: HttpRequest) -> JsonResponse:
     Example: /api/simular?monto=100&moneda_origen=PYG&moneda_destino=USD&tipo_operacion=compra
     """
     params = request.GET.dict()
-    result = _compute_simulation(params, request.user)
+    cliente_id = params.get("cliente_id")
+    result = _compute_simulation(params, request.user, cliente_id)
     return JsonResponse(result)
+
+
+@require_GET
+def api_clientes_usuario(request: HttpRequest) -> JsonResponse:
+    """Retorna los clientes asociados al usuario autenticado."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"clientes": []})
+
+    clientes = Cliente.objects.filter(usuarios=request.user).values("id", "nombre", "ruc")
+    return JsonResponse({"clientes": list(clientes)})
+
+
+@require_GET
+def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonResponse:
+    """Retorna los medios de pago asociados a un cliente.
+
+    Filtra las opciones según el tipo de operación:
+    - Compra: todos los medios de pago disponibles, solo efectivo para cobro
+    - Venta: solo efectivo para pago y cobro
+    """
+    try:
+        cliente = Cliente.objects.get(pk=cliente_id)
+
+        # Verificar que el usuario tiene acceso a este cliente
+        if request.user.is_authenticated and cliente not in Cliente.objects.filter(usuarios=request.user):
+            return JsonResponse({"error": "No tienes acceso a este cliente"}, status=403)
+
+        # Obtener tipo de operación del parámetro GET
+        tipo_operacion = request.GET.get("tipo", "compra")
+
+        medios_pago = []
+        medios_cobro = []
+
+        # Configurar medios de pago según tipo de operación
+        if tipo_operacion == "venta":
+            # Para venta: SOLO efectivo tanto para pago como para cobro
+            medios_pago.append(
+                {
+                    "id": "efectivo",
+                    "tipo": "efectivo",
+                    "nombre": "Efectivo",
+                    "descripcion": "Pago en efectivo",
+                    "comision": 0,  # 0%
+                }
+            )
+        else:
+            # Para compra: todos los medios de pago disponibles
+            # Agregar efectivo por defecto para pago
+            medios_pago.append(
+                {
+                    "id": "efectivo",
+                    "tipo": "efectivo",
+                    "nombre": "Efectivo",
+                    "descripcion": "Pago en efectivo",
+                    "comision": 0,  # 0%
+                }
+            )
+
+            # Agregar tarjetas de crédito para pago
+            for tarjeta in TarjetaCredito.objects.filter(cliente=cliente):
+                medios_pago.append(
+                    {
+                        "id": f"tarjeta_{tarjeta.id}",
+                        "tipo": "tarjeta",
+                        "nombre": tarjeta.generar_alias(),
+                        "descripcion": f"Tarjeta terminada en {tarjeta.numero_tarjeta[-4:]}",
+                        "comision": 5,  # 5%
+                    }
+                )
+
+            # Agregar cuentas bancarias para pago
+            for cuenta in CuentaBancaria.objects.filter(cliente=cliente):
+                medios_pago.append(
+                    {
+                        "id": f"cuenta_{cuenta.id}",
+                        "tipo": "cuenta",
+                        "nombre": cuenta.generar_alias(),
+                        "descripcion": f"Cuenta {cuenta.banco} terminada en {cuenta.numero_cuenta[-4:]}",
+                        "comision": 0,  # 0%
+                    }
+                )
+
+            # Agregar billeteras electrónicas para pago
+            for billetera in BilleteraElectronica.objects.filter(cliente=cliente):
+                medios_pago.append(
+                    {
+                        "id": f"billetera_{billetera.id}",
+                        "tipo": "billetera",
+                        "nombre": billetera.generar_alias(),
+                        "descripcion": f"Billetera {billetera.get_proveedor_display()}",
+                        "comision": 3,  # 3%
+                    }
+                )
+
+        # Para cualquier operación, solo efectivo para cobro
+        medios_cobro.append(
+            {
+                "id": "efectivo",
+                "tipo": "efectivo",
+                "nombre": "Efectivo",
+                "descripcion": "Cobro en efectivo",
+                "comision": 0,  # 0%
+            }
+        )
+
+        return JsonResponse({"medios_pago": medios_pago, "medios_cobro": medios_cobro})
+
+    except Cliente.DoesNotExist:
+        return JsonResponse({"error": "Cliente no encontrado"}, status=404)
+
+
+@require_GET
+def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
+    """Retorna las divisas disponibles basadas en las tasas de cambio activas.
+
+    Solo retorna divisas_destino ya que todas las transacciones son desde/hacia PYG.
+    """
+    # Obtener todas las divisas destino que tienen tasas de cambio activas con PYG como origen
+    divisas_destino = set()
+
+    tasas_activas = TasaCambio.objects.filter(activo=True, divisa_origen__codigo="PYG").select_related("divisa_destino")
+
+    for tasa in tasas_activas:
+        if tasa.divisa_destino.codigo != "PYG":  # Excluir PYG de las opciones
+            divisas_destino.add((tasa.divisa_destino.codigo, tasa.divisa_destino.nombre, tasa.divisa_destino.simbolo))
+
+    # Convertir a lista de diccionarios
+    destino_list = [{"codigo": cod, "nombre": nom, "simbolo": sim} for cod, nom, sim in divisas_destino]
+
+    return JsonResponse({"divisas": destino_list})
 
 
 def comprar_divisa_view(request: HttpRequest) -> HttpResponse:
@@ -96,6 +318,7 @@ def comprar_divisa_view(request: HttpRequest) -> HttpResponse:
 def vender_divisa_view(request: HttpRequest) -> HttpResponse:
     """Página para vender divisas."""
     return render(request, "vender_divisa.html")
+
 
 @login_required
 def configuracion_medios_pago(request: HttpRequest) -> HttpResponse:
@@ -225,7 +448,7 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
             if hasattr(e, "message_dict"):
                 for field, errors in e.message_dict.items():
                     for error in errors:
-                        field_name = field.replace('_', ' ').title() if field != '__all__' else 'Error'
+                        field_name = field.replace("_", " ").title() if field != "__all__" else "Error"
                         messages.error(request, f"{field_name}: {error}")
             else:
                 messages.error(request, f"Error de validación: {e}")
@@ -274,6 +497,7 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
         "proveedores": BilleteraElectronica.PROVEEDORES,
     }
     return render(request, "transacciones/configuracion/crear_billetera.html", contexto)
+
 
 @login_required
 def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> HttpResponse:
