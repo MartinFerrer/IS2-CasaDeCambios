@@ -20,7 +20,7 @@ def registro_view(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.activo = False
+            user.activo = False 
             user.save()
             # Definir grupo de usuario creado
             grupo, _ = Group.objects.get_or_create(name="Usuario Registrado")
@@ -77,6 +77,13 @@ def login_view(request):
             if not user.is_active:
                 messages.error(request, "Debes verificar tu correo antes de iniciar sesión.")
                 return redirect("seguridad:login")
+
+            # Marcar como activo al hacer login exitoso
+            # Asegurar que tenemos el modelo Usuario correcto
+            usuario = Usuario.objects.get(pk=user.pk)
+            if not usuario.activo:
+                usuario.activo = True
+                usuario.save()
 
             login(request, user)
             if user.is_staff:

@@ -31,7 +31,7 @@
                                     <td>{{ usuario.id }}</td>
                                     <td>{{ usuario.nombre }}</td>
                                     <td>{{ usuario.email|default:"-" }}</td>
-                                    <td>{{ usuario.group|default:"Sin rol" }}</td>
+                                    <td>{{ usuario.groups.first.name|default:"Sin rol" }}</td>
                                     <td>
                                         {% if usuario.activo %}
                                             <div class="badge badge-success">Activo</div>

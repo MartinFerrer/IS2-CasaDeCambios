@@ -6,14 +6,13 @@ así como la lógica de asociación entre Cliente y Usuario.
 
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from apps.usuarios.models import Cliente, TipoCliente, Usuario
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-
-from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
 from .forms import ClienteForm, UsuarioForm
 
@@ -342,6 +341,18 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpR
         cliente = Cliente.objects.get(pk=cliente_id)
         usuario = Usuario.objects.get(pk=usuario_id)
         cliente.usuarios.add(usuario)
+        
+        # Cambiar rol si el usuario tiene el rol "Usuario Registrado"
+        try:
+            rol_usuario_registrado = Group.objects.get(name="Usuario Registrado")
+            rol_usuario_asociado = Group.objects.get(name="Usuario Asociado a Cliente")
+            
+            if rol_usuario_registrado in usuario.groups.all():
+                usuario.groups.remove(rol_usuario_registrado)
+                usuario.groups.add(rol_usuario_asociado)
+        except Group.DoesNotExist:
+            pass  # Los grupos no existen, continuar sin cambiar roles
+        
         return redirect("asociar_cliente_usuario_form")
     return redirect("asociar_cliente_usuario_form")
 
@@ -362,5 +373,20 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
         cliente = Cliente.objects.get(pk=cliente_id)
         usuario = Usuario.objects.get(pk=usuario_id)
         cliente.usuarios.remove(usuario)
+        
+        # Cambiar rol si el usuario tiene el rol "Usuario Asociado a Cliente" y ya no tiene clientes
+        try:
+            rol_usuario_registrado = Group.objects.get(name="Usuario Registrado")
+            rol_usuario_asociado = Group.objects.get(name="Usuario Asociado a Cliente")
+            
+            if rol_usuario_asociado in usuario.groups.all():
+                # Verificar si el usuario ya no tiene clientes asociados
+                clientes_asociados = Cliente.objects.filter(usuarios=usuario)
+                if not clientes_asociados.exists():
+                    usuario.groups.remove(rol_usuario_asociado)
+                    usuario.groups.add(rol_usuario_registrado)
+        except Group.DoesNotExist:
+            pass  # Los grupos no existen, continuar sin cambiar roles
+        
         return redirect("asociar_cliente_usuario_form")
     return redirect("asociar_cliente_usuario_form")
