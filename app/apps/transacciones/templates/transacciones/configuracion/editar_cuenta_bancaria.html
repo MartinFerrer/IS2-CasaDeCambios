@@ -45,13 +45,15 @@
                             <label class="label">
                                 <span class="label-text font-medium">Banco *</span>
                             </label>
-                            <input type="text"
-                                   name="banco"
-                                   class="input input-bordered w-full"
-                                   placeholder="Ej: Banco Nacional"
-                                   value="{{ cuenta.banco }}"
-                                   required
-                                   maxlength="100">
+                            <select name="entidad" class="select select-bordered w-full" required>
+                                <option value="">Seleccione el banco</option>
+                                {% for entidad in entidades_bancarias %}
+                                    <option value="{{ entidad.id }}"
+                                            {% if cuenta.entidad and cuenta.entidad.id == entidad.id %}selected{% endif %}>
+                                        {{ entidad.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <!-- Número de Cuenta -->
                         <div class="form-control w-full">
@@ -128,7 +130,6 @@
                                    name="alias"
                                    class="input input-bordered w-full"
                                    placeholder="Ej: Cuenta Principal"
-                                   value="{{ cuenta.alias }}"
                                    maxlength="50">
                             <label class="label">
                                 <span class="label-text-alt text-gray-500">Si se deja vacío, se generará automáticamente</span>

@@ -8,6 +8,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -15,10 +17,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Cliente
-
-from .models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
+from .models import (BilleteraElectronica, CuentaBancaria, EntidadMedioPago,
+                     TarjetaCredito)
 
 
 def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
@@ -383,12 +383,19 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
     if request.method == "POST":
         try:
+            # Obtener la entidad seleccionada
+            entidad_id = request.POST.get("entidad")
+            entidad = None
+            if entidad_id:
+                entidad = EntidadMedioPago.objects.get(id=entidad_id, tipo='emisor_tarjeta', activo=True)
+            
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
                 numero_tarjeta=request.POST.get("numero_tarjeta"),
                 nombre_titular=request.POST.get("nombre_titular"),
                 fecha_expiracion=request.POST.get("fecha_expiracion"),
                 cvv=request.POST.get("cvv"),
+                entidad=entidad,
                 alias=request.POST.get("alias", ""),
             )
             if not tarjeta.alias:
@@ -409,7 +416,13 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
         except Exception as e:
             messages.error(request, f"Error al crear tarjeta: {e!s}")
 
-    contexto = {"cliente": cliente}
+    # Obtener entidades emisoras de tarjetas activas
+    entidades_tarjeta = EntidadMedioPago.objects.filter(tipo='emisor_tarjeta', activo=True).order_by('nombre')
+    
+    contexto = {
+        "cliente": cliente,
+        "entidades_tarjeta": entidades_tarjeta,
+    }
     return render(request, "transacciones/configuracion/crear_tarjeta.html", contexto)
 
 
@@ -429,10 +442,16 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
 
     if request.method == "POST":
         try:
+            # Obtener la entidad bancaria seleccionada
+            entidad_id = request.POST.get("entidad")
+            entidad = None
+            if entidad_id:
+                entidad = EntidadMedioPago.objects.get(id=entidad_id, tipo='banco', activo=True)
+            
             cuenta = CuentaBancaria.objects.create(
                 cliente=cliente,
                 numero_cuenta=request.POST.get("numero_cuenta"),
-                banco=request.POST.get("banco"),
+                entidad=entidad,
                 titular_cuenta=request.POST.get("titular_cuenta"),
                 documento_titular=request.POST.get("documento_titular", ""),
                 alias=request.POST.get("alias", ""),
@@ -455,7 +474,13 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
         except Exception as e:
             messages.error(request, f"Error al crear cuenta bancaria: {e!s}")
 
-    contexto = {"cliente": cliente}
+    # Obtener entidades bancarias activas
+    entidades_bancarias = EntidadMedioPago.objects.filter(tipo='banco', activo=True).order_by('nombre')
+    
+    contexto = {
+        "cliente": cliente,
+        "entidades_bancarias": entidades_bancarias,
+    }
     return render(request, "transacciones/configuracion/crear_cuenta_bancaria.html", contexto)
 
 
@@ -475,9 +500,15 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
     if request.method == "POST":
         try:
+            # Obtener la entidad de billetera seleccionada
+            entidad_id = request.POST.get("entidad")
+            entidad = None
+            if entidad_id:
+                entidad = EntidadMedioPago.objects.get(id=entidad_id, tipo='proveedor_billetera', activo=True)
+            
             billetera = BilleteraElectronica.objects.create(
                 cliente=cliente,
-                proveedor=request.POST.get("proveedor"),
+                entidad=entidad,
                 identificador=request.POST.get("identificador"),
                 numero_telefono=request.POST.get("numero_telefono", ""),
                 email_asociado=request.POST.get("email_asociado", ""),
@@ -492,9 +523,12 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
         except Exception as e:
             messages.error(request, f"Error al crear billetera: {e!s}")
 
+    # Obtener entidades de billeteras activas
+    entidades_billeteras = EntidadMedioPago.objects.filter(tipo='proveedor_billetera', activo=True).order_by('nombre')
+    
     contexto = {
         "cliente": cliente,
-        "proveedores": BilleteraElectronica.PROVEEDORES,
+        "entidades_billeteras": entidades_billeteras,
     }
     return render(request, "transacciones/configuracion/crear_billetera.html", contexto)
 
@@ -521,6 +555,13 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
             tarjeta.nombre_titular = request.POST.get("nombre_titular", "")
             tarjeta.cvv = request.POST.get("cvv", "")
 
+            # Actualizar entidad
+            entidad_id = request.POST.get("entidad")
+            if entidad_id:
+                tarjeta.entidad = EntidadMedioPago.objects.get(id=entidad_id, tipo='emisor_tarjeta', activo=True)
+            else:
+                tarjeta.entidad = None
+
             # Solo actualizar fecha si se proporciona
             fecha_expiracion = request.POST.get("fecha_expiracion")
             if fecha_expiracion:
@@ -545,7 +586,14 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
         except (ValueError, TypeError) as e:
             messages.error(request, f"Error al editar tarjeta: {e!s}")
 
-    contexto = {"tarjeta": tarjeta, "cliente": tarjeta.cliente}
+    # Obtener entidades emisoras de tarjetas activas
+    entidades_tarjeta = EntidadMedioPago.objects.filter(tipo='emisor_tarjeta', activo=True).order_by('nombre')
+    
+    contexto = {
+        "tarjeta": tarjeta, 
+        "cliente": tarjeta.cliente,
+        "entidades_tarjeta": entidades_tarjeta,
+    }
     return render(request, "transacciones/configuracion/editar_tarjeta.html", contexto)
 
 
@@ -568,7 +616,14 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
         try:
             # Actualizar directamente el objeto existente
             cuenta.numero_cuenta = request.POST.get("numero_cuenta", "")
-            cuenta.banco = request.POST.get("banco", "")
+            
+            # Actualizar entidad bancaria
+            entidad_id = request.POST.get("entidad")
+            if entidad_id:
+                cuenta.entidad = EntidadMedioPago.objects.get(id=entidad_id, tipo='banco', activo=True)
+            else:
+                cuenta.entidad = None
+                
             cuenta.titular_cuenta = request.POST.get("titular_cuenta", "")
             cuenta.documento_titular = request.POST.get("documento_titular", "")
             cuenta.alias = request.POST.get("alias", "")
@@ -590,7 +645,14 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
         except (ValueError, TypeError) as e:
             messages.error(request, f"Error al editar cuenta bancaria: {e!s}")
 
-    contexto = {"cuenta": cuenta, "cliente": cuenta.cliente}
+    # Obtener entidades bancarias activas
+    entidades_bancarias = EntidadMedioPago.objects.filter(tipo='banco', activo=True).order_by('nombre')
+    
+    contexto = {
+        "cuenta": cuenta, 
+        "cliente": cuenta.cliente,
+        "entidades_bancarias": entidades_bancarias,
+    }
     return render(request, "transacciones/configuracion/editar_cuenta_bancaria.html", contexto)
 
 
@@ -612,7 +674,13 @@ def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> Ht
     if request.method == "POST":
         try:
             # Actualizar directamente el objeto existente
-            billetera.proveedor = request.POST.get("proveedor", "")
+            # Actualizar entidad de billetera
+            entidad_id = request.POST.get("entidad")
+            if entidad_id:
+                billetera.entidad = EntidadMedioPago.objects.get(id=entidad_id, tipo='proveedor_billetera', activo=True)
+            else:
+                billetera.entidad = None
+                
             billetera.identificador = request.POST.get("identificador", "")
             billetera.numero_telefono = request.POST.get("numero_telefono", "")
             billetera.email_asociado = request.POST.get("email_asociado", "")
@@ -635,10 +703,13 @@ def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> Ht
         except (ValueError, TypeError) as e:
             messages.error(request, f"Error al editar billetera: {e!s}")
 
+    # Obtener entidades de billeteras activas
+    entidades_billeteras = EntidadMedioPago.objects.filter(tipo='proveedor_billetera', activo=True).order_by('nombre')
+    
     contexto = {
         "billetera": billetera,
         "cliente": billetera.cliente,
-        "proveedores": BilleteraElectronica.PROVEEDORES,
+        "entidades_billeteras": entidades_billeteras,
     }
     return render(request, "transacciones/configuracion/editar_billetera.html", contexto)
 

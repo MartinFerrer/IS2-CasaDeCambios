@@ -44,12 +44,10 @@
                             <label class="label">
                                 <span class="label-text font-medium">Banco *</span>
                             </label>
-                            <input type="text"
-                                   name="banco"
-                                   class="input input-bordered w-full"
-                                   placeholder="Ej: Banco Nacional"
-                                   required
-                                   maxlength="100">
+                            <select name="entidad" class="select select-bordered w-full" required>
+                                <option value="">Seleccione el banco</option>
+                                {% for entidad in entidades_bancarias %}<option value="{{ entidad.id }}">{{ entidad.nombre }}</option>{% endfor %}
+                            </select>
                         </div>
                         <!-- Número de Cuenta -->
                         <div class="form-control w-full">

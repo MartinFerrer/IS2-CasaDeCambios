@@ -42,11 +42,11 @@
                         <!-- Proveedor -->
                         <div class="form-control w-full">
                             <label class="label">
-                                <span class="label-text font-medium">Proveedor *</span>
+                                <span class="label-text font-medium">Proveedor de Billetera *</span>
                             </label>
-                            <select name="proveedor" class="select select-bordered w-full" required>
-                                <option value="">Seleccionar proveedor</option>
-                                {% for codigo, nombre in proveedores %}<option value="{{ codigo }}">{{ nombre }}</option>{% endfor %}
+                            <select name="entidad" class="select select-bordered w-full" required>
+                                <option value="">Seleccione el proveedor</option>
+                                {% for entidad in entidades_billeteras %}<option value="{{ entidad.id }}">{{ entidad.nombre }}</option>{% endfor %}
                             </select>
                         </div>
                         <!-- Identificador -->

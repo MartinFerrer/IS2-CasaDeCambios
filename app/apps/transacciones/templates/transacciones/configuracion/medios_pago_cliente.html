@@ -68,6 +68,9 @@
                                             <span class="font-medium">Titular:</span> {{ tarjeta.nombre_titular }}
                                         </p>
                                         <p>
+                                            <span class="font-medium">Emisor:</span> {{ tarjeta.entidad.nombre }}
+                                        </p>
+                                        <p>
                                             <span class="font-medium">Vence:</span> {{ tarjeta.fecha_expiracion|date:"m/Y" }}
                                         </p>
                                         <p>
@@ -146,7 +149,7 @@
                                     </h3>
                                     <div class="text-sm space-y-1">
                                         <p>
-                                            <span class="font-medium">Banco:</span> {{ cuenta.banco }}
+                                            <span class="font-medium">Banco:</span> {{ cuenta.entidad.nombre }}
                                         </p>
                                         <p>
                                             <span class="font-medium">Cuenta:</span> {{ cuenta.get_numero_enmascarado }}
@@ -235,7 +238,7 @@
                                     </h3>
                                     <div class="text-sm space-y-1">
                                         <p>
-                                            <span class="font-medium">Proveedor:</span> {{ billetera.get_proveedor_display }}
+                                            <span class="font-medium">Proveedor:</span> {{ billetera.entidad.nombre }}
                                         </p>
                                         <p>
                                             <span class="font-medium">ID:</span> {{ billetera.identificador }}

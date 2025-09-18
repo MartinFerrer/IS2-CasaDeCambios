@@ -43,23 +43,16 @@
                         <!-- Proveedor -->
                         <div class="form-control w-full">
                             <label class="label">
-                                <span class="label-text font-medium">Proveedor *</span>
+                                <span class="label-text font-medium">Proveedor de Billetera *</span>
                             </label>
-                            <select name="proveedor" class="select select-bordered w-full" required>
-                                <option value="">Seleccione un proveedor</option>
-                                <option value="personal_pay"
-                                        {% if billetera.proveedor == 'personal_pay' %}selected{% endif %}>
-                                    Personal Pay
-                                </option>
-                                <option value="mango"
-                                        {% if billetera.proveedor == 'mango' %}selected{% endif %}>Mango</option>
-                                <option value="wally"
-                                        {% if billetera.proveedor == 'wally' %}selected{% endif %}>Wally</option>
-                                <option value="eko" {% if billetera.proveedor == 'eko' %}selected{% endif %}>Eko</option>
-                                <option value="vaquita"
-                                        {% if billetera.proveedor == 'vaquita' %}selected{% endif %}>Vaquita</option>
-                                <option value="otros"
-                                        {% if billetera.proveedor == 'otros' %}selected{% endif %}>Otros</option>
+                            <select name="entidad" class="select select-bordered w-full" required>
+                                <option value="">Seleccione el proveedor</option>
+                                {% for entidad in entidades_billeteras %}
+                                    <option value="{{ entidad.id }}"
+                                            {% if billetera.entidad and billetera.entidad.id == entidad.id %}selected{% endif %}>
+                                        {{ entidad.nombre }}
+                                    </option>
+                                {% endfor %}
                             </select>
                         </div>
                         <!-- Identificador -->
@@ -113,7 +106,6 @@
                                    name="alias"
                                    class="input input-bordered w-full"
                                    placeholder="Ej: Mi Billetera Principal"
-                                   value="{{ billetera.alias }}"
                                    maxlength="50">
                             <label class="label">
                                 <span class="label-text-alt text-gray-500">Si se deja vacío, se generará automáticamente</span>
