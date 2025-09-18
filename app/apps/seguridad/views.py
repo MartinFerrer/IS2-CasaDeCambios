@@ -20,7 +20,7 @@ def registro_view(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.is_active = False  # 🚨 desactivar hasta verificar
+            user.activo = False
             user.save()
             # Definir grupo de usuario creado
             grupo, _ = Group.objects.get_or_create(name="Usuario Registrado")
@@ -56,7 +56,7 @@ def registro_view(request):
 def verificar_cuenta(request, uid, token):
     user = get_object_or_404(Usuario, pk=uid)
     if token_generator.check_token(user, token):
-        user.is_active = True
+        user.activo = True
         user.save()
         messages.success(request, "Tu cuenta ha sido verificada. Ya puedes iniciar sesión.")
         return redirect("seguridad:login")
