@@ -136,6 +136,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.heroku
 .envrc
 .venv
 env/
@@ -215,3 +216,4 @@ app/static/css/tailwindcss-linux-x64
 # Specstory (Chats IA)
 .specstory/
 app/postgres
+heroku_info.txt

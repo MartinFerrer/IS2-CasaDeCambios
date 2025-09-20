@@ -11,16 +11,28 @@ services:
 
   web:
     build: ./app
-    command: uv run python manage.py runserver 0.0.0.0:8000
+    command: uv run gunicorn --chdir /app global_exchange_django.wsgi:application -w 4 -b 0.0.0.0:8000 --log-level=info
     working_dir: /app
-    ports:
-      - 8000:8000
+    environment:
+      - DJANGO_SETTINGS_MODULE=global_exchange_django.settings
     env_file:
-      - ./.env.dev
+      - ./.env.prod
+    expose:
+      - 8000
     depends_on:
       - db
 
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/static:ro
+    depends_on:
+      - web
+
 volumes:
   postgres_data:
-
-# TODO: nginx/gunicorn
+  static_volume:

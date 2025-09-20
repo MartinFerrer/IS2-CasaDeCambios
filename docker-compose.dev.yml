@@ -63,6 +63,8 @@ services:
       context: ./app
       cache_from:
         - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+      args:
+        - INSTALL_DEV_DEPS=true
     command: pytest -v
     working_dir: /app
     volumes:

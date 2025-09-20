@@ -295,6 +295,14 @@
       ],
       "cwd": "."
     },
+    "deploy-heroku": {
+      "cmd": [
+        "python",
+        "dev.py",
+        "deploy-heroku"
+      ],
+      "cwd": "."
+    },
     "down-prod": {
       "cmd": [
         "docker",
