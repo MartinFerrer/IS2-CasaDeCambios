@@ -30,6 +30,7 @@ urlpatterns = [
     path("admin/divisa/editar/<str:pk>/", views.edit_divisa, name="edit_divisa"),
     # URL para la vista que elimina una divisa específica
     path("admin/divisa/delete/<str:pk>/", views.delete_divisa, name="delete_divisa"),
+    path("admin/divisa/<str:pk>/", views.divisa_detail, name="divisa_detail"),
     # URL para obtener las divisas en formato JSON
     path("admin/divisas/api/", views.obtener_divisas, name="api_divisas"),
 ]
