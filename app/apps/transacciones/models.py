@@ -3,20 +3,22 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
-class EntidadMedioPago(models.Model):
-    """Modelo para entidades que gestionan medios de pago (bancos, emisores, proveedores).
+class EntidadFinanciera(models.Model):
+    """Modelo para entidades que gestionan medios financieros (bancos, emisores, proveedores).
 
     Attributes:
         nombre (CharField): Nombre de la entidad (ej. "Banco Nacional", "Visa", "Personal Pay").
         tipo (CharField): Tipo de entidad (banco, emisor_tarjeta, proveedor_billetera).
         comision_compra (DecimalField): Porcentaje de comisión para operaciones de compra.
         comision_venta (DecimalField): Porcentaje de comisión para operaciones de venta.
-        activo (BooleanField): Indica si la entidad está activa para nuevos medios de pago.
+        activo (BooleanField): Indica si la entidad está activa para nuevos medios financieros.
         fecha_creacion (DateTimeField): Fecha de creación del registro.
         fecha_modificacion (DateTimeField): Fecha de última modificación.
+
     """
 
     TIPOS_ENTIDAD = [
@@ -25,7 +27,7 @@ class EntidadMedioPago(models.Model):
         ("proveedor_billetera", "Proveedor de Billetera"),
     ]
 
-    nombre = models.CharField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=100)
     tipo = models.CharField(max_length=20, choices=TIPOS_ENTIDAD)
     comision_compra = models.DecimalField(
         max_digits=5,
@@ -42,7 +44,7 @@ class EntidadMedioPago(models.Model):
     fecha_modificacion = models.DateTimeField(auto_now=True)
 
     class Meta:
-        """Configuración para el modelo EntidadMedioPago.
+        """Configuración para el modelo EntidadFinanciera.
 
         Attributes:
             verbose_name (str): Nombre singular legible para el modelo.
@@ -51,8 +53,9 @@ class EntidadMedioPago(models.Model):
             unique_together (list): Garantiza que la combinación de 'nombre' y 'tipo' sea única en los registros.
 
         """
-        verbose_name = "Entidad de Medio de Pago"
-        verbose_name_plural = "Entidades de Medios de Pago"
+
+        verbose_name = "Entidad Financiera"
+        verbose_name_plural = "Entidades Financieras"
         ordering = ["tipo", "nombre"]
         unique_together = ["nombre", "tipo"]
 
@@ -70,13 +73,14 @@ class EntidadMedioPago(models.Model):
 
         Raises:
             ValidationError: Si alguna de las validaciones falla.
+
         """
         super().clean()
-        
+
         # Validar que las comisiones no sean negativas
         if self.comision_compra < 0:
             raise ValidationError({"comision_compra": "La comisión de compra no puede ser negativa."})
-        
+
         if self.comision_venta < 0:
             raise ValidationError({"comision_venta": "La comisión de venta no puede ser negativa."})
 
@@ -85,12 +89,14 @@ class EntidadMedioPago(models.Model):
         super().save(*args, **kwargs)
 
 
-class MedioDePago(models.Model):
-    """Modelo base abstracto para todos los medios de pago.
+class MedioFinanciero(models.Model):
+    """Modelo base abstracto para todos los medios financieros (pago y cobro).
 
     Attributes:
-        cliente (ForeignKey): Referencia al cliente propietario del medio de pago.
-        alias (CharField): Alias personalizado para el medio de pago, opcional.
+        cliente (ForeignKey): Referencia al cliente propietario del medio financiero.
+        alias (CharField): Alias personalizado para el medio financiero, opcional.
+        habilitado_para_pago (BooleanField): Indica si puede usarse para realizar pagos.
+        habilitado_para_cobro (BooleanField): Indica si puede usarse para recibir cobros.
         fecha_creacion (DateTimeField): Fecha y hora de creación del registro.
         fecha_modificacion (DateTimeField): Fecha y hora de la última modificación.
 
@@ -99,11 +105,19 @@ class MedioDePago(models.Model):
     # TODO: Ver si es mejor usar SET_NULL o CASCADE para on_delete de cliente
     cliente = models.ForeignKey("usuarios.Cliente", on_delete=models.CASCADE, related_name="%(class)s_set")
     alias = models.CharField(max_length=50, blank=True)
+    habilitado_para_pago = models.BooleanField(
+        default=True,
+        help_text="Indica si este medio financiero puede utilizarse para realizar pagos"
+    )
+    habilitado_para_cobro = models.BooleanField(
+        default=False,
+        help_text="Indica si este medio financiero puede utilizarse para recibir cobros"
+    )
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
 
     class Meta:
-        """Configuración para el modelo MedioDePago.
+        """Configuración para el modelo MedioFinanciero.
 
         Attributes:
             abstract (bool): Indica que este modelo no crea una tabla en la base de datos.
@@ -115,26 +129,26 @@ class MedioDePago(models.Model):
         ordering = ["-fecha_creacion"]
 
     def generar_alias(self) -> str:
-        """Genera un alias automático para el medio de pago.
+        """Genera un alias automático para el medio financiero.
 
         Returns:
-            str: Nombre de la clase del medio de pago.
+            str: Nombre de la clase del medio financiero.
 
         """
         return f"{self.__class__.__name__}"
 
     def __str__(self):
-        """Representación en cadena del medio de pago.
+        """Representación en cadena del medio financiero.
 
         Returns:
-            str: Cadena en formato "ClaseMedioPago - Nombre del Cliente (alias)" o 
-                "ClaseMedioPago - Nombre del Cliente" si no tiene alias.
+            str: Cadena en formato "ClaseMedioFinanciero - Nombre del Cliente (alias)" o 
+                "ClaseMedioFinanciero - Nombre del Cliente" si no tiene alias.
 
         """
         return f"{self.__class__.__name__} - {self.cliente.nombre}" + (f" ({self.alias})" if self.alias else "")
 
 
-class TarjetaCredito(MedioDePago):
+class TarjetaCredito(MedioFinanciero):
     """Modelo para tarjetas de crédito.
 
     Attributes:
@@ -151,13 +165,21 @@ class TarjetaCredito(MedioDePago):
     fecha_expiracion = models.DateField()
     cvv = models.CharField(max_length=4)
     entidad = models.ForeignKey(
-        EntidadMedioPago,
+        EntidadFinanciera,
         on_delete=models.PROTECT,
         limit_choices_to={'tipo': 'emisor_tarjeta', 'activo': True},
         help_text="Entidad emisora de la tarjeta (Visa, Mastercard, etc.)",
         null=True,
         blank=True
     )
+
+    def save(self, *args, **kwargs):
+        # Las tarjetas de crédito solo se usan para pagos, no para cobros
+        if not self.pk:
+            self.habilitado_para_pago = True
+            self.habilitado_para_cobro = False
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def generar_alias(self) -> str:
         """Genera alias automático basado en los últimos 4 dígitos y entidad.
@@ -255,7 +277,7 @@ class TarjetaCredito(MedioDePago):
         unique_together = ["cliente", "numero_tarjeta"]
 
 
-class CuentaBancaria(MedioDePago):
+class CuentaBancaria(MedioFinanciero):
     """Modelo para cuentas bancarias.
 
     Atributos:
@@ -267,7 +289,7 @@ class CuentaBancaria(MedioDePago):
 
     numero_cuenta = models.CharField(max_length=30)
     entidad = models.ForeignKey(
-        EntidadMedioPago,
+        EntidadFinanciera,
         on_delete=models.PROTECT,
         limit_choices_to={'tipo': 'banco', 'activo': True},
         help_text="Entidad bancaria",
@@ -374,7 +396,7 @@ class CuentaBancaria(MedioDePago):
         unique_together = ["cliente", "numero_cuenta", "entidad"]
 
 
-class BilleteraElectronica(MedioDePago):
+class BilleteraElectronica(MedioFinanciero):
     """Modelo para billeteras electrónicas.
 
     Attributes:
@@ -386,7 +408,7 @@ class BilleteraElectronica(MedioDePago):
     """
 
     entidad = models.ForeignKey(
-        EntidadMedioPago,
+        EntidadFinanciera,
         on_delete=models.PROTECT,
         limit_choices_to={'tipo': 'proveedor_billetera', 'activo': True},
         help_text="Proveedor de la billetera electrónica",

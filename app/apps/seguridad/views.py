@@ -1,5 +1,3 @@
-from apps.usuarios.forms import CustomUserCreationForm
-from apps.usuarios.models import Usuario
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -8,6 +6,9 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+
+from apps.usuarios.forms import CustomUserCreationForm
+from apps.usuarios.models import Usuario
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -20,8 +21,8 @@ def registro_view(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.activo = False 
-            user.is_active = False 
+            user.activo = False
+            user.is_active = False
             user.save()
             # Definir grupo de usuario creado
             grupo, _ = Group.objects.get_or_create(name="Usuario Registrado")
@@ -84,7 +85,7 @@ def login_view(request):
             login(request, user)
             if user.is_staff:
                 return redirect("/admin/")
-            return redirect("/admin/")  # o página para usuarios normales
+            return redirect("/admin/")
         messages.error(request, "Usuario o contraseña incorrectos.")
 
     return render(request, "login.html")

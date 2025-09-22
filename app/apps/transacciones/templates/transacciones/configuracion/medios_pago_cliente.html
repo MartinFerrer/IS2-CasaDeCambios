@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Medios de Pago - {{ cliente.nombre }}{% endblock %}
+{% block title %}Medios Financieros - {{ cliente.nombre }}{% endblock %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-6xl mx-auto">
@@ -7,7 +7,7 @@
             <div class="mb-8">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Medios de Pago</h1>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Medios Financieros</h1>
                         <p class="text-gray-600">
                             Cliente: <span class="font-medium">{{ cliente.nombre }}</span> ({{ cliente.ruc }})
                         </p>
@@ -76,6 +76,14 @@
                                         <p>
                                             <span class="font-medium">Creada:</span> {{ tarjeta.fecha_creacion|date:"d/m/Y" }}
                                         </p>
+                                        <!-- Indicadores de habilitación -->
+                                        <div class="flex flex-wrap gap-1 mt-2">
+                                            {% if tarjeta.habilitado_para_pago %}<span class="badge badge-success badge-sm">✓ Pago</span>{% endif %}
+                                            {% if tarjeta.habilitado_para_cobro %}<span class="badge badge-info badge-sm">✓ Cobro</span>{% endif %}
+                                            {% if not tarjeta.habilitado_para_pago and not tarjeta.habilitado_para_cobro %}
+                                                <span class="badge badge-warning badge-sm">⚠ No habilitado</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
                                         <a href="{% url 'transacciones:editar_tarjeta' cliente.id tarjeta.id %}"
@@ -165,6 +173,14 @@
                                         <p>
                                             <span class="font-medium">Creada:</span> {{ cuenta.fecha_creacion|date:"d/m/Y" }}
                                         </p>
+                                        <!-- Indicadores de habilitación -->
+                                        <div class="flex flex-wrap gap-1 mt-2">
+                                            {% if cuenta.habilitado_para_pago %}<span class="badge badge-success badge-sm">✓ Pago</span>{% endif %}
+                                            {% if cuenta.habilitado_para_cobro %}<span class="badge badge-info badge-sm">✓ Cobro</span>{% endif %}
+                                            {% if not cuenta.habilitado_para_pago and not cuenta.habilitado_para_cobro %}
+                                                <span class="badge badge-warning badge-sm">⚠ No habilitado</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
                                         <a href="{% url 'transacciones:editar_cuenta_bancaria' cliente.id cuenta.id %}"
@@ -256,6 +272,14 @@
                                         <p>
                                             <span class="font-medium">Creada:</span> {{ billetera.fecha_creacion|date:"d/m/Y" }}
                                         </p>
+                                        <!-- Indicadores de habilitación -->
+                                        <div class="flex flex-wrap gap-1 mt-2">
+                                            {% if billetera.habilitado_para_pago %}<span class="badge badge-success badge-sm">✓ Pago</span>{% endif %}
+                                            {% if billetera.habilitado_para_cobro %}<span class="badge badge-info badge-sm">✓ Cobro</span>{% endif %}
+                                            {% if not billetera.habilitado_para_pago and not billetera.habilitado_para_cobro %}
+                                                <span class="badge badge-warning badge-sm">⚠ No habilitado</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
                                         <a href="{% url 'transacciones:editar_billetera' cliente.id billetera.id %}"
@@ -293,7 +317,7 @@
             </div>
         </div>
     </div>
-    <!-- Modal de confirmación para eliminar medio de pago -->
+    <!-- Modal de confirmación para eliminar medio financiero -->
     <div id="deleteModal" class="modal">
         <div class="modal-box">
             <form method="dialog">
@@ -303,7 +327,7 @@
             </form>
             <h3 class="font-bold text-lg text-red-600 mb-4">Confirmar eliminación</h3>
             <p class="py-4">
-                ¿Estás seguro de que deseas eliminar el medio de pago "<span id="modalItemName"></span>"?
+                ¿Estás seguro de que deseas eliminar el medio financiero "<span id="modalItemName"></span>"?
             </p>
             <p class="text-sm text-gray-500 mb-4">Esta acción no se puede deshacer.</p>
             <div class="modal-action">
@@ -324,7 +348,7 @@
             const form = document.getElementById('deleteForm');
             const nombre = document.getElementById('modalItemName');
 
-            // Actualizar el nombre del medio de pago en el modal
+            // Actualizar el nombre del medio financiero en el modal
             nombre.textContent = alias;
 
             // Construir la URL de eliminación con el cliente_id
