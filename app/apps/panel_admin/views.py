@@ -14,7 +14,6 @@ from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-
 from .forms import ClienteForm, UsuarioForm
 
 
@@ -138,7 +137,16 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = UsuarioForm(request.POST)
         if form.is_valid():
-            form.save()  # Django maneja automáticamente los campos ManyToMany
+            usuario = form.save(commit=False)
+            usuario.save()
+
+            # Obtener los grupos seleccionados del formulario
+            grupos_seleccionados = form.cleaned_data['groups']
+
+            # Limpiar grupos existentes y agregar los seleccionados
+            usuario.groups.clear()
+            usuario.groups.add(*grupos_seleccionados)
+
             return redirect("usuario_listar")
     else:
         form = UsuarioForm()
@@ -162,7 +170,25 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method == "POST":
         form = UsuarioForm(request.POST, instance=usuario)
         if form.is_valid():
-            form.save()  # Django maneja automáticamente los campos ManyToMany
+            # Guardar el usuario sin los grupos primero
+            usuario = form.save(commit=False)
+            usuario.save()
+
+            # Verificar si el usuario tenía el rol "Usuario Asociado a Cliente"
+            usuario_asociado_grupo = Group.objects.filter(name="Usuario Asociado a Cliente").first()
+            tenia_usuario_asociado = usuario_asociado_grupo and usuario_asociado_grupo in usuario.groups.all()
+
+            # Obtener los grupos seleccionados del formulario
+            grupos_seleccionados = form.cleaned_data['groups']
+
+            # Limpiar grupos existentes y agregar los seleccionados
+            usuario.groups.clear()
+            usuario.groups.add(*grupos_seleccionados)
+
+            # Si tenía el rol "Usuario Asociado a Cliente", preservarlo
+            if tenia_usuario_asociado and usuario_asociado_grupo:
+                usuario.groups.add(usuario_asociado_grupo)
+
             return redirect("usuario_listar")
     else:
         form = UsuarioForm(instance=usuario)  # Inicializar con datos del usuario
@@ -347,18 +373,14 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpR
         cliente = Cliente.objects.get(pk=cliente_id)
         usuario = Usuario.objects.get(pk=usuario_id)
         cliente.usuarios.add(usuario)
-        
-        # Cambiar rol si el usuario tiene el rol "Usuario Registrado"
+
+        # Agregar rol de Usuario Asociado a Cliente
         try:
-            rol_usuario_registrado = Group.objects.get(name="Usuario Registrado")
             rol_usuario_asociado = Group.objects.get(name="Usuario Asociado a Cliente")
-            
-            if rol_usuario_registrado in usuario.groups.all():
-                usuario.groups.remove(rol_usuario_registrado)
-                usuario.groups.add(rol_usuario_asociado)
+            usuario.groups.add(rol_usuario_asociado)
         except Group.DoesNotExist:
-            pass  # Los grupos no existen, continuar sin cambiar roles
-        
+            pass  # El grupo no existe, continuar sin cambiar roles
+
         return redirect("asociar_cliente_usuario_form")
     return redirect("asociar_cliente_usuario_form")
 
@@ -379,21 +401,18 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
         cliente = Cliente.objects.get(pk=cliente_id)
         usuario = Usuario.objects.get(pk=usuario_id)
         cliente.usuarios.remove(usuario)
-        
-        # Cambiar rol si el usuario tiene el rol "Usuario Asociado a Cliente" y ya no tiene clientes
+
+        # Quitar rol de Usuario Asociado a Cliente si ya no tiene clientes asociados
         try:
-            rol_usuario_registrado = Group.objects.get(name="Usuario Registrado")
             rol_usuario_asociado = Group.objects.get(name="Usuario Asociado a Cliente")
-            
-            if rol_usuario_asociado in usuario.groups.all():
-                # Verificar si el usuario ya no tiene clientes asociados
-                clientes_asociados = Cliente.objects.filter(usuarios=usuario)
-                if not clientes_asociados.exists():
-                    usuario.groups.remove(rol_usuario_asociado)
-                    usuario.groups.add(rol_usuario_registrado)
+
+            # Verificar si el usuario ya no tiene clientes asociados
+            clientes_asociados = Cliente.objects.filter(usuarios=usuario)
+            if not clientes_asociados.exists():
+                usuario.groups.remove(rol_usuario_asociado)
         except Group.DoesNotExist:
-            pass  # Los grupos no existen, continuar sin cambiar roles
-        
+            pass  # El grupo no existe, continuar sin cambiar roles
+
         return redirect("asociar_cliente_usuario_form")
     return redirect("asociar_cliente_usuario_form")
 

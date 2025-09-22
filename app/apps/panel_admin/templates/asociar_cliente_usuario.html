@@ -20,7 +20,7 @@
                                 <th class="bg-blue-100">ID</th>
                                 <th class="bg-blue-100">Nombre</th>
                                 <th class="bg-blue-100">Email</th>
-                                <th class="bg-blue-100">Rol</th>
+                                <th class="bg-blue-100">Roles</th>
                                 <th class="bg-blue-100">Estado</th>
                                 <th class="bg-blue-100 text-center">Acciones</th>
                             </tr>
@@ -31,7 +31,15 @@
                                     <td>{{ usuario.id }}</td>
                                     <td>{{ usuario.nombre }}</td>
                                     <td>{{ usuario.email|default:"-" }}</td>
-                                    <td>{{ usuario.groups.first.name|default:"Sin rol" }}</td>
+                                    <td>
+                                        {% if usuario.groups.exists %}
+                                            <div class="flex flex-col space-y-1">
+                                                {% for grupo in usuario.groups.all %}<span>{{ grupo.name }}</span>{% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-gray-500">Sin roles</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if usuario.activo %}
                                             <div class="badge badge-success">Activo</div>
