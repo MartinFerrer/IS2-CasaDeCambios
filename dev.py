@@ -202,8 +202,6 @@ def deploy_to_heroku():
                 "--platform=linux/amd64",
                 "-t",
                 f"registry.heroku.com/{app_name}/web",
-                "-f",
-                "docker-compose.prod.yml",
                 "./app",
             ],
             check=True,

@@ -11,12 +11,18 @@ services:
 
   web:
     build: ./app
-    command: uv run gunicorn --chdir /app global_exchange_django.wsgi:application -w 4 -b 0.0.0.0:8000 --log-level=info
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate &&
+             uv run gunicorn --chdir /app global_exchange_django.wsgi:application -w 4 -b 0.0.0.0:8000 --log-level=info"
     working_dir: /app
     environment:
       - DJANGO_SETTINGS_MODULE=global_exchange_django.settings
+      - RUN_MIGRATIONS=1
     env_file:
       - ./.env.prod
+    volumes:
+      - static_volume:/app/staticfiles
     expose:
       - 8000
     depends_on:

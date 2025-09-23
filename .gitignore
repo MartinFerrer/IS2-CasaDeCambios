@@ -137,6 +137,9 @@ celerybeat.pid
 # Environments
 .env
 .env.heroku
+.env.https
+.env.prod
+.env.local
 .envrc
 .venv
 env/
@@ -217,3 +220,10 @@ app/static/css/tailwindcss-linux-x64
 .specstory/
 app/postgres
 heroku_info.txt
+
+# SSL Certificates (never commit these)
+ssl/
+*.pem
+*.key
+*.crt
+*.csr
