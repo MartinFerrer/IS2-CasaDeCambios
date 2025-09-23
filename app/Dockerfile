@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     if [ "$INSTALL_DEV_DEPS" = "true" ]; then \
-    uv sync --frozen --no-install-project --group dev; \
+    uv sync --frozen --no-install-project --extra dev; \
     else \
     uv sync --frozen --no-install-project --no-dev; \
     fi
@@ -73,7 +73,7 @@ RUN test -f /app/static/css/output.css
 # Installing separately from dependencies allows optimal layer caching
 RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$INSTALL_DEV_DEPS" = "true" ]; then \
-    uv sync --frozen --group dev; \
+    uv sync --frozen --extra dev; \
     else \
     uv sync --frozen --no-dev; \
     fi
