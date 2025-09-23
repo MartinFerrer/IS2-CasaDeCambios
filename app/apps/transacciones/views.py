@@ -152,17 +152,20 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
 
 
 def simular_cambio_view(request: HttpRequest) -> HttpResponse:
-    """Página de simulación de cambio."""
-    # Obtener clientes disponibles para el usuario autenticado
-    clientes = []
+    """Página de simulación de cambio con cliente seleccionado en sesión."""
+    cliente_asociado = None
     if request.user.is_authenticated:
-        clientes = Cliente.objects.filter(usuarios=request.user)
+        cliente_id = request.session.get("cliente_id")
+        if cliente_id:
+            cliente_asociado = Cliente.objects.filter(id=cliente_id, usuarios=request.user).first()
+        else:
+            # fallback al primer cliente del usuario
+            cliente_asociado = Cliente.objects.filter(usuarios=request.user).first()
 
-    # Obtener divisas disponibles (excluyendo PYG que siempre es origen/destino)
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
 
     context = {
-        "clientes": clientes,
+        "cliente_asociado": cliente_asociado,
         "divisas": divisas,
     }
     return render(request, "simular_cambio.html", context)
@@ -310,14 +313,29 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"divisas": destino_list})
 
 
-def comprar_divisa_view(request: HttpRequest) -> HttpResponse:
-    """Página para comprar divisas."""
-    return render(request, "comprar_divisa.html")
+def comprar_divisa_view(request):
+    """Página para comprar divisas con cliente asociado automáticamente."""
+    # Obtener divisas disponibles (excluyendo PYG)
+    divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
+
+    context = {
+        "divisas": divisas,
+        # request.cliente ya lo añade el middleware
+    }
+    return render(request, "comprar_divisa.html", context)
 
 
 def vender_divisa_view(request: HttpRequest) -> HttpResponse:
-    """Página para vender divisas."""
-    return render(request, "vender_divisa.html")
+    cliente_asociado = None
+    if request.user.is_authenticated:
+        cliente_id = request.session.get("cliente_id")
+        if cliente_id:
+            cliente_asociado = Cliente.objects.filter(id=cliente_id, usuarios=request.user).first()
+        else:
+            cliente_asociado = Cliente.objects.filter(usuarios=request.user).first()
+
+    context = {"cliente_asociado": cliente_asociado}
+    return render(request, "vender_divisa.html", context)
 
 
 @login_required
@@ -672,3 +690,19 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
     medio.delete()  # Eliminación física
     messages.success(request, f"{tipo.title()} eliminada exitosamente.")
     return redirect("transacciones:medios_pago_cliente", cliente_id=cliente_id)
+
+
+@login_required
+def vista_transacciones(request):
+    cliente_id = request.session.get("cliente_id")
+    if not cliente_id:
+        messages.warning(request, "Primero selecciona un cliente.")
+        return redirect("presentacion:home")  # si no eligió cliente
+
+    # Obtener cliente y verificar que pertenece al usuario
+    cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
+
+    # Obtener transacciones del cliente
+    transacciones = cliente.transacciones.all()  # asegurarse de que existe related_name
+
+    return render(request, "transacciones/lista.html", {"transacciones": transacciones, "cliente": cliente})

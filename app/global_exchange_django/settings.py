@@ -58,6 +58,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.seguridad.middleware.ClienteMiddleware",  # Custom middleware to attach selected client to requests
 ]
 
 ROOT_URLCONF = "global_exchange_django.urls"

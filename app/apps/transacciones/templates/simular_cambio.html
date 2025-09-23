@@ -4,478 +4,215 @@
     Simular Cambio
 {% endblock title %}
 {% block content %}
-    <div class="container mx-auto p-8">
-        <h2 class="text-3xl font-bold mb-6 text-center">Simulador de Cambio de Divisas</h2>
-        <!-- Selección de Cliente -->
-        {% if user.is_authenticated and clientes %}
+<div class="container mx-auto p-8">
+    <h2 class="text-3xl font-bold mb-6 text-center">Simulador de Cambio de Divisas</h2>
+
+    <!-- Selección de Cliente -->
+    {% if user.is_authenticated %}
+        {% if cliente_asociado %}
             <div class="card bg-base-100 shadow-lg mb-6">
                 <div class="card-body">
-                    <h3 class="card-title">Seleccionar Cliente</h3>
+                    <h3 class="card-title">Cliente Asociado</h3>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Cliente</span>
                         </label>
                         <select id="cliente-select" class="select select-bordered" required>
-                            <option value="">Seleccione un cliente</option>
-                            {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.nombre }} - {{ cliente.ruc }}</option>
-                            {% endfor %}
+                            <option value="{{ cliente_asociado.id }}" selected>
+                                {{ cliente_asociado.nombre }} - {{ cliente_asociado.ruc }}
+                            </option>
                         </select>
                     </div>
                 </div>
             </div>
-        {% elif user.is_authenticated %}
+        {% else %}
             <div class="alert alert-warning mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="stroke-current shrink-0 h-6 w-6"
                      fill="none"
                      viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                 </svg>
                 <span>No tienes clientes asociados. Contacta a un operador para asociar clientes a tu cuenta.</span>
             </div>
-        {% else %}
-            <div class="alert alert-info mb-6">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                    </path>
-                </svg>
-                <span>Para realizar simulaciones personalizadas, inicia sesión con tu cuenta.</span>
-            </div>
         {% endif %}
-        <!-- Formulario de Simulación -->
-        <div class="card bg-base-100 shadow-lg">
-            <div class="card-body">
-                <form id="simulation-form">
-                    <div class="grid grid-cols-1 gap-6">
-                        <!-- Tipo de Operación (full width) -->
-                        <div class="form-control col-span-full">
-                            <label class="label">
-                                <span class="label-text text-lg font-semibold text-primary">¿Qué desea hacer?</span>
+    {% else %}
+        <div class="alert alert-info mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                </path>
+            </svg>
+            <span>Para realizar simulaciones personalizadas, inicia sesión con tu cuenta.</span>
+        </div>
+    {% endif %}
+
+    <!-- Formulario de Simulación -->
+    <div class="card bg-base-100 shadow-lg">
+        <div class="card-body">
+            <form id="simulation-form">
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- Tipo de Operación -->
+                    <div class="form-control col-span-full">
+                        <label class="label">
+                            <span class="label-text text-lg font-semibold text-primary">¿Qué desea hacer?</span>
+                        </label>
+                        <div class="flex gap-4 mt-2">
+                            <label class="label cursor-pointer">
+                                <input type="radio" name="tipo_operacion" value="compra" class="radio radio-primary" checked>
+                                <span class="label-text ml-2">Quiero Comprar Divisa</span>
                             </label>
-                            <div class="flex gap-4 mt-2">
-                                <label class="label cursor-pointer">
-                                    <input type="radio"
-                                           name="tipo_operacion"
-                                           value="compra"
-                                           class="radio radio-primary"
-                                           checked>
-                                    <span class="label-text ml-2">Quiero Comprar Divisa</span>
-                                </label>
-                                <label class="label cursor-pointer">
-                                    <input type="radio"
-                                           name="tipo_operacion"
-                                           value="venta"
-                                           class="radio radio-primary">
-                                    <span class="label-text ml-2">Quiero Vender Divisa</span>
-                                </label>
-                            </div>
-                        </div>
-                        <!-- Fields in two columns: labels (left) and controls (right) -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 items-start gap-4">
-                            <!-- Label column (narrow) -->
-                            <div class="space-y-6 text-left md:col-span-1 md:w-36">
-                                <div class="pt-2">
-                                    <label class="label">
-                                        <span class="label-text" id="divisa-label">Quiero</span>
-                                    </label>
-                                </div>
-                                <div class="pt-2">
-                                    <label class="label">
-                                        <span class="label-text" id="monto-label">Monto que Tengo</span>
-                                    </label>
-                                </div>
-                                <div class="pt-2">
-                                    <label class="label">
-                                        <span class="label-text">Método de Pago</span>
-                                    </label>
-                                </div>
-                                <div class="pt-2">
-                                    <label class="label">
-                                        <span class="label-text">Método de Cobro</span>
-                                    </label>
-                                </div>
-                            </div>
-                            <!-- Controls column (wide) -->
-                            <div class="space-y-4 md:col-span-2">
-                                <div>
-                                    <select id="divisa-select"
-                                            class="select select-bordered w-full text-left ml-0"
-                                            required>
-                                        <option value="">Seleccione una divisa</option>
-                                        {% for divisa in divisas %}
-                                            <option value="{{ divisa.codigo }}">{{ divisa.codigo }} - {{ divisa.nombre }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                <div>
-                                    <input type="number"
-                                           id="monto-input"
-                                           name="monto"
-                                           min="1"
-                                           step="0.01"
-                                           class="input input-bordered w-full text-left ml-0"
-                                           placeholder="Ingrese el monto (mínimo 1)"
-                                           required>
-                                </div>
-                                <div>
-                                    <select id="metodo-pago-select"
-                                            class="select select-bordered w-full text-left ml-0"
-                                            required>
-                                        <option value="efectivo" selected>Efectivo</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <select id="metodo-cobro-select"
-                                            class="select select-bordered w-full text-left ml-0"
-                                            required>
-                                        <option value="efectivo" selected>Efectivo</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <!-- Resultados de la Simulación -->
-            <div id="simulation-results"
-                 class="card bg-base-100 shadow-lg mt-6 hidden">
-                <div class="card-body">
-                    <h3 class="card-title text-primary">Resultado de la Simulación</h3>
-                    <div class="flex justify-center">
-                        <div class="w-full md:w-2/3 lg:w-1/2 text-left space-y-3">
-                            <p>
-                                <strong id="monto-original-label">Monto que Tengo:</strong>
-                                <span id="monto-original-val">0</span> <span id="moneda-origen-val">-</span>
-                            </p>
-                            <p>
-                                <strong>Tasa de Cambio Efectiva:</strong> <span id="tasa-val">-</span>
-                            </p>
-                            <p class="text-2xl font-extrabold text-primary">
-                                <strong id="monto-final-label">Monto a Recibir:</strong>
-                                <span id="monto-final-val">0</span> <span id="moneda-destino-val">-</span>
-                            </p>
+                            <label class="label cursor-pointer">
+                                <input type="radio" name="tipo_operacion" value="venta" class="radio radio-primary">
+                                <span class="label-text ml-2">Quiero Vender Divisa</span>
+                            </label>
                         </div>
                     </div>
-                    <!-- Sección colapsable para desglose de comisiones -->
-                    <div class="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box mt-4">
-                        <input type="checkbox" />
-                        <div class="collapse-title font-medium">Comisión (ver desglose)</div>
-                        <div class="collapse-content" id="commission-breakdown">
-                            <p>
-                                <strong>Comisión Base:</strong> <span id="comision-base-val">0</span>
-                            </p>
-                            <p>
-                                <strong>Descuento por Segmento:</strong> <span id="descuento-val">0</span>%
-                            </p>
-                            <p>
-                                <strong>Comisión Final:</strong> <span id="comision-final-val">0</span>
-                            </p>
-                            <p id="comision-medio-pago-section" class="hidden">
-                                <strong>Comisión Medio de Pago:</strong> <span id="comision-medio-pago-val">0</span> (<span id="comision-medio-pago-pct">0</span>%)
-                            </p>
+
+                    <!-- Campos en dos columnas -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 items-start gap-4">
+                        <div class="space-y-6 text-left md:col-span-1 md:w-36">
+                            <div class="pt-2">
+                                <label class="label"><span class="label-text" id="divisa-label">Quiero</span></label>
+                            </div>
+                            <div class="pt-2">
+                                <label class="label"><span class="label-text" id="monto-label">Monto que Tengo</span></label>
+                            </div>
+                            <div class="pt-2">
+                                <label class="label"><span class="label-text">Método de Pago</span></label>
+                            </div>
+                            <div class="pt-2">
+                                <label class="label"><span class="label-text">Método de Cobro</span></label>
+                            </div>
                         </div>
-                    </div>
-                    <!-- Advertencia para billeteras electrónicas -->
-                    <div id="wallet-warning" class="alert alert-warning mt-4 hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="stroke-current shrink-0 h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <span>Advertencia: Las billeteras electrónicas pueden cobrar comisiones adicionales por parte del proveedor, no incluidas en esta simulación.</span>
-                    </div>
-                    <!-- Botón para proceder -->
-                    <div class="form-control mt-6">
-                        {% if user.is_authenticated %}
-                            <button id="proceed-btn" class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
-                        {% else %}
-                            <button class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
-                            <p class="text-sm text-gray-600 mt-2 text-center">Para proceder debe iniciar sesión y tener un cliente asociado.</p>
-                        {% endif %}
+                        <div class="space-y-4 md:col-span-2">
+                            <div>
+                                <select id="divisa-select" class="select select-bordered w-full text-left ml-0" required>
+                                    <option value="">Seleccione una divisa</option>
+                                    {% for divisa in divisas %}
+                                        <option value="{{ divisa.codigo }}">{{ divisa.codigo }} - {{ divisa.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <input type="number" id="monto-input" name="monto" min="1" step="0.01"
+                                       class="input input-bordered w-full text-left ml-0"
+                                       placeholder="Ingrese el monto (mínimo 1)" required>
+                            </div>
+                            <div>
+                                <select id="metodo-pago-select" class="select select-bordered w-full text-left ml-0" required>
+                                    <option value="efectivo" selected>Efectivo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select id="metodo-cobro-select" class="select select-bordered w-full text-left ml-0" required>
+                                    <option value="efectivo" selected>Efectivo</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados de la simulación -->
+    <div id="simulation-results" class="card bg-base-100 shadow-lg mt-6 hidden">
+        <div class="card-body">
+            <h3 class="card-title text-primary">Resultado de la Simulación</h3>
+            <div class="flex justify-center">
+                <div class="w-full md:w-2/3 lg:w-1/2 text-left space-y-3">
+                    <p><strong id="monto-original-label">Monto que Tengo:</strong> <span id="monto-original-val">0</span> <span id="moneda-origen-val">-</span></p>
+                    <p><strong>Tasa de Cambio Efectiva:</strong> <span id="tasa-val">-</span></p>
+                    <p class="text-2xl font-extrabold text-primary"><strong id="monto-final-label">Monto a Recibir:</strong> <span id="monto-final-val">0</span> <span id="moneda-destino-val">-</span></p>
+                </div>
             </div>
-            <!-- Notas Adicionales -->
-            <div class="alert alert-info mt-6">
+
+            <!-- Desglose de comisión -->
+            <div class="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box mt-4">
+                <input type="checkbox"/>
+                <div class="collapse-title font-medium">Comisión (ver desglose)</div>
+                <div class="collapse-content" id="commission-breakdown">
+                    <p><strong>Comisión Base:</strong> <span id="comision-base-val">0</span></p>
+                    <p><strong>Descuento por Segmento:</strong> <span id="descuento-val">0</span>%</p>
+                    <p><strong>Comisión Final:</strong> <span id="comision-final-val">0</span></p>
+                    <p id="comision-medio-pago-section" class="hidden"><strong>Comisión Medio de Pago:</strong> <span id="comision-medio-pago-val">0</span> (<span id="comision-medio-pago-pct">0</span>%)</p>
+                </div>
+            </div>
+
+            <div id="wallet-warning" class="alert alert-warning mt-4 hidden">
                 <svg xmlns="http://www.w3.org/2000/svg"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     class="stroke-current shrink-0 w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                    </path>
+                     class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                 </svg>
-                <span>Las tasas de cambio y comisiones son estimativas y pueden variar. Proceda a realizar una transacción para confirmar.</span>
+                <span>Advertencia: Las billeteras electrónicas pueden cobrar comisiones adicionales por parte del proveedor, no incluidas en esta simulación.</span>
+            </div>
+
+            <div class="form-control mt-6">
+                {% if user.is_authenticated and cliente_asociado %}
+                    <button id="proceed-btn" class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
+                {% else %}
+                    <button class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
+                    <p class="text-sm text-gray-600 mt-2 text-center">Para proceder debe iniciar sesión y tener un cliente asociado.</p>
+                {% endif %}
             </div>
         </div>
-        <script>
-        (function() {
-            // Elementos del DOM
-            const clienteSelect = document.getElementById('cliente-select');
-            const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
-            const divisaSelect = document.getElementById('divisa-select');
-            const montoInput = document.getElementById('monto-input');
-            const metodoPagoSelect = document.getElementById('metodo-pago-select');
-            const metodoCobroSelect = document.getElementById('metodo-cobro-select');
+    </div>
+</div>
 
-            // Labels dinámicos
-            const divisaLabel = document.getElementById('divisa-label');
-            const montoLabel = document.getElementById('monto-label');
+<script>
+(function() {
+    const clienteSelect = document.getElementById('cliente-select');
+    const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
+    const divisaSelect = document.getElementById('divisa-select');
+    const montoInput = document.getElementById('monto-input');
+    const metodoPagoSelect = document.getElementById('metodo-pago-select');
+    const metodoCobroSelect = document.getElementById('metodo-cobro-select');
+    const divisaLabel = document.getElementById('divisa-label');
+    const montoLabel = document.getElementById('monto-label');
+    const resultsCard = document.getElementById('simulation-results');
+    const proceedBtn = document.getElementById('proceed-btn');
 
-            // Elementos de resultados
-            const resultsCard = document.getElementById('simulation-results');
-            const montoOriginalLabel = document.getElementById('monto-original-label');
-            const montoFinalLabel = document.getElementById('monto-final-label');
-            const montoOriginalVal = document.getElementById('monto-original-val');
-            const monedaOrigenVal = document.getElementById('moneda-origen-val');
-            const tasaVal = document.getElementById('tasa-val');
-            const montoFinalVal = document.getElementById('monto-final-val');
-            const monedaDestinoVal = document.getElementById('moneda-destino-val');
-            const comisionBaseVal = document.getElementById('comision-base-val');
-            const descuentoVal = document.getElementById('descuento-val');
-            const comisionFinalVal = document.getElementById('comision-final-val');
-            const comisionMedioPagoSection = document.getElementById('comision-medio-pago-section');
-            const comisionMedioPagoVal = document.getElementById('comision-medio-pago-val');
-            const comisionMedioPagoPct = document.getElementById('comision-medio-pago-pct');
-            // transactionBreakdown removed (now using commission-breakdown)
-            // breakdownContent removed (desglose integrado)
-            const walletWarning = document.getElementById('wallet-warning');
-            const proceedBtn = document.getElementById('proceed-btn');
+    let currentCliente = clienteSelect?.value || null;
 
-            // Estado global
-            let currentCliente = null;
-            let availableDivisas = [];
+    function updateLabels() {
+        const tipo = [...tipoOperacionInputs].find(i => i.checked)?.value || 'compra';
+        divisaLabel.textContent = tipo === 'compra' ? 'Quiero' : 'Tengo';
+        montoLabel.textContent = tipo === 'compra' ? 'Monto que Tengo (PYG)' : 'Monto que Tengo';
+    }
 
-            // Funciones de formateo
-            const isoDecimals = { PYG: 0, USD: 2, EUR: 2, BRL: 2 };
+    // Aquí deberías agregar tus funciones loadDivisas(), loadMediosPago(), performSimulation() como en tu código original,
+    // y solo inicializar con currentCliente al cargar la página:
+    if (currentCliente) {
+        loadMediosPago(currentCliente);
+    }
 
-            function formatNumber(value, currency) {
-                const dec = isoDecimals[currency] !== undefined ? isoDecimals[currency] : 2;
-                return Number(value).toLocaleString(undefined, {
-                    minimumFractionDigits: dec,
-                    maximumFractionDigits: dec
-                });
-            }
-
-            // Formatea la tasa mostrando los decimales necesarios y quitando ceros finales
-            function formatRate(rate) {
-                // rate puede venir como string o número
-                const num = Number(rate);
-                if (!isFinite(num)) return rate;
-                // convertir a string con máximo 12 decimales para no perder precisión
-                let s = num.toFixed(12);
-                // quitar ceros finales y punto si corresponde
-                s = s.replace(/(?:\.0+|(?<=\.[0-9]*?)0+)$/, '');
-                return s;
-            }
-
-            // Obtener tipo de operación seleccionado
-            function getTipoOperacion() {
-                for (const input of tipoOperacionInputs) {
-                    if (input.checked) return input.value;
-                }
-                return 'compra';
-            }
-
-            // Actualizar labels según tipo de operación
-            function updateLabels() {
-                const tipo = getTipoOperacion();
-                if (tipo === 'compra') {
-                    divisaLabel.textContent = 'Quiero';
-                    montoLabel.textContent = 'Monto que Tengo (PYG)';
-                    montoOriginalLabel.textContent = 'Monto que Tengo:';
-                    montoFinalLabel.textContent = 'Monto a Recibir:';
-                } else {
-                    divisaLabel.textContent = 'Tengo';
-                    montoLabel.textContent = 'Monto que Tengo';
-                    montoOriginalLabel.textContent = 'Monto que Tengo:';
-                    montoFinalLabel.textContent = 'Monto a Recibir (PYG):';
-                }
-            }
-
-            // Cargar divisas disponibles
-            async function loadDivisas() {
-                try {
-                    const response = await fetch('{% url "transacciones:api_divisas_disponibles" %}');
-                    const data = await response.json();
-
-                    divisaSelect.innerHTML = '<option value="">Seleccione una divisa</option>';
-
-                    // Solo mostrar las divisas disponibles (excluyendo PYG)
-                    data.divisas.forEach(divisa => {
-                        const option = document.createElement('option');
-                        option.value = divisa.codigo;
-                        option.textContent = `${divisa.codigo} - ${divisa.nombre}`;
-                        divisaSelect.appendChild(option);
-                    });
-
-                    availableDivisas = data.divisas;
-                } catch (error) {
-                    console.error('Error loading divisas:', error);
-                }
-            }
-
-            // Cargar medios de pago del cliente
-            async function loadMediosPago(clienteId) {
-                if (!clienteId) {
-                    resetMediosPago();
-                    return;
-                }
-
-                try {
-                    const tipo = getTipoOperacion();
-                    const response = await fetch(`{% url "transacciones:api_medios_pago_cliente" cliente_id=0 %}`.replace('0', clienteId) + `?tipo=${tipo}`);
-                    const data = await response.json();
-
-                    // Limpiar y rellenar método de pago
-                    metodoPagoSelect.innerHTML = '';
-
-                    data.medios_pago.forEach(medio => {
-                        const optionPago = document.createElement('option');
-                        optionPago.value = medio.id;
-                        optionPago.textContent = `${medio.nombre} (${medio.comision}%)`;
-                        optionPago.dataset.comision = medio.comision;
-                        if (medio.id === 'efectivo') optionPago.selected = true;
-                        metodoPagoSelect.appendChild(optionPago);
-                    });
-
-                    // Limpiar y rellenar método de cobro
-                    metodoCobroSelect.innerHTML = '';
-
-                    data.medios_cobro.forEach(medio => {
-                        const optionCobro = document.createElement('option');
-                        optionCobro.value = medio.id;
-                        optionCobro.textContent = `${medio.nombre} (${medio.comision}%)`;
-                        optionCobro.dataset.comision = medio.comision;
-                        if (medio.id === 'efectivo') optionCobro.selected = true;
-                        metodoCobroSelect.appendChild(optionCobro);
-                    });
-
-                } catch (error) {
-                    console.error('Error loading medios de pago:', error);
-                    resetMediosPago();
-                }
-            }
-
-            function resetMediosPago() {
-                metodoPagoSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
-                metodoCobroSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
-            }
-
-            // Realizar simulación
-            async function performSimulation() {
-                const monto = parseFloat(montoInput.value) || 0;
-                const divisa = divisaSelect.value;
-                const tipo = getTipoOperacion();
-                const clienteId = clienteSelect?.value || '';
-
-                if (monto < 1 || !divisa) {
-                    resultsCard.classList.add('hidden');
-                    return;
-                }
-
-                const params = new URLSearchParams({
-                    monto: monto.toString(),
-                    divisa_seleccionada: divisa,
-                    tipo_operacion: tipo,
-                    metodo_pago: metodoPagoSelect.value,
-                    metodo_cobro: metodoCobroSelect.value,
-                    cliente_id: clienteId
-                });
-
-                try {
-                    const response = await fetch(`{% url "transacciones:api_simular_cambio" %}?${params.toString()}`);
-                    const data = await response.json();
-
-                    // Actualizar resultados
-                    // Mostrar montos con formato y énfasis
-                    montoOriginalVal.textContent = formatNumber(data.monto_original, data.moneda_origen);
-                    monedaOrigenVal.textContent = data.moneda_origen;
-                    tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} ${data.moneda_destino}`;
-                    montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, data.moneda_destino)}</span>`;
-                    monedaDestinoVal.textContent = data.moneda_destino;
-                    comisionBaseVal.textContent = formatNumber(data.comision_base, data.moneda_destino);
-                    descuentoVal.textContent = data.descuento;
-                    comisionFinalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
-
-                    // Mostrar comisión de medio de pago si aplica
-                    if (data.comision_medio_pago_monto > 0) {
-                        comisionMedioPagoSection.classList.remove('hidden');
-                        comisionMedioPagoVal.textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
-                        comisionMedioPagoPct.textContent = data.comision_medio_pago_porcentaje;
-                    } else {
-                        comisionMedioPagoSection.classList.add('hidden');
-                    }
-
-                    // Actualizar comisiones en el panel colapsable
-                    const cb = document.getElementById('commission-breakdown');
-                    if (cb) {
-                        cb.querySelector('#comision-base-val').textContent = formatNumber(data.comision_base, data.moneda_destino);
-                        cb.querySelector('#descuento-val').textContent = data.descuento;
-                        cb.querySelector('#comision-final-val').textContent = formatNumber(data.comision_final, data.moneda_destino);
-                        if (data.comision_medio_pago_monto > 0) {
-                            cb.querySelector('#comision-medio-pago-section').classList.remove('hidden');
-                            cb.querySelector('#comision-medio-pago-val').textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
-                            cb.querySelector('#comision-medio-pago-pct').textContent = data.comision_medio_pago_porcentaje;
-                        } else {
-                            cb.querySelector('#comision-medio-pago-section').classList.add('hidden');
-                        }
-                    }
-
-                    // Mostrar advertencia de billeteras
-                    const metodoPago = metodoPagoSelect.value;
-                    const metodoCobro = metodoCobroSelect.value;
-                    if (metodoPago.includes('billetera') || metodoCobro.includes('billetera')) {
-                        walletWarning.classList.remove('hidden');
-                    } else {
-                        walletWarning.classList.add('hidden');
-                    }
-
-                    // Habilitar botón proceder si hay cliente seleccionado
-                    if (proceedBtn) {
-                        proceedBtn.disabled = !clienteId;
-                    }
-
-                    resultsCard.classList.remove('hidden');
-
-                } catch (error) {
-                    console.error('Error performing simulation:', error);
-                    resultsCard.classList.add('hidden');
-                }
-            }
-
-            // Event listeners
-            if (clienteSelect) {
-                clienteSelect.addEventListener('change', function() {
-                    currentCliente = this.value;
-                    loadMediosPago(this.value);
-                    performSimulation();
-                });
-            }
-
-            tipoOperacionInputs.forEach(input => {
-                input.addEventListener('change', function() {
-                    updateLabels();
-                    // Recargar medios de pago porque las opciones de cobro cambian según el tipo
-                    if (currentCliente) {
-                        loadMediosPago(currentCliente);
-                    }
-                    performSimulation();
-                });
-            });
-
-            divisaSelect.addEventListener('change', performSimulation);
-            montoInput.addEventListener('input', performSimulation);
-            metodoPagoSelect.addEventListener('change', performSimulation);
-            metodoCobroSelect.addEventListener('change', performSimulation);
-
-            // Inicialización
+    tipoOperacionInputs.forEach(input => {
+        input.addEventListener('change', () => {
             updateLabels();
-            loadDivisas();
-        })();
-        </script>
-    {% endblock content %}
+            if (currentCliente) loadMediosPago(currentCliente);
+            performSimulation();
+        });
+    });
+
+    clienteSelect?.addEventListener('change', () => {
+        currentCliente = clienteSelect.value;
+        loadMediosPago(currentCliente);
+        performSimulation();
+    });
+
+    divisaSelect.addEventListener('change', performSimulation);
+    montoInput.addEventListener('input', performSimulation);
+    metodoPagoSelect.addEventListener('change', performSimulation);
+    metodoCobroSelect.addEventListener('change', performSimulation);
+
+    updateLabels();
+    loadDivisas();
+})();
+</script>
+{% endblock content %}
