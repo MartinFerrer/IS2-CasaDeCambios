@@ -1,3 +1,12 @@
+"""Módulo de vistas para la aplicación de seguridad.
+
+Este módulo contiene las vistas relacionadas con la autenticación de usuarios,
+registro con verificación por email, login, logout, y gestión de clientes
+en el sistema de casa de cambios.
+"""
+
+from apps.usuarios.forms import CustomUserCreationForm
+from apps.usuarios.models import Usuario
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -10,16 +19,24 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
-from apps.usuarios.forms import CustomUserCreationForm
-from apps.usuarios.models import Usuario
-
 token_generator = PasswordResetTokenGenerator()
 
 
-# -----------------------------
-# REGISTRO con verificación
-# -----------------------------
 def registro_view(request):
+    """Vista para el registro de nuevos usuarios.
+
+    Maneja el formulario de registro, crea un usuario inactivo, asigna al grupo
+    'Usuario Registrado', genera un token de verificación y envía un email
+    con el enlace de verificación. Redirige al login tras el envío.
+
+    Args:
+    request: Objeto HttpRequest de Django.
+
+    Retorna:
+    HttpResponse: Renderiza la plantilla 'registro.html' con el formulario,
+    o redirige a 'seguridad:login' tras el registro exitoso.
+
+    """
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
@@ -48,10 +65,22 @@ def registro_view(request):
     return render(request, "registro.html", {"form": form})
 
 
-# -----------------------------
-# VERIFICAR CUENTA
-# -----------------------------
 def verificar_cuenta(request, uid, token):
+    """Vista para verificar la cuenta de usuario mediante token.
+
+    Valida el token y activa la cuenta del usuario si es válido.
+    Redirige al login con mensaje de éxito o error.
+
+    Args:
+        request: Objeto HttpRequest de Django.
+        uid (int): ID del usuario.
+        token (str): Token de verificación.
+
+    Retorna:
+        HttpResponse: Redirige a 'seguridad:login' o 'seguridad:registro'
+        con mensajes correspondientes.
+
+    """
     user = get_object_or_404(Usuario, pk=uid)
     if token_generator.check_token(user, token):
         user.activo = True
@@ -63,10 +92,20 @@ def verificar_cuenta(request, uid, token):
     return redirect("seguridad:registro")
 
 
-# -----------------------------
-# LOGIN
-# -----------------------------
 def login_view(request):
+    """Vista para el inicio de sesión de usuarios.
+
+    Autentica al usuario con email y contraseña. Si el usuario no está activo,
+    muestra un mensaje de error. Tras login exitoso, redirige a la selección
+    de cliente.
+
+    Args:
+        request: Objeto HttpRequest de Django.
+
+    Retorna:
+        HttpResponse: Renderiza 'login.html' o redirige a 'seguridad:seleccionar_cliente'.
+
+    """
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
@@ -90,20 +129,37 @@ def login_view(request):
     return render(request, "login.html")
 
 
-# -----------------------------
-# LOGOUT
-# -----------------------------
 def logout_view(request):
+    """Vista para cerrar sesión de usuarios.
+
+    Cierra la sesión del usuario actual y redirige al login con mensaje de éxito.
+
+    Args:
+        request: Objeto HttpRequest de Django.
+
+    Retorna:
+        HttpResponse: Redirige a 'seguridad:login'.
+
+    """
     logout(request)
     messages.success(request, "Has cerrado sesión correctamente.")
     return redirect("seguridad:login")
 
 
-# -----------------------------
-# CAMBIAR CLIENTE
-# -----------------------------
 @login_required
 def cambiar_cliente(request):
+    """Vista para cambiar el cliente seleccionado por el usuario.
+
+    Actualiza la sesión con el nuevo cliente_id si es válido y pertenece al usuario.
+    Redirige al home o muestra error.
+
+    Args:
+        request: Objeto HttpRequest de Django (requiere login).
+
+    Retorna:
+        HttpResponse: Renderiza 'cambiar_cliente.html' o redirige a 'presentacion:home'.
+
+    """
     if request.method == "POST":
         cliente_id = request.POST.get("cliente_id")
         if request.user.clientes.filter(id=cliente_id).exists():
@@ -115,11 +171,19 @@ def cambiar_cliente(request):
     return render(request, "cambiar_cliente.html", {"clientes": clientes})
 
 
-# -----------------------------
-# OBTENER CLIENTES (AJAX)
-# -----------------------------
 @csrf_exempt
 def obtener_clientes(request):
+    """Vista AJAX para obtener la lista de clientes de un usuario.
+
+    Autentica al usuario y devuelve una lista de clientes en formato JSON.
+
+    Args:
+        request: Objeto HttpRequest de Django (POST).
+
+    Retorna:
+        JsonResponse: Lista de clientes o error.
+
+    """
     if request.method == "POST":
         email = request.POST.get("email")
         password = request.POST.get("password")
@@ -133,6 +197,18 @@ def obtener_clientes(request):
 
 @login_required
 def seleccionar_cliente(request):
+    """Vista para seleccionar un cliente al iniciar sesión.
+
+    Muestra los clientes del usuario y permite seleccionar uno, actualizando la sesión.
+    Redirige al home tras selección exitosa.
+
+    Args:
+    request: Objeto HttpRequest de Django (requiere login).
+
+    Retorna:
+    HttpResponse: Renderiza 'seleccionar_cliente.html' o redirige a 'presentacion:home'.
+
+    """
     user = request.user
     clientes = user.clientes.all()
 
