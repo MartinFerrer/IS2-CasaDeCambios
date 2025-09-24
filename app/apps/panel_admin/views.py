@@ -13,6 +13,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.transacciones.models import EntidadFinanciera
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
 from .forms import ClienteForm, UsuarioForm
@@ -36,16 +37,21 @@ def configuracion(request: HttpRequest) -> HttpResponse:
 
     Se pasan los siguentes queryset para la configuracion:
         - TipoCliente: Configuración de descuento sobre la comisión
+        - EntidadFinanciera: Gestión de entidades financieras
 
     Args:
         request: HttpRequest object.
 
     Retorna:
-        HttpResponse: Rendered panel_inicio.html template.
+        HttpResponse: Rendered configuracion.html template.
 
     """
     tipos_clientes = TipoCliente.objects.all()
-    return render(request, "configuracion.html", {"tipos_clientes": tipos_clientes})
+    entidades = EntidadFinanciera.objects.all().order_by('tipo', 'nombre')
+    return render(request, "configuracion.html", {
+        "tipos_clientes": tipos_clientes,
+        "entidades": entidades
+    })
 
 
 @require_POST
@@ -411,3 +417,135 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
 
         return redirect("asociar_cliente_usuario_form")
     return redirect("asociar_cliente_usuario_form")
+
+
+# CRUD de Entidades de Medios financiero
+def entidad_create(request: HttpRequest) -> HttpResponse:
+    """Crea una nueva entidad de medio financiero.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Redirect to configuracion with entidades tab.
+
+    """
+    if request.method == "POST":
+        try:
+            nombre = request.POST.get("nombre", "").strip()
+            tipo = request.POST.get("tipo")
+            comision_compra = Decimal(request.POST.get("comision_compra", "0"))
+            comision_venta = Decimal(request.POST.get("comision_venta", "0"))
+            activo = request.POST.get("activo") == "on"
+
+            if not nombre or not tipo:
+                messages.error(request, "Nombre y tipo son obligatorios.")
+                return redirect("configuracion")
+
+            # Verificar que no exista ya esa combinación nombre-tipo
+            if EntidadFinanciera.objects.filter(nombre=nombre, tipo=tipo).exists():
+                messages.error(request, f"Ya existe una entidad {tipo} con el nombre '{nombre}'.")
+                return redirect("configuracion")
+
+            EntidadFinanciera.objects.create(
+                nombre=nombre,
+                tipo=tipo,
+                comision_compra=comision_compra,
+                comision_venta=comision_venta,
+                activo=activo
+            )
+            messages.success(request, f"Entidad '{nombre}' creada exitosamente.")
+
+        except (ValueError, InvalidOperation):
+            messages.error(request, "Los valores de comisión deben ser números válidos.")
+        except Exception as e:
+            messages.error(request, f"Error al crear la entidad: {e}")
+
+    return redirect("configuracion")
+
+
+def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    """Edita una entidad financiera existente.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario de la entidad a editar.
+
+    Retorna:
+        HttpResponse: Redirect to configuracion with entidades tab.
+
+    """
+    entidad = get_object_or_404(EntidadFinanciera, pk=pk)
+
+    if request.method == "POST":
+        try:
+            nombre = request.POST.get("nombre", "").strip()
+            tipo = request.POST.get("tipo")
+            comision_compra = Decimal(request.POST.get("comision_compra", "0"))
+            comision_venta = Decimal(request.POST.get("comision_venta", "0"))
+            activo = request.POST.get("activo") == "on"
+
+            if not nombre or not tipo:
+                messages.error(request, "Nombre y tipo son obligatorios.")
+                return redirect("configuracion")
+
+            # Verificar que no exista ya esa combinación nombre-tipo (excepto esta misma entidad)
+            if EntidadFinanciera.objects.filter(nombre=nombre, tipo=tipo).exclude(pk=pk).exists():
+                messages.error(request, f"Ya existe otra entidad {tipo} con el nombre '{nombre}'.")
+                return redirect("configuracion")
+
+            entidad.nombre = nombre
+            entidad.tipo = tipo
+            entidad.comision_compra = comision_compra
+            entidad.comision_venta = comision_venta
+            entidad.activo = activo
+            entidad.save()
+
+            messages.success(request, f"Entidad '{nombre}' actualizada exitosamente.")
+
+        except (ValueError, InvalidOperation):
+            messages.error(request, "Los valores de comisión deben ser números válidos.")
+        except Exception as e:
+            messages.error(request, f"Error al actualizar la entidad: {e}")
+
+    return redirect("configuracion")
+
+
+def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Elimina una entidad de medio financiero.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario de la entidad a eliminar.
+
+    Retorna:
+        HttpResponse: Redirect to configuracion with entidades tab.
+
+    """
+    entidad = get_object_or_404(EntidadFinanciera, pk=pk)
+
+    if request.method == "POST":
+        try:
+            # Verificar si la entidad está siendo usada por algún medio financiero
+            from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
+
+            en_uso = (
+                TarjetaCredito.objects.filter(entidad=entidad).exists() or
+                CuentaBancaria.objects.filter(entidad=entidad).exists() or
+                BilleteraElectronica.objects.filter(entidad=entidad).exists()
+            )
+
+            if en_uso:
+                messages.error(
+                    request,
+                    f"No se puede eliminar la entidad '{entidad.nombre}' porque está siendo utilizada por medios financiero existentes."
+                )
+            else:
+                nombre = entidad.nombre
+                entidad.delete()
+                messages.success(request, f"Entidad '{nombre}' eliminada exitosamente.")
+
+        except Exception as e:
+            messages.error(request, f"Error al eliminar la entidad: {e}")
+
+    return redirect("configuracion")
