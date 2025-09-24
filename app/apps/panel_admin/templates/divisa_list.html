@@ -77,7 +77,7 @@
                                     </form>
                                     <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Divisa</h3>
                                     <form method="post"
-                                          action="{% url 'operaciones:edit_divisa' divisa.pk %}"
+                                          action="{% url 'edit_divisa' divisa.pk %}"
                                           class="space-y-4">
                                         {% csrf_token %}
                                         <div class="grid grid-cols-2 gap-4">
@@ -148,7 +148,7 @@
                                         ¿Estás seguro que deseas eliminar la divisa <span class="font-semibold">{{ divisa.codigo }} - {{ divisa.nombre }}</span>?
                                     </p>
                                     <form method="post"
-                                          action="{% url 'operaciones:delete_divisa' divisa.pk %}">
+                                          action="{% url 'delete_divisa' divisa.pk %}">
                                         {% csrf_token %}
                                         <div class="modal-action mt-4 flex justify-end space-x-2">
                                             <button type="submit" class="btn btn-error">Eliminar</button>
@@ -188,7 +188,7 @@
             <h3 class="font-bold text-lg text-blue-800 mb-4">Crear Divisa</h3>
             <form id="crear-divisa-form"
                   method="POST"
-                  action="{% url 'operaciones:crear_divisa' %}">
+                  action="{% url 'crear_divisa' %}">
                 {% csrf_token %}
                 <div class="form-control w-full mb-4 relative">
                     <label class="label">
@@ -277,7 +277,7 @@
 
                 const fetchCurrencies = async () => {
                     try {
-                        const apiUrl = "/operaciones/admin/divisas/api/";
+                        const apiUrl = "/panel_admin/divisas/api/";
                         const response = await fetch(apiUrl);
                         if (!response.ok) throw new Error('Network response was not ok');
 
@@ -344,7 +344,7 @@
                     const formData = new FormData(form);
 
                     try {
-                        const response = await fetch("{% url 'operaciones:crear_divisa' %}", {
+                        const response = await fetch("{% url 'crear_divisa' %}", {
                             method: 'POST',
                             body: formData,
                             headers: {

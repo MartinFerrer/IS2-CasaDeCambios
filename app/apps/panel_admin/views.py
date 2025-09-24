@@ -6,13 +6,17 @@ así como la lógica de asociación entre Cliente y Usuario.
 
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+import pycountry
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+from forex_python.converter import CurrencyCodes
 
+from apps.operaciones.forms import DivisaForm
+from apps.operaciones.models import Divisa
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
 from .forms import ClienteForm, UsuarioForm
@@ -137,7 +141,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
             usuario.save()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -175,7 +179,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
             tenia_usuario_asociado = usuario_asociado_grupo and usuario_asociado_grupo in usuario.groups.all()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -411,3 +415,133 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
 
         return redirect("asociar_cliente_usuario_form")
     return redirect("asociar_cliente_usuario_form")
+
+
+# Sección de Divisas:
+
+
+def crear_divisa(request):
+    """View para crear una nueva divisa.
+
+    Argumento:
+        request: La solicitud HTTP.
+    Retorna:
+        HttpResponse: el formulario de creación o la redirección después de guardar.
+
+    """
+    if request.method == "POST":
+        form = DivisaForm(request.POST)
+        if form.is_valid():
+            divisa = form.save()
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Divisa creada exitosamente",
+                    "divisa": {
+                        "pk": str(divisa.pk),
+                        "codigo": divisa.codigo,
+                        "nombre": divisa.nombre,
+                        "simbolo": divisa.simbolo,
+                        "estado": divisa.estado,
+                    },
+                },
+                status=201,
+            )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors}, status=400)
+    form = DivisaForm()
+    return render(request, "panel_admin/divisa_list.html", {"form": form})
+
+
+def edit_divisa(request, pk):
+    """View para editar una divisa existente.
+
+    Argumentos:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a editar.
+    Retorna:
+        HttpResponse: el formulario de edición o la redirección después de guardar.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    if request.method == "POST":
+        divisa.nombre = request.POST.get("nombre")
+        divisa.simbolo = request.POST.get("simbolo")
+        divisa.estado = request.POST.get("estado")
+        divisa.save()
+        return redirect("divisa_list")
+
+    return redirect("divisa_list")
+
+
+def delete_divisa(request, pk):
+    """View para eliminar una divisa específica.
+
+    Argumento:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a eliminar.
+    Retorna:
+        HttpResponse: Redirige a la lista de divisas después de eliminar.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    if request.method == "POST":
+        divisa.delete()
+        return redirect("panel_admin:divisa_list")
+    return redirect("panel_admin:divisa_detail", pk=pk)
+
+
+def divisa_detail(request, pk):
+    """View para mostrar los detalles de una divisa específica.
+
+    Argumento:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a mostrar.
+    Retorna:
+        HttpResponse: Renderiza el template divisa_detalle.html con el contexto de la divisa.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    return render(request, "panel_admin/divisa_detalle.html", {"divisa": divisa})
+
+
+def divisa_listar(request: HttpRequest) -> object:
+    """Muestra el listado de todas las divisas en el sistema.
+
+    Argumentos:
+        request: La solicitud HTTP.
+
+    Retorna:
+        HttpResponse: La página HTML con la lista de divisas.
+    """
+    divisas = Divisa.objects.all().order_by("codigo")
+    print(f"DEBUG divisa_listar: Found {divisas.count()} currencies in database")
+    for divisa in divisas:
+        print(f"DEBUG: {divisa.pk} - {divisa.codigo} - {divisa.nombre}")
+    return render(request, "divisa_list.html", {"object_list": divisas})
+
+
+def obtener_divisas(request: HttpRequest) -> JsonResponse:
+    """Obtiene las divisas disponibles en el sistema y las devuelve como un JSON.
+
+    Esta vista utiliza la librería `pycountry` para obtener una lista de códigos
+    ISO de divisas.
+
+    Argumentos:
+        request: La solicitud HTTP.
+
+    Returns:
+        JsonResponse: Una respuesta HTTP con una lista de diccionarios de divisas.
+
+    """
+    c = CurrencyCodes()
+    data = []
+    for currency in pycountry.currencies:
+        codigo = getattr(currency, "alpha_3", None)
+        if not codigo:
+            continue
+        nombre = getattr(currency, "name", "Desconocida")
+        simbolo = c.get_symbol(codigo)
+        data.append({"codigo": codigo, "nombre": nombre, "simbolo": simbolo})
+
+    return JsonResponse(data, safe=False)

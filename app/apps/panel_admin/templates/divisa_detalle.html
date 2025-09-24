@@ -7,12 +7,12 @@
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="mb-4">
-            <a href="{% url 'operaciones:divisa_list' %}"
+            <a href="{% url 'panel_admin:divisa_list' %}"
                class="btn btn-sm btn-outline">← Volver a la lista</a>
         </div>
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-blue-800">Detalle Divisa</h1>
-            <a href="{% url 'operaciones:crear_divisa' %}" class="btn btn-primary">
+            <a href="{% url 'crear_divisa' %}" class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5 mr-2"
                      fill="none"
@@ -41,7 +41,7 @@
                     <a href="{% url 'operaciones:edit_divisa' divisa.pk %}"
                        class="btn btn-primary">Editar</a>
                     <form method="POST"
-                          action="{% url 'operaciones:delete_divisa' divisa.pk %}"
+                          action="{% url 'panel_admin:delete_divisa' divisa.pk %}"
                           class="inline">
                         {% csrf_token %}
                         <button type="button"
@@ -59,7 +59,7 @@
                 <p class="py-4">¿Estás seguro de que deseas eliminar la divisa "{{ divisa.nombre }}"?</p>
                 <div class="modal-action mt-4 flex justify-end space-x-2">
                     <form method="POST"
-                          action="{% url 'operaciones:delete_divisa' divisa.pk %}">
+                          action="{% url 'panel_admin:delete_divisa' divisa.pk %}">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-error">Eliminar</button>
                     </form>
