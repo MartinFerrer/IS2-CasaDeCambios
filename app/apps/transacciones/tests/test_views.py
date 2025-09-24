@@ -12,19 +12,6 @@ from apps.transacciones.models import TarjetaCredito
 class TestTransaccionesViews:
     """Tests para las vistas de transacciones."""
 
-    @pytest.fixture
-    def client_logueado(self, usuario):
-        """Fixture para cliente web logueado."""
-        client = Client()
-        client.force_login(usuario)
-        return client
-
-    @pytest.fixture
-    def cliente_con_usuario(self, cliente, usuario):
-        """Fixture para cliente asociado a un usuario."""
-        cliente.usuarios.add(usuario)
-        return cliente
-
     def test_simular_cambio_view_get(self):
         """Test GET a la vista de simulación de cambio."""
         client = Client()
@@ -157,17 +144,19 @@ class TestTransaccionesViews:
         assert response.status_code == 200
         assert response.context['cliente'] == cliente_con_usuario
 
-    def test_crear_billetera_post_valida(self, client_logueado, cliente_con_usuario):
+    def test_crear_billetera_post_valida(self, client_logueado, cliente_con_usuario, entidad_billetera):
         """Test POST para crear billetera electrónica con datos válidos."""
         from apps.transacciones.models import BilleteraElectronica
 
         url = f'/transacciones/configuracion/cliente/{cliente_con_usuario.id}/billetera/crear/'
         data = {
-            'proveedor': 'personal_pay',
+            'entidad': entidad_billetera.id,
             'identificador': 'mi_billetera@gmail.com',
             'numero_telefono': '0981123456',
             'email_asociado': 'mi_billetera@gmail.com',
-            'alias': 'Mi Billetera'
+            'alias': 'Mi Billetera',
+            'habilitado_para_pago': 'on',
+            'habilitado_para_cobro': 'on'
         }
 
         response = client_logueado.post(url, data)
@@ -181,7 +170,9 @@ class TestTransaccionesViews:
             numero_telefono='0981123456'
         ).first()
         assert billetera is not None
-        assert billetera.proveedor == 'personal_pay'
+        assert billetera.entidad == entidad_billetera
+        assert billetera.habilitado_para_pago is True
+        assert billetera.habilitado_para_cobro is True
 
     def test_crear_billetera_post_invalida(self, client_logueado, cliente_con_usuario):
         """Test POST para crear billetera electrónica con datos inválidos."""
@@ -215,17 +206,19 @@ class TestTransaccionesViews:
         assert response.status_code == 200
         assert response.context['cliente'] == cliente_con_usuario
 
-    def test_crear_cuenta_bancaria_post_valida(self, client_logueado, cliente_con_usuario):
+    def test_crear_cuenta_bancaria_post_valida(self, client_logueado, cliente_con_usuario, entidad_bancaria):
         """Test POST para crear cuenta bancaria con datos válidos."""
         from apps.transacciones.models import CuentaBancaria
 
         url = f'/transacciones/configuracion/cliente/{cliente_con_usuario.id}/cuenta/crear/'
         data = {
             'numero_cuenta': '1234567890',
-            'banco': 'Banco Nacional',
+            'entidad': entidad_bancaria.id,
             'titular_cuenta': 'Juan Perez',
             'documento_titular': '1234567-9',
-            'alias': 'Mi Cuenta'
+            'alias': 'Mi Cuenta',
+            'habilitado_para_pago': 'on',
+            'habilitado_para_cobro': 'on'
         }
 
         response = client_logueado.post(url, data)
@@ -239,7 +232,9 @@ class TestTransaccionesViews:
             numero_cuenta='1234567890'
         ).first()
         assert cuenta is not None
-        assert cuenta.banco == 'Banco Nacional'
+        assert cuenta.entidad == entidad_bancaria
+        assert cuenta.habilitado_para_pago is True
+        assert cuenta.habilitado_para_cobro is True
 
     def test_crear_cuenta_bancaria_post_invalida(self, client_logueado, cliente_con_usuario):
         """Test POST para crear cuenta bancaria con datos inválidos."""
@@ -318,14 +313,14 @@ class TestTransaccionesViews:
         assert tarjeta.alias == 'Tarjeta Editada'
         assert tarjeta.cvv == '456'
 
-    def test_editar_billetera_get(self, client_logueado, cliente_con_usuario):
+    def test_editar_billetera_get(self, client_logueado, cliente_con_usuario, entidad_billetera):
         """Test GET para editar billetera electrónica."""
         from apps.transacciones.models import BilleteraElectronica
 
         # Crear una billetera para editar
         billetera = BilleteraElectronica.objects.create(
             cliente=cliente_con_usuario,
-            proveedor='personal_pay',
+            entidad=entidad_billetera,
             identificador='original@gmail.com',
             numero_telefono='0981123456',
             email_asociado='original@gmail.com',
@@ -339,14 +334,16 @@ class TestTransaccionesViews:
         assert response.context['cliente'] == cliente_con_usuario
         assert response.context['billetera'] == billetera
 
-    def test_editar_billetera_post_valida(self, client_logueado, cliente_con_usuario):
+    def test_editar_billetera_post_valida(
+        self, client_logueado, cliente_con_usuario, entidad_billetera, entidad_billetera2
+    ):
         """Test POST para editar billetera electrónica con datos válidos."""
         from apps.transacciones.models import BilleteraElectronica
 
         # Crear una billetera para editar
         billetera = BilleteraElectronica.objects.create(
             cliente=cliente_con_usuario,
-            proveedor='personal_pay',
+            entidad=entidad_billetera,
             identificador='original@gmail.com',
             numero_telefono='0981123456',
             email_asociado='original@gmail.com',
@@ -356,11 +353,13 @@ class TestTransaccionesViews:
         url = f'/transacciones/configuracion/cliente/{cliente_con_usuario.id}/billetera/{billetera.pk}/editar/'
 
         data = {
-            'proveedor': 'mango',
+            'entidad': entidad_billetera2.pk,
             'identificador': 'editado@gmail.com',
             'numero_telefono': '0981654321',
             'email_asociado': 'editado@gmail.com',
-            'alias': 'Billetera Editada'
+            'alias': 'Billetera Editada',
+            'habilitado_para_pago': 'on',
+            'habilitado_para_cobro': ''  # Solo pago habilitado
         }
 
         response = client_logueado.post(url, data)
@@ -370,11 +369,13 @@ class TestTransaccionesViews:
 
         # Verificar que la billetera se actualizó
         billetera.refresh_from_db()
-        assert billetera.proveedor == 'mango'
+        assert billetera.entidad == entidad_billetera2
         assert billetera.alias == 'Billetera Editada'
         assert billetera.numero_telefono == '0981654321'
+        assert billetera.habilitado_para_pago is True
+        assert billetera.habilitado_para_cobro is False
 
-    def test_editar_cuenta_bancaria_get(self, client_logueado, cliente_con_usuario):
+    def test_editar_cuenta_bancaria_get(self, client_logueado, cliente_con_usuario, entidad_bancaria):
         """Test GET para editar cuenta bancaria."""
         from apps.transacciones.models import CuentaBancaria
 
@@ -382,7 +383,7 @@ class TestTransaccionesViews:
         cuenta = CuentaBancaria.objects.create(
             cliente=cliente_con_usuario,
             numero_cuenta='1111222233334444',
-            banco='Banco Original',
+            entidad=entidad_bancaria,
             titular_cuenta='Juan Perez Original',
             documento_titular='1234567-9',
             alias='Cuenta Original'
@@ -395,7 +396,7 @@ class TestTransaccionesViews:
         assert response.context['cliente'] == cliente_con_usuario
         assert response.context['cuenta'] == cuenta
 
-    def test_editar_cuenta_bancaria_post_valida(self, client_logueado, cliente_con_usuario):
+    def test_editar_cuenta_bancaria_post_valida(self, client_logueado, cliente_con_usuario, entidad_bancaria):
         """Test POST para editar cuenta bancaria con datos válidos."""
         from apps.transacciones.models import CuentaBancaria
 
@@ -403,7 +404,7 @@ class TestTransaccionesViews:
         cuenta = CuentaBancaria.objects.create(
             cliente=cliente_con_usuario,
             numero_cuenta='1111222233334444',
-            banco='Banco Original',
+            entidad=entidad_bancaria,
             titular_cuenta='Juan Perez Original',
             documento_titular='1234567-9',
             alias='Cuenta Original'
@@ -413,7 +414,7 @@ class TestTransaccionesViews:
 
         data = {
             'numero_cuenta': '1111222233334444',
-            'banco': 'Banco Editado',
+            'entidad': entidad_bancaria.pk,
             'titular_cuenta': 'Juan Perez Editado',
             'documento_titular': '1234567-9',
             'alias': 'Cuenta Editada'
@@ -426,7 +427,7 @@ class TestTransaccionesViews:
 
         # Verificar que la cuenta se actualizó
         cuenta.refresh_from_db()
-        assert cuenta.banco == 'Banco Editado'
+        assert cuenta.entidad == entidad_bancaria
         assert cuenta.alias == 'Cuenta Editada'
         assert cuenta.titular_cuenta == 'Juan Perez Editado'
 
@@ -468,14 +469,14 @@ class TestTransaccionesViews:
         # Verificar que la tarjeta ya no existe
         assert not TarjetaCredito.objects.filter(pk=tarjeta.pk).exists()
 
-    def test_eliminar_billetera(self, client_logueado, cliente_con_usuario):
+    def test_eliminar_billetera(self, client_logueado, cliente_con_usuario, entidad_billetera):
         """Test eliminar billetera electrónica de un cliente asociado."""
         from apps.transacciones.models import BilleteraElectronica
 
         # Crear una billetera para eliminar
         billetera = BilleteraElectronica.objects.create(
             cliente=cliente_con_usuario,
-            proveedor='personal_pay',
+            entidad=entidad_billetera,
             identificador='test@gmail.com',
             numero_telefono='0981123456',
             email_asociado='test@gmail.com',
@@ -490,7 +491,7 @@ class TestTransaccionesViews:
         # Verificar que la billetera ya no existe
         assert not BilleteraElectronica.objects.filter(pk=billetera.pk).exists()
 
-    def test_eliminar_cuenta_bancaria(self, client_logueado, cliente_con_usuario):
+    def test_eliminar_cuenta_bancaria(self, client_logueado, cliente_con_usuario, entidad_bancaria):
         """Test eliminar cuenta bancaria de un cliente asociado."""
         from apps.transacciones.models import CuentaBancaria
 
@@ -498,7 +499,7 @@ class TestTransaccionesViews:
         cuenta = CuentaBancaria.objects.create(
             cliente=cliente_con_usuario,
             numero_cuenta='9999888877776666',
-            banco='Banco Nacional',
+            entidad=entidad_bancaria,
             titular_cuenta='Juan Perez',
             documento_titular='1234567-9',
             alias='Cuenta a eliminar'

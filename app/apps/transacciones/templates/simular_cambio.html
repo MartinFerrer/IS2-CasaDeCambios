@@ -268,8 +268,8 @@
                 if (!isFinite(num)) return rate;
                 // convertir a string con máximo 12 decimales para no perder precisión
                 let s = num.toFixed(12);
-                // quitar ceros finales y punto si corresponde, sin usar lookbehind
-                s = s.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+                // quitar ceros finales y punto si corresponde
+                s = s.replace(/(?:\.0+|(?<=\.[0-9]*?)0+)$/, '');
                 return s;
             }
 

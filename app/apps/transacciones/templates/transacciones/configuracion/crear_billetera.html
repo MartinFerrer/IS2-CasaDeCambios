@@ -42,11 +42,11 @@
                         <!-- Proveedor -->
                         <div class="form-control w-full">
                             <label class="label">
-                                <span class="label-text font-medium">Proveedor *</span>
+                                <span class="label-text font-medium">Proveedor de Billetera *</span>
                             </label>
-                            <select name="proveedor" class="select select-bordered w-full" required>
-                                <option value="">Seleccionar proveedor</option>
-                                {% for codigo, nombre in proveedores %}<option value="{{ codigo }}">{{ nombre }}</option>{% endfor %}
+                            <select name="entidad" class="select select-bordered w-full" required>
+                                <option value="">Seleccione el proveedor</option>
+                                {% for entidad in entidades_billeteras %}<option value="{{ entidad.id }}">{{ entidad.nombre }}</option>{% endfor %}
                             </select>
                         </div>
                         <!-- Identificador -->
@@ -102,6 +102,32 @@
                                 <span class="label-text-alt text-gray-500">Si no se especifica, se generará automáticamente</span>
                             </label>
                         </div>
+                        <!-- Habilitación de uso -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Habilitado para *</span>
+                                <span class="label-text-alt text-gray-500">Debe marcar al menos uno</span>
+                            </label>
+                            <div class="flex flex-col space-y-2">
+                                <label class="cursor-pointer label justify-start gap-3">
+                                    <input type="checkbox"
+                                           name="habilitado_para_pago"
+                                           class="checkbox checkbox-success"
+                                           checked>
+                                    <span class="label-text">Habilitar para pagos</span>
+                                </label>
+                                <label class="cursor-pointer label justify-start gap-3">
+                                    <input type="checkbox"
+                                           name="habilitado_para_cobro"
+                                           class="checkbox checkbox-info"
+                                           checked>
+                                    <span class="label-text">Habilitar para cobros</span>
+                                </label>
+                            </div>
+                            <div id="error-habilitacion" class="text-error text-sm mt-1 hidden">
+                                Debe seleccionar al menos una opción de habilitación
+                            </div>
+                        </div>
                         <!-- Botones -->
                         <div class="card-actions justify-end pt-6">
                             <a href="{% url 'transacciones:medios_pago_cliente' cliente.id %}"
@@ -121,4 +147,35 @@
             </div>
         </div>
     </div>
+    <script>
+        // Validación de habilitación antes de enviar
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const pagoCheck = document.querySelector('input[name="habilitado_para_pago"]').checked;
+            const cobroCheck = document.querySelector('input[name="habilitado_para_cobro"]').checked;
+            const errorDiv = document.getElementById('error-habilitacion');
+            
+            if (!pagoCheck && !cobroCheck) {
+                e.preventDefault();
+                errorDiv.classList.remove('hidden');
+                // Hacer scroll hacia el error
+                errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            } else {
+                errorDiv.classList.add('hidden');
+            }
+        });
+        
+        // Ocultar error cuando se selecciona alguna opción
+        document.querySelectorAll('input[name="habilitado_para_pago"], input[name="habilitado_para_cobro"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const pagoCheck = document.querySelector('input[name="habilitado_para_pago"]').checked;
+                const cobroCheck = document.querySelector('input[name="habilitado_para_cobro"]').checked;
+                const errorDiv = document.getElementById('error-habilitacion');
+                
+                if (pagoCheck || cobroCheck) {
+                    errorDiv.classList.add('hidden');
+                }
+            });
+        });
+    </script>
 {% endblock %}
