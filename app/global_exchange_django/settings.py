@@ -16,22 +16,14 @@ from environ import Env
 env = Env()
 env.read_env()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+SECRET_KEY = env.str("SECRET_KEY")
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env.str("SECRET_KEY")  # Use env variable
+DEBUG = env.bool("DEBUG", default=False)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("DEBUG", default=False)  # Using env variable
-
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # Using env variable
-
-# Application definition
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -58,6 +50,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.seguridad.middleware.ClienteMiddleware",
 ]
 
 ROOT_URLCONF = "global_exchange_django.urls"
@@ -89,11 +82,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "global_exchange_django.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-
 DATABASES = {
     "default": {
         "ENGINE": env.str("SQL_ENGINE", default="django.db.backends.sqlite3"),
@@ -105,13 +93,8 @@ DATABASES = {
     },
 }
 
-# Custom user model
-# https://docs.djangoproject.com/en/3.0/topics/auth/customizing/#using-a-custom-user-model-when-starting-a-project
 
 AUTH_USER_MODEL = "usuarios.Usuario"
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 # Validaciones comentadas para facilitar testing y desarrollo
 AUTH_PASSWORD_VALIDATORS = [
@@ -129,10 +112,6 @@ AUTH_PASSWORD_VALIDATORS = [
     # },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "America/Argentina/Buenos_Aires"
@@ -141,25 +120,18 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "usuarios.Usuario"
 
-# con esto podemos enviar correos de verificación al momento del registro
+
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"  # ejemplo con Gmail
+EMAIL_HOST = "smtp.gmail.com"  # Cambiar si se usa otro proveedor
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-# aca ponemos el correo desde donde se va enviar
+
 EMAIL_HOST_USER = env.str("EMAIL_USER", default="NO_CONFIGURADO")
-EMAIL_HOST_PASSWORD = env.str("EMAIL_PASSWORD", default="NO_CONFIGURADO")  # usa una contraseña de app si usas 2FA
+EMAIL_HOST_PASSWORD = env.str("EMAIL_PASSWORD", default="NO_CONFIGURADO")
 DEFAULT_FROM_EMAIL = env.str("EMAIL_USER", default="NO_CONFIGURADO")

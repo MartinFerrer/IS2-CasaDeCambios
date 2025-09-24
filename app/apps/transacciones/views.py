@@ -8,15 +8,14 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
-
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
 
@@ -241,9 +240,7 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
         comision_medio_pago = Decimal("0.0")
 
         # Aplicar comisión del medio de cobro al recibir PYG
-        comision_medio_cobro = (
-            Decimal(str(total_antes_comision_medio)) * comision_medio_cobro_valor / Decimal("100")
-        )
+        comision_medio_cobro = Decimal(str(total_antes_comision_medio)) * comision_medio_cobro_valor / Decimal("100")
         total = total_antes_comision_medio - float(comision_medio_cobro)
         tasa_display = float(tc_efectiva)
 
@@ -289,17 +286,20 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
 
 
 def simular_cambio_view(request: HttpRequest) -> HttpResponse:
-    """Página de simulación de cambio."""
-    # Obtener clientes disponibles para el usuario autenticado
-    clientes = []
+    """Página de simulación de cambio con cliente seleccionado en sesión."""
+    cliente_asociado = None
     if request.user.is_authenticated:
-        clientes = Cliente.objects.filter(usuarios=request.user)
+        cliente_id = request.session.get("cliente_id")
+        if cliente_id:
+            cliente_asociado = Cliente.objects.filter(id=cliente_id, usuarios=request.user).first()
+        else:
+            # fallback al primer cliente del usuario
+            cliente_asociado = Cliente.objects.filter(usuarios=request.user).first()
 
-    # Obtener divisas disponibles (excluyendo PYG que siempre es origen/destino)
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
 
     context = {
-        "clientes": clientes,
+        "cliente_asociado": cliente_asociado,
         "divisas": divisas,
     }
     return render(request, "simular_cambio.html", context)
@@ -404,7 +404,7 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                     else:
                         comision = float(cuenta.entidad.comision_venta)
 
-                entidad_nombre = cuenta.entidad.nombre if cuenta.entidad else 'Sin banco'
+                entidad_nombre = cuenta.entidad.nombre if cuenta.entidad else "Sin banco"
 
                 medios_pago.append(
                     {
@@ -427,7 +427,7 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                     else:
                         comision = float(billetera.entidad.comision_venta)
 
-                entidad_nombre = billetera.entidad.nombre if billetera.entidad else 'Sin proveedor'
+                entidad_nombre = billetera.entidad.nombre if billetera.entidad else "Sin proveedor"
 
                 medios_pago.append(
                     {
@@ -478,7 +478,7 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 if cuenta.entidad:
                     comision = float(cuenta.entidad.comision_venta)
 
-                entidad_nombre = cuenta.entidad.nombre if cuenta.entidad else 'Sin banco'
+                entidad_nombre = cuenta.entidad.nombre if cuenta.entidad else "Sin banco"
 
                 medios_cobro.append(
                     {
@@ -497,7 +497,7 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 if billetera.entidad:
                     comision = float(billetera.entidad.comision_venta)
 
-                entidad_nombre = billetera.entidad.nombre if billetera.entidad else 'Sin proveedor'
+                entidad_nombre = billetera.entidad.nombre if billetera.entidad else "Sin proveedor"
 
                 medios_cobro.append(
                     {
@@ -537,14 +537,29 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"divisas": destino_list})
 
 
-def comprar_divisa_view(request: HttpRequest) -> HttpResponse:
-    """Página para comprar divisas."""
-    return render(request, "comprar_divisa.html")
+def comprar_divisa_view(request):
+    """Página para comprar divisas con cliente asociado automáticamente."""
+    # Obtener divisas disponibles (excluyendo PYG)
+    divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
+
+    context = {
+        "divisas": divisas,
+        # request.cliente ya lo añade el middleware
+    }
+    return render(request, "comprar_divisa.html", context)
 
 
 def vender_divisa_view(request: HttpRequest) -> HttpResponse:
-    """Página para vender divisas."""
-    return render(request, "vender_divisa.html")
+    cliente_asociado = None
+    if request.user.is_authenticated:
+        cliente_id = request.session.get("cliente_id")
+        if cliente_id:
+            cliente_asociado = Cliente.objects.filter(id=cliente_id, usuarios=request.user).first()
+        else:
+            cliente_asociado = Cliente.objects.filter(usuarios=request.user).first()
+
+    context = {"cliente_asociado": cliente_asociado}
+    return render(request, "vender_divisa.html", context)
 
 
 @login_required
@@ -614,7 +629,7 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
             entidad_id = request.POST.get("entidad")
             entidad = None
             if entidad_id:
-                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo='emisor_tarjeta', activo=True)
+                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="emisor_tarjeta", activo=True)
 
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
@@ -644,7 +659,7 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
             messages.error(request, f"Error al crear tarjeta: {e!s}")
 
     # Obtener entidades emisoras de tarjetas activas
-    entidades_tarjeta = EntidadFinanciera.objects.filter(tipo='emisor_tarjeta', activo=True).order_by('nombre')
+    entidades_tarjeta = EntidadFinanciera.objects.filter(tipo="emisor_tarjeta", activo=True).order_by("nombre")
 
     contexto = {
         "cliente": cliente,
@@ -673,7 +688,7 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
             entidad_id = request.POST.get("entidad")
             entidad = None
             if entidad_id:
-                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo='banco', activo=True)
+                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="banco", activo=True)
 
             cuenta = CuentaBancaria.objects.create(
                 cliente=cliente,
@@ -704,7 +719,7 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
             messages.error(request, f"Error al crear cuenta bancaria: {e!s}")
 
     # Obtener entidades bancarias activas
-    entidades_bancarias = EntidadFinanciera.objects.filter(tipo='banco', activo=True).order_by('nombre')
+    entidades_bancarias = EntidadFinanciera.objects.filter(tipo="banco", activo=True).order_by("nombre")
 
     contexto = {
         "cliente": cliente,
@@ -733,7 +748,7 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
             entidad_id = request.POST.get("entidad")
             entidad = None
             if entidad_id:
-                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo='proveedor_billetera', activo=True)
+                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="proveedor_billetera", activo=True)
 
             billetera = BilleteraElectronica.objects.create(
                 cliente=cliente,
@@ -755,7 +770,7 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
             messages.error(request, f"Error al crear billetera: {e!s}")
 
     # Obtener entidades de billeteras activas
-    entidades_billeteras = EntidadFinanciera.objects.filter(tipo='proveedor_billetera', activo=True).order_by('nombre')
+    entidades_billeteras = EntidadFinanciera.objects.filter(tipo="proveedor_billetera", activo=True).order_by("nombre")
 
     contexto = {
         "cliente": cliente,
@@ -789,7 +804,7 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
             # Actualizar entidad
             entidad_id = request.POST.get("entidad")
             if entidad_id:
-                tarjeta.entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo='emisor_tarjeta', activo=True)
+                tarjeta.entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="emisor_tarjeta", activo=True)
             else:
                 tarjeta.entidad = None
 
@@ -818,7 +833,7 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
             messages.error(request, f"Error al editar tarjeta: {e!s}")
 
     # Obtener entidades emisoras de tarjetas activas
-    entidades_tarjeta = EntidadFinanciera.objects.filter(tipo='emisor_tarjeta', activo=True).order_by('nombre')
+    entidades_tarjeta = EntidadFinanciera.objects.filter(tipo="emisor_tarjeta", activo=True).order_by("nombre")
 
     contexto = {
         "tarjeta": tarjeta,
@@ -851,7 +866,7 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
             # Actualizar entidad bancaria
             entidad_id = request.POST.get("entidad")
             if entidad_id:
-                cuenta.entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo='banco', activo=True)
+                cuenta.entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="banco", activo=True)
             else:
                 cuenta.entidad = None
 
@@ -880,7 +895,7 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
             messages.error(request, f"Error al editar cuenta bancaria: {e!s}")
 
     # Obtener entidades bancarias activas
-    entidades_bancarias = EntidadFinanciera.objects.filter(tipo='banco', activo=True).order_by('nombre')
+    entidades_bancarias = EntidadFinanciera.objects.filter(tipo="banco", activo=True).order_by("nombre")
 
     contexto = {
         "cuenta": cuenta,
@@ -912,7 +927,7 @@ def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> Ht
             entidad_id = request.POST.get("entidad")
             if entidad_id:
                 billetera.entidad = EntidadFinanciera.objects.get(
-                    id=entidad_id, tipo='proveedor_billetera', activo=True
+                    id=entidad_id, tipo="proveedor_billetera", activo=True
                 )
             else:
                 billetera.entidad = None
@@ -944,7 +959,7 @@ def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> Ht
             messages.error(request, f"Error al editar billetera: {e!s}")
 
     # Obtener entidades de billeteras activas
-    entidades_billeteras = EntidadFinanciera.objects.filter(tipo='proveedor_billetera', activo=True).order_by('nombre')
+    entidades_billeteras = EntidadFinanciera.objects.filter(tipo="proveedor_billetera", activo=True).order_by("nombre")
 
     contexto = {
         "billetera": billetera,
@@ -983,3 +998,19 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
     medio.delete()  # Eliminación física
     messages.success(request, f"{tipo.title()} eliminada exitosamente.")
     return redirect("transacciones:medios_pago_cliente", cliente_id=cliente_id)
+
+
+@login_required
+def vista_transacciones(request):
+    cliente_id = request.session.get("cliente_id")
+    if not cliente_id:
+        messages.warning(request, "Primero selecciona un cliente.")
+        return redirect("presentacion:home")  # si no eligió cliente
+
+    # Obtener cliente y verificar que pertenece al usuario
+    cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
+
+    # Obtener transacciones del cliente
+    transacciones = cliente.transacciones.all()  # asegurarse de que existe related_name
+
+    return render(request, "transacciones/lista.html", {"transacciones": transacciones, "cliente": cliente})

@@ -137,89 +137,84 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <!-- Resultados de la Simulación -->
-        <div id="simulation-results"
-             class="card bg-base-100 shadow-lg mt-6 hidden">
-            <div class="card-body">
-                <h3 class="card-title text-primary">Resultado de la Simulación</h3>
-                <div class="flex justify-center">
-                    <div class="w-full md:w-2/3 lg:w-1/2 text-left space-y-3">
-                        <p>
-                            <strong id="monto-original-label">Monto que Tengo:</strong>
-                            <span id="monto-original-val">0</span> <span id="moneda-origen-val">-</span>
-                        </p>
-                        <p>
-                            <strong>Tasa de Cambio Efectiva:</strong> <span id="tasa-val">-</span>
-                        </p>
-                        <p class="text-2xl font-extrabold text-primary">
-                            <strong id="monto-final-label">Monto a Recibir:</strong>
-                            <span id="monto-final-val">0</span> <span id="moneda-destino-val">-</span>
-                        </p>
-                    </div>
-                </div>
-                <!-- Sección colapsable para desglose de comisiones -->
-                <div class="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box mt-4">
-                    <input type="checkbox" />
-                    <div class="collapse-title font-medium">Comisión (ver desglose)</div>
-                    <div class="collapse-content" id="commission-breakdown">
-                        <p>
-                            <strong>Comisión Base:</strong> <span id="comision-base-val">0</span>
-                        </p>
-                        <p>
-                            <strong>Descuento por Segmento:</strong> <span id="descuento-val">0</span>%
-                        </p>
-                        <p>
-                            <strong>Comisión Final:</strong> <span id="comision-final-val">0</span>
-                        </p>
-                        <p id="comision-medio-pago-section" class="hidden">
-                            <strong>Comisión Medio de Pago:</strong> <span id="comision-medio-pago-val">0</span> (<span id="comision-medio-pago-pct">0</span>%)
-                        </p>
-                        <p id="comision-medio-cobro-section" class="hidden">
-                            <strong>Comisión Medio de Cobro:</strong> <span id="comision-medio-cobro-val">0</span> (<span id="comision-medio-cobro-pct">0</span>%)
-                        </p>
-                    </div>
-                </div>
-                <!-- Advertencia para billeteras electrónicas -->
-                <div id="wallet-warning" class="alert alert-warning mt-4 hidden">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="stroke-current shrink-0 h-6 w-6"
-                         fill="none"
-                         viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <span>Advertencia: Las billeteras electrónicas pueden cobrar comisiones adicionales por parte del proveedor, no incluidas en esta simulación.</span>
-                </div>
-                <!-- Botón para proceder -->
-                <div class="form-control mt-6">
-                    {% if user.is_authenticated %}
-                        <button id="proceed-btn" class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
-                    {% else %}
-                        <button class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
-                        <p class="text-sm text-gray-600 mt-2 text-center">Para proceder debe iniciar sesión y tener un cliente asociado.</p>
-                    {% endif %}
+                    </form>
                 </div>
             </div>
+            <!-- Resultados de la Simulación -->
+            <div id="simulation-results"
+                 class="card bg-base-100 shadow-lg mt-6 hidden">
+                <div class="card-body">
+                    <h3 class="card-title text-primary">Resultado de la Simulación</h3>
+                    <div class="flex justify-center">
+                        <div class="w-full md:w-2/3 lg:w-1/2 text-left space-y-3">
+                            <p>
+                                <strong id="monto-original-label">Monto que Tengo:</strong>
+                                <span id="monto-original-val">0</span> <span id="moneda-origen-val">-</span>
+                            </p>
+                            <p>
+                                <strong>Tasa de Cambio Efectiva:</strong> <span id="tasa-val">-</span>
+                            </p>
+                            <p class="text-2xl font-extrabold text-primary">
+                                <strong id="monto-final-label">Monto a Recibir:</strong>
+                                <span id="monto-final-val">0</span> <span id="moneda-destino-val">-</span>
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Sección colapsable para desglose de comisiones -->
+                    <div class="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box mt-4">
+                        <input type="checkbox" />
+                        <div class="collapse-title font-medium">Comisión (ver desglose)</div>
+                        <div class="collapse-content" id="commission-breakdown">
+                            <p>
+                                <strong>Comisión Base:</strong> <span id="comision-base-val">0</span>
+                            </p>
+                            <p>
+                                <strong>Descuento por Segmento:</strong> <span id="descuento-val">0</span>%
+                            </p>
+                            <p>
+                                <strong>Comisión Final:</strong> <span id="comision-final-val">0</span>
+                            </p>
+                            <p id="comision-medio-pago-section" class="hidden">
+                                <strong>Comisión Medio de Pago:</strong> <span id="comision-medio-pago-val">0</span> (<span id="comision-medio-pago-pct">0</span>%)
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Advertencia para billeteras electrónicas -->
+                    <div id="wallet-warning" class="alert alert-warning mt-4 hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="stroke-current shrink-0 h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <span>Advertencia: Las billeteras electrónicas pueden cobrar comisiones adicionales por parte del proveedor, no incluidas en esta simulación.</span>
+                    </div>
+                    <!-- Botón para proceder -->
+                    <div class="form-control mt-6">
+                        {% if user.is_authenticated %}
+                            <button id="proceed-btn" class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
+                        {% else %}
+                            <button class="btn btn-success w-full" disabled>Proceder a Realizar Transacción</button>
+                            <p class="text-sm text-gray-600 mt-2 text-center">Para proceder debe iniciar sesión y tener un cliente asociado.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <!-- Notas Adicionales -->
+            <div class="alert alert-info mt-6">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                <span>Las tasas de cambio y comisiones son estimativas y pueden variar. Proceda a realizar una transacción para confirmar.</span>
+            </div>
         </div>
-        <!-- Notas Adicionales -->
-        <div class="alert alert-info mt-6">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 fill="none"
-                 viewBox="0 0 24 24"
-                 class="stroke-current shrink-0 w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                </path>
-            </svg>
-            <span>Las tasas de cambio y comisiones son estimativas y pueden variar. Proceda a realizar una transacción para confirmar.</span>
-        </div>
-    </div>
-    <script>
+        <script>
         (function() {
             // Elementos del DOM
-            const simulationForm = document.getElementById('simulation-form');
             const clienteSelect = document.getElementById('cliente-select');
             const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
             const divisaSelect = document.getElementById('divisa-select');
@@ -243,41 +238,9 @@
             const comisionBaseVal = document.getElementById('comision-base-val');
             const descuentoVal = document.getElementById('descuento-val');
             const comisionFinalVal = document.getElementById('comision-final-val');
-            const comisionMedioFinancieroSection = document.getElementById('comision-medio-financiero-section');
-            const comisionMedioFinancieroVal = document.getElementById('comision-medio-financiero-val');
-            const comisionMedioFinancieroPct = document.getElementById('comision-medio-financiero-pct');
-            const comisionMedioCobroSection = document.getElementById('comision-medio-cobro-section');
-            const comisionMedioCobroVal = document.getElementById('comision-medio-cobro-val');
-            const comisionMedioCobroPct = document.getElementById('comision-medio-cobro-pct');
-            
-            // Verificar elementos nulos y registrar errores
-            const elementsToCheck = {
-                'simulation-results': resultsCard,
-                'monto-original-label': montoOriginalLabel,
-                'monto-final-label': montoFinalLabel,
-                'monto-original-val': montoOriginalVal,
-                'moneda-origen-val': monedaOrigenVal,
-                'tasa-val': tasaVal,
-                'monto-final-val': montoFinalVal,
-                'moneda-destino-val': monedaDestinoVal,
-                'comision-base-val': comisionBaseVal,
-                'descuento-val': descuentoVal,
-                'comision-final-val': comisionFinalVal,
-                'comision-medio-financiero-section': comisionMedioFinancieroSection,
-                'comision-medio-financiero-val': comisionMedioFinancieroVal,
-                'comision-medio-financiero-pct': comisionMedioFinancieroPct
-            };
-            
-            const missingElements = [];
-            for (const [id, element] of Object.entries(elementsToCheck)) {
-                if (!element) {
-                    missingElements.push(id);
-                }
-            }
-            
-            if (missingElements.length > 0) {
-                console.error('Elementos faltantes en el DOM:', missingElements);
-            }
+            const comisionMedioPagoSection = document.getElementById('comision-medio-pago-section');
+            const comisionMedioPagoVal = document.getElementById('comision-medio-pago-val');
+            const comisionMedioPagoPct = document.getElementById('comision-medio-pago-pct');
             // transactionBreakdown removed (now using commission-breakdown)
             // breakdownContent removed (desglose integrado)
             const walletWarning = document.getElementById('wallet-warning');
@@ -410,13 +373,8 @@
                 const tipo = getTipoOperacion();
                 const clienteId = clienteSelect?.value || '';
 
-                console.log('Datos de simulación:', { monto, divisa, tipo, clienteId });
-
                 if (monto < 1 || !divisa) {
-                    console.log('Condiciones no cumplidas - ocultando resultados');
-                    if (resultsCard) {
-                        resultsCard.classList.add('hidden');
-                    }
+                    resultsCard.classList.add('hidden');
                     return;
                 }
 
@@ -429,123 +387,52 @@
                     cliente_id: clienteId
                 });
 
-                console.log('URL de simulación:', `{% url "transacciones:api_simular_cambio" %}?${params.toString()}`);
-
                 try {
                     const response = await fetch(`{% url "transacciones:api_simular_cambio" %}?${params.toString()}`);
-                    console.log('Respuesta HTTP:', response.status, response.statusText);
-                    
                     const data = await response.json();
-                    console.log('Datos recibidos:', data);
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${data.error || 'Error en la simulación'}`);
-                    }
 
                     // Actualizar resultados
-                    console.log('Actualizando resultados en la UI...');
-                    
-                    // Mostrar montos con formato y énfasis (con verificaciones de seguridad)
-                    if (montoOriginalVal) montoOriginalVal.textContent = formatNumber(data.monto_original, data.moneda_origen);
-                    if (monedaOrigenVal) monedaOrigenVal.textContent = data.moneda_origen;
-                    if (tasaVal) tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} ${data.moneda_destino}`;
-                    if (montoFinalVal) montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, data.moneda_destino)}</span>`;
-                    if (monedaDestinoVal) monedaDestinoVal.textContent = data.moneda_destino;
-                    if (comisionBaseVal) comisionBaseVal.textContent = formatNumber(data.comision_base, data.moneda_destino);
-                    if (descuentoVal) descuentoVal.textContent = data.descuento;
-                    if (comisionFinalVal) comisionFinalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
+                    // Mostrar montos con formato y énfasis
+                    montoOriginalVal.textContent = formatNumber(data.monto_original, data.moneda_origen);
+                    monedaOrigenVal.textContent = data.moneda_origen;
+                    tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} ${data.moneda_destino}`;
+                    montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, data.moneda_destino)}</span>`;
+                    monedaDestinoVal.textContent = data.moneda_destino;
+                    comisionBaseVal.textContent = formatNumber(data.comision_base, data.moneda_destino);
+                    descuentoVal.textContent = data.descuento;
+                    comisionFinalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
 
-                    console.log('Valores actualizados:', {
-                        montoOriginal: data.monto_original,
-                        tasa: data.tasa_cambio,
-                        total: data.total
-                    });
-
-                    // Mostrar comisión de medio financiero si aplica (para compra)
+                    // Mostrar comisión de medio de pago si aplica
                     if (data.comision_medio_pago_monto > 0) {
-                        if (comisionMedioFinancieroSection) {
-                            comisionMedioFinancieroSection.classList.remove('hidden');
-                        }
-                        if (comisionMedioFinancieroVal) {
-                            comisionMedioFinancieroVal.textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
-                        }
-                        if (comisionMedioFinancieroPct) {
-                            comisionMedioFinancieroPct.textContent = data.comision_medio_pago_porcentaje;
-                        }
+                        comisionMedioPagoSection.classList.remove('hidden');
+                        comisionMedioPagoVal.textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
+                        comisionMedioPagoPct.textContent = data.comision_medio_pago_porcentaje;
                     } else {
-                        if (comisionMedioFinancieroSection) {
-                            comisionMedioFinancieroSection.classList.add('hidden');
-                        }
-                    }
-
-                    // Mostrar comisión de medio de cobro si aplica (para venta)
-                    if (data.comision_medio_cobro_monto > 0) {
-                        if (comisionMedioCobroSection) {
-                            comisionMedioCobroSection.classList.remove('hidden');
-                        }
-                        if (comisionMedioCobroVal) {
-                            comisionMedioCobroVal.textContent = formatNumber(data.comision_medio_cobro_monto, data.moneda_destino);
-                        }
-                        if (comisionMedioCobroPct) {
-                            comisionMedioCobroPct.textContent = data.comision_medio_cobro_porcentaje;
-                        }
-                    } else {
-                        if (comisionMedioCobroSection) {
-                            comisionMedioCobroSection.classList.add('hidden');
-                        }
+                        comisionMedioPagoSection.classList.add('hidden');
                     }
 
                     // Actualizar comisiones en el panel colapsable
                     const cb = document.getElementById('commission-breakdown');
                     if (cb) {
-                        const baseVal = cb.querySelector('#comision-base-val');
-                        const descVal = cb.querySelector('#descuento-val');
-                        const finalVal = cb.querySelector('#comision-final-val');
-                        
-                        if (baseVal) baseVal.textContent = formatNumber(data.comision_base, data.moneda_destino);
-                        if (descVal) descVal.textContent = data.descuento;
-                        if (finalVal) finalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
-                        
-                        // Mostrar comisión de medio de pago si aplica
+                        cb.querySelector('#comision-base-val').textContent = formatNumber(data.comision_base, data.moneda_destino);
+                        cb.querySelector('#descuento-val').textContent = data.descuento;
+                        cb.querySelector('#comision-final-val').textContent = formatNumber(data.comision_final, data.moneda_destino);
                         if (data.comision_medio_pago_monto > 0) {
-                            const medioSection = cb.querySelector('#comision-medio-pago-section');
-                            const medioVal = cb.querySelector('#comision-medio-pago-val');
-                            const medioPct = cb.querySelector('#comision-medio-pago-pct');
-                            
-                            if (medioSection) medioSection.classList.remove('hidden');
-                            if (medioVal) medioVal.textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
-                            if (medioPct) medioPct.textContent = data.comision_medio_pago_porcentaje;
+                            cb.querySelector('#comision-medio-pago-section').classList.remove('hidden');
+                            cb.querySelector('#comision-medio-pago-val').textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
+                            cb.querySelector('#comision-medio-pago-pct').textContent = data.comision_medio_pago_porcentaje;
                         } else {
-                            const medioSection = cb.querySelector('#comision-medio-pago-section');
-                            if (medioSection) medioSection.classList.add('hidden');
-                        }
-
-                        // Mostrar comisión de medio de cobro si aplica
-                        if (data.comision_medio_cobro_monto > 0) {
-                            const cobroSection = cb.querySelector('#comision-medio-cobro-section');
-                            const cobroVal = cb.querySelector('#comision-medio-cobro-val');
-                            const cobroPct = cb.querySelector('#comision-medio-cobro-pct');
-                            
-                            if (cobroSection) cobroSection.classList.remove('hidden');
-                            if (cobroVal) cobroVal.textContent = formatNumber(data.comision_medio_cobro_monto, data.moneda_destino);
-                            if (cobroPct) cobroPct.textContent = data.comision_medio_cobro_porcentaje;
-                        } else {
-                            const cobroSection = cb.querySelector('#comision-medio-cobro-section');
-                            if (cobroSection) cobroSection.classList.add('hidden');
+                            cb.querySelector('#comision-medio-pago-section').classList.add('hidden');
                         }
                     }
 
                     // Mostrar advertencia de billeteras
                     const metodoPago = metodoPagoSelect.value;
                     const metodoCobro = metodoCobroSelect.value;
-                    const walletWarning = document.getElementById('wallet-warning');
-                    
-                    if (walletWarning) {
-                        if (metodoPago.includes('billetera') || metodoCobro.includes('billetera')) {
-                            walletWarning.classList.remove('hidden');
-                        } else {
-                            walletWarning.classList.add('hidden');
-                        }
+                    if (metodoPago.includes('billetera') || metodoCobro.includes('billetera')) {
+                        walletWarning.classList.remove('hidden');
+                    } else {
+                        walletWarning.classList.add('hidden');
                     }
 
                     // Habilitar botón proceder si hay cliente seleccionado
@@ -553,34 +440,15 @@
                         proceedBtn.disabled = !clienteId;
                     }
 
-                    console.log('Mostrando panel de resultados...');
-                    if (resultsCard) {
-                        resultsCard.classList.remove('hidden');
-                    } else {
-                        console.error('Panel de resultados no encontrado!');
-                    }
+                    resultsCard.classList.remove('hidden');
 
                 } catch (error) {
                     console.error('Error performing simulation:', error);
-                    console.error('Detalles del error:', error.message);
-                    if (resultsCard) {
-                        resultsCard.innerHTML = '<div class="alert alert-error"><span>Error al realizar la simulación: ' + error.message + '</span></div>';
-                        resultsCard.classList.remove('hidden');
-                    } else {
-                        alert('Error al realizar la simulación: ' + error.message);
-                    }
-                } finally {
-                    // El botón de simular fue removido, no hay estado que restaurar
+                    resultsCard.classList.add('hidden');
                 }
             }
 
             // Event listeners
-            // Manejar submit del formulario (cuando se presiona Enter o el botón Simular)
-            simulationForm.addEventListener('submit', function(e) {
-                e.preventDefault(); // Prevenir el submit normal del formulario
-                performSimulation();
-            });
-
             if (clienteSelect) {
                 clienteSelect.addEventListener('change', function() {
                     currentCliente = this.value;
@@ -609,5 +477,6 @@
             updateLabels();
             loadDivisas();
         })();
-    </script>
+        </script>
+    </div>
 {% endblock content %}
