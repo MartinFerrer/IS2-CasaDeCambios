@@ -13,10 +13,6 @@ from .models import Divisa, TasaCambio, TasaCambioHistorial
 from .utils import get_flag_url_from_currency
 
 
-################################################################################################
-################################################################################################
-
-
 def tasa_cambio_listar(request: HttpRequest) -> object:
     """Renderiza la página de listado de tasas de cambio.
 

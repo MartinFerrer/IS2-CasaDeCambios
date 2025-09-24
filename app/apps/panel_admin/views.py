@@ -450,7 +450,7 @@ def crear_divisa(request):
         else:
             return JsonResponse({"success": False, "errors": form.errors}, status=400)
     form = DivisaForm()
-    return render(request, "panel_admin/divisa_list.html", {"form": form})
+    return render(request, "divisa_list.html", {"form": form})
 
 
 def edit_divisa(request, pk):
@@ -487,8 +487,8 @@ def delete_divisa(request, pk):
     divisa = get_object_or_404(Divisa, pk=pk)
     if request.method == "POST":
         divisa.delete()
-        return redirect("panel_admin:divisa_list")
-    return redirect("panel_admin:divisa_detail", pk=pk)
+        return redirect("divisa_list")
+    return redirect("divisa_detail", pk=pk)
 
 
 def divisa_detail(request, pk):
@@ -502,7 +502,7 @@ def divisa_detail(request, pk):
 
     """
     divisa = get_object_or_404(Divisa, pk=pk)
-    return render(request, "panel_admin/divisa_detalle.html", {"divisa": divisa})
+    return render(request, "divisa_detalle.html", {"divisa": divisa})
 
 
 def divisa_listar(request: HttpRequest) -> object:
