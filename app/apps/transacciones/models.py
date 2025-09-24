@@ -494,3 +494,59 @@ class BilleteraElectronica(MedioFinanciero):
         verbose_name = "Billetera Electrónica"
         verbose_name_plural = "Billeteras Electrónicas"
         unique_together = ["cliente", "entidad", "identificador"]
+
+
+class LimiteTransacciones(models.Model):
+    """Representa los límites de transacciones diarias y mensuales del sistema.
+
+    Este modelo almacena los límites de transacciones en guaraníes que se aplican
+    a todas las operaciones del sistema. Cada modificación genera un nuevo registro
+    para mantener un historial de auditoría de los cambios.
+
+    Argumentos:
+        limite_diario (DecimalField): Límite máximo de transacciones por día en guaraníes.
+        limite_mensual (DecimalField): Límite máximo de transacciones por mes en guaraníes.
+        fecha_modificacion (DateTimeField): Fecha y hora de cuando se realizó la configuración.
+
+    """
+
+    limite_diario = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        help_text="Límite máximo de transacciones por día en guaraníes"
+    )
+    limite_mensual = models.DecimalField(
+        max_digits=15,
+        decimal_places=0,
+        help_text="Límite máximo de transacciones por mes en guaraníes"
+    )
+    fecha_modificacion = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Fecha y hora de cuando se estableció este límite"
+    )
+
+    class Meta:
+        """Meta información para el modelo LimiteTransacciones."""
+
+        db_table = "limite_transacciones"
+        verbose_name = "Límite de Transacciones"
+        verbose_name_plural = "Límites de Transacciones"
+        ordering = ['-fecha_modificacion']
+
+    def __str__(self):
+        """Representación en string del objeto."""
+        return f"Límites: Diario ₲{self.limite_diario:,.0f} - Mensual ₲{self.limite_mensual:,.0f}"
+
+    @classmethod
+    def get_limite_actual(cls):
+        """Retorna la configuración de límites más reciente."""
+        return cls.objects.first()
+
+    def clean(self):
+        """Valida que los límites sean positivos y que el límite mensual sea mayor al diario."""
+        if self.limite_diario <= 0:
+            raise ValidationError("El límite diario debe ser mayor a 0")
+        if self.limite_mensual <= 0:
+            raise ValidationError("El límite mensual debe ser mayor a 0")
+        if self.limite_mensual < self.limite_diario:
+            raise ValidationError("El límite mensual debe ser mayor o igual al límite diario")

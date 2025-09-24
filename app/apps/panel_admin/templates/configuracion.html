@@ -14,6 +14,7 @@
         <!-- Tabs para diferentes secciones de configuración -->
         <div class="tabs tabs-box mb-6">
             <a class="tab tab-active" data-tab="comisiones">Comisiones</a>
+            <a class="tab" data-tab="limites">Límites</a>
             <a class="tab" data-tab="entidades">Entidades</a>
             <a class="tab" data-tab="otras">Otras</a>
             <!-- Más tabs para futuras configuraciones -->
@@ -48,6 +49,98 @@
                         <div class="flex justify- space-x-4">
                             <button type="reset" class="btn btn-outline">Cancelar</button>
                             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Sección de Límites de Transacciones -->
+        <div id="limites" class="config-section hidden">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mt-0 mb-6">Límites de Transacciones</h2>
+                    <!-- Información actual de límites -->
+                    {% if limite_actual %}
+                        <div class="alert alert-info mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 class="stroke-current shrink-0 w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                            <div>
+                                <h3 class="font-bold">Límites Actuales</h3>
+                                <div class="text-sm">
+                                    <p>
+                                        <strong>Límite Diario:</strong> ₲{{ limite_actual.limite_diario|floatformat:0 }}
+                                    </p>
+                                    <p>
+                                        <strong>Límite Mensual:</strong> ₲{{ limite_actual.limite_mensual|floatformat:0 }}
+                                    </p>
+                                    <p>
+                                        <strong>Última Modificación:</strong> {{ limite_actual.fecha_modificacion|date:"d/m/Y H:i" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="stroke-current shrink-0 h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <span>No hay límites configurados aún.</span>
+                        </div>
+                    {% endif %}
+                    <!-- Formulario de límites -->
+                    <form method="POST" action="{% url 'guardar_limites' %}" class="space-y-6">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-[max-content_1fr] gap-4">
+                            <label class="label row">
+                                <span class="label-text">Límite Diario (₲)</span>
+                            </label>
+                            <input type="number"
+                                   name="limite_diario"
+                                   min="1"
+                                   step="1"
+                                   class="input input-bordered"
+                                   placeholder="Ej: 10000000"
+                                   value="{% if limite_actual %}{{ limite_actual.limite_diario|floatformat:0 }}{% endif %}"
+                                   required>
+                            <label class="label row">
+                                <span class="label-text">Límite Mensual (₲)</span>
+                            </label>
+                            <input type="number"
+                                   name="limite_mensual"
+                                   min="1"
+                                   step="1"
+                                   class="input input-bordered"
+                                   placeholder="Ej: 100000000"
+                                   value="{% if limite_actual %}{{ limite_actual.limite_mensual|floatformat:0 }}{% endif %}"
+                                   required>
+                        </div>
+                        <!-- Botones de acción -->
+                        <div class="flex justify-between items-center">
+                            <button type="button"
+                                    class="btn btn-info"
+                                    onclick="document.getElementById('modal_historial_limites').showModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke-width="1.5"
+                                     stroke="currentColor"
+                                     class="w-5 h-5 mr-2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                </svg>
+                                Ver Historial
+                            </button>
+                            <div class="flex space-x-4">
+                                <button type="reset" class="btn btn-outline">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -344,6 +437,41 @@
             <span>Cambios guardados exitosamente.</span>
         </div>
     </div>
+    <!-- Modal para Historial de Límites -->
+    <dialog id="modal_historial_limites" class="modal">
+        <div class="modal-box w-11/12 max-w-4xl">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="document.getElementById('modal_historial_limites').close()">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-blue-700 mb-4">Historial de Límites de Transacciones</h3>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Fecha de Modificación</th>
+                            <th>Límite Diario</th>
+                            <th>Límite Mensual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for limite in historial_limites %}
+                            <tr>
+                                <td>{{ limite.fecha_modificacion|date:"d/m/Y H:i" }}</td>
+                                <td>₲{{ limite.limite_diario|floatformat:0 }}</td>
+                                <td>₲{{ limite.limite_mensual|floatformat:0 }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4">No hay registros de límites</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </dialog>
 {% endblock %}
 {% block extra_scripts %}
     <script>
