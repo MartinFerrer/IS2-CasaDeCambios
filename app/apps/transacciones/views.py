@@ -150,7 +150,7 @@ def _compute_simulation(params: Dict, request) -> Dict:
         comision_com = Decimal("50.0")
         comision_vta = Decimal("75.0")
     else:
-        pb_dolar = tasa_cambio.valor
+        pb_dolar = tasa_cambio.precio_base
         comision_com = tasa_cambio.comision_compra
         comision_vta = tasa_cambio.comision_venta
 
@@ -1018,29 +1018,187 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
     return redirect("transacciones:medios_pago_cliente", cliente_id=cliente_id)
 
 
-@login_required
 def vista_transacciones(request):
-    """Lista las transacciones del cliente seleccionado en sesión.
+    """Lista las transacciones del cliente activo si existe.
 
-    Requiere que exista un cliente seleccionado en sesión; si no lo hay, redirige
-    al home con un mensaje. Recupera las transacciones asociadas al cliente y
-    renderiza la plantilla de listado.
+    Muestra las transacciones asociadas al cliente activo desde el middleware.
+    Si no hay cliente activo, muestra una lista vacía.
 
-    :param request: HttpRequest que contiene la sesión con "cliente_id".
+    :param request: HttpRequest que puede contener un cliente activo.
     :type request: django.http.HttpRequest
-    :return: HttpResponse con el template "transacciones/lista.html" y el contexto
+    :return: HttpResponse con el template "transacciones/lista_transacciones.html" y el contexto
         que incluye las transacciones y el cliente.
     :rtype: django.http.HttpResponse
     """
-    cliente_id = request.session.get("cliente_id")
-    if not cliente_id:
-        messages.warning(request, "Primero selecciona un cliente.")
-        return redirect("presentacion:home")  # si no eligió cliente
+    # Obtener cliente activo del middleware
+    cliente = getattr(request, "cliente", None)
+    transacciones = []
 
-    # Obtener cliente y verificar que pertenece al usuario
-    cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
+    if cliente:
+        # Obtener transacciones del cliente activo
+        transacciones = cliente.transacciones.all()
 
-    # Obtener transacciones del cliente
-    transacciones = cliente.transacciones.all()  # asegurarse de que existe related_name
+    return render(
+        request, "transacciones/lista_transacciones.html", {"transacciones": transacciones, "cliente": cliente}
+    )
 
-    return render(request, "transacciones/lista.html", {"transacciones": transacciones, "cliente": cliente})
+
+def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
+    """Página para realizar una transacción real de cambio de divisas.
+
+    Presenta una interfaz similar a la simulación pero con capacidad de procesar
+    la transacción real. El cliente se obtiene automáticamente del middleware.
+
+    :param request: Objeto HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "realizar_transaccion.html" y el contexto que
+        incluye las divisas disponibles y el cliente asociado (si existe).
+    :rtype: django.http.HttpResponse
+    """
+    divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
+
+    context = {
+        "divisas": divisas,
+        # El cliente se obtiene automáticamente del middleware en request.cliente
+    }
+    return render(request, "realizar_transaccion.html", context)
+
+
+@require_GET
+def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
+    """Crea una nueva transacción basada en parámetros de simulación.
+
+    Parámetros esperados en la querystring (GET):
+    - monto: cantidad numérica a convertir.
+    - divisa_seleccionada: código de la divisa destino (ej. "USD").
+    - tipo_operacion: "compra" o "venta".
+    - metodo_pago: identificador del medio de pago (ej. "efectivo", "tarjeta_1").
+    - metodo_cobro: identificador del medio de cobro.
+
+    :param request: HttpRequest con la querystring de la transacción.
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con los detalles de la nueva transacción creada.
+    :rtype: django.http.JsonResponse
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Usuario no autenticado"}, status=401)
+
+    cliente = getattr(request, "cliente", None)
+    if not cliente:
+        return JsonResponse({"error": "No hay cliente asociado"}, status=400)
+
+    try:
+        params = request.GET.dict()
+
+        # Realizar la simulación para obtener los datos calculados
+        simulation_data = _compute_simulation(params, request)
+
+        # Validar datos requeridos
+        monto_str = params.get("monto")
+        if not monto_str:
+            return JsonResponse({"error": "Monto es requerido"}, status=400)
+
+        # Manejar tanto string como lista de strings (querystring puede devolver ambos)
+        if isinstance(monto_str, list):
+            monto_str = monto_str[0] if monto_str else ""
+
+        try:
+            monto = float(monto_str)
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Monto debe ser un número válido"}, status=400)
+
+        divisa_seleccionada = params.get("divisa_seleccionada") or "USD"
+        tipo_operacion = params.get("tipo_operacion") or "compra"
+
+        if monto <= 0:
+            return JsonResponse({"error": "Monto debe ser mayor a 0"}, status=400)
+
+        # Obtener las divisas
+        try:
+            if tipo_operacion == "compra":
+                divisa_origen = Divisa.objects.get(codigo=divisa_seleccionada)
+                divisa_destino = Divisa.objects.get(codigo="PYG")
+            else:  # venta
+                divisa_origen = Divisa.objects.get(codigo=divisa_seleccionada)
+                divisa_destino = Divisa.objects.get(codigo="PYG")
+        except Divisa.DoesNotExist:
+            return JsonResponse({"error": "Divisa no válida"}, status=400)
+
+        # Crear la transacción
+        from .models import Transaccion
+
+        transaccion = Transaccion.objects.create(
+            cliente=cliente,
+            usuario=request.user,  # Usuario es el modelo de autenticación personalizado
+            tipo_operacion=tipo_operacion,
+            estado="pendiente",
+            divisa_origen=divisa_origen,
+            divisa_destino=divisa_destino,
+            tasa_aplicada=Decimal(str(simulation_data["tasa_cambio"])),
+            monto_origen=Decimal(str(simulation_data["monto_original"])),
+            monto_destino=Decimal(str(simulation_data["total"])),
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "transaccion_id": str(transaccion.id_transaccion),
+                "resumen": {
+                    "id_transaccion": str(transaccion.id_transaccion),
+                    "tipo_operacion": dict(transaccion.TIPOS_OPERACION).get(
+                        transaccion.tipo_operacion, transaccion.tipo_operacion
+                    ),
+                    "cliente": transaccion.cliente.nombre,
+                    "fecha_creacion": transaccion.fecha_creacion.strftime("%d/%m/%Y %H:%M"),
+                    "divisa_origen": transaccion.divisa_origen.codigo,
+                    "divisa_destino": transaccion.divisa_destino.codigo,
+                    "monto_origen": float(transaccion.monto_origen),
+                    "monto_destino": float(transaccion.monto_destino),
+                    "tasa_aplicada": float(transaccion.tasa_aplicada),
+                    "estado": dict(transaccion.ESTADOS_TRANSACCION).get(transaccion.estado, transaccion.estado),
+                    "metodo_pago": params.get("metodo_pago", "efectivo"),
+                    "metodo_cobro": params.get("metodo_cobro", "efectivo"),
+                },
+            }
+        )
+
+    except Exception as e:
+        return JsonResponse({"error": f"Error al crear transacción: {e!s}"}, status=500)
+
+
+def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para procesar una transacción específica según su tipo y método de pago.
+
+    Esta vista redirige al flujo de procesamiento adecuado según el tipo de operación
+    y los métodos de pago/cobro seleccionados.
+
+    :param request: HttpRequest del usuario.
+    :type request: django.http.HttpRequest
+    :param transaccion_id: UUID de la transacción a procesar.
+    :type transaccion_id: str
+    :return: HttpResponse con el template de procesamiento correspondiente.
+    :rtype: django.http.HttpResponse
+    """
+    from .models import Transaccion
+
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        # Obtener parámetros de la transacción desde la sesión o query params
+        metodo_pago = request.GET.get("metodo_pago", "efectivo")
+        metodo_cobro = request.GET.get("metodo_cobro", "efectivo")
+
+        context = {
+            "transaccion": transaccion,
+            "metodo_pago": metodo_pago,
+            "metodo_cobro": metodo_cobro,
+        }
+
+        # Por ahora, renderizar una vista genérica de procesamiento
+        # En el futuro, se puede añadir lógica para redirigir a vistas específicas
+        # según el tipo de operación y métodos de pago/cobro
+        return render(request, "procesar_transaccion.html", context)
+
+    except Exception as e:
+        messages.error(request, f"Error al procesar transacción: {e!s}")
+        return redirect("transacciones:realizar_transaccion")

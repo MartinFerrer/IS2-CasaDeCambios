@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}
+    Procesar Transacción
+{% endblock title %}
+{% block content %}
+    <div class="container mx-auto p-8">
+        <h2 class="text-3xl font-bold mb-6 text-center">Procesar Transacción</h2>
+        <!-- Información de la transacción -->
+        <div class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">Detalles de la Transacción</h3>
+                <!-- Estado de la transacción -->
+                <div class="alert alert-info mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         class="stroke-current shrink-0 w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                    <div>
+                        <div class="font-bold">Transacción Creada Exitosamente</div>
+                        <div class="text-sm">ID: {{ transaccion.id_transaccion }}</div>
+                    </div>
+                </div>
+                <!-- Resumen de la transacción -->
+                <div class="bg-base-200 p-6 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div>
+                                <span class="font-semibold">Cliente:</span>
+                                <span class="ml-2">{{ transaccion.cliente.nombre }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Tipo de Operación:</span>
+                                <span class="ml-2 capitalize">
+                                    {% if transaccion.tipo_operacion == 'compra' %}
+                                        Compra de divisa
+                                    {% else %}
+                                        Venta de divisa
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Estado:</span>
+                                <span class="badge badge-warning ml-2">Pendiente</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Fecha de Creación:</span>
+                                <span class="ml-2">{{ transaccion.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="font-semibold">Divisa Origen:</span>
+                                <span class="ml-2">{{ transaccion.divisa_origen.codigo }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Divisa Destino:</span>
+                                <span class="ml-2">{{ transaccion.divisa_destino.codigo }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Tasa Aplicada:</span>
+                                <span class="ml-2">{{ transaccion.tasa_aplicada|floatformat:8 }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Monto:</span>
+                                <span class="ml-2">{{ transaccion.monto_origen|floatformat:2 }} {{ transaccion.divisa_origen.codigo }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Total destacado -->
+                    <div class="divider"></div>
+                    <div class="text-center">
+                        <div class="text-sm text-gray-600">
+                            {% if transaccion.tipo_operacion == 'compra' %}
+                                Total a Pagar
+                            {% else %}
+                                Total a Recibir
+                            {% endif %}
+                        </div>
+                        <div class="text-3xl font-bold text-primary">
+                            {{ transaccion.monto_destino|floatformat:0 }} {{ transaccion.divisa_destino.codigo }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Métodos de pago/cobro -->
+        <div class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">Métodos de Procesamiento</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <div class="font-semibold mb-2">Método de Pago:</div>
+                        <div class="p-3 bg-base-200 rounded-lg">{{ metodo_pago|default:"Efectivo" }}</div>
+                    </div>
+                    <div>
+                        <div class="font-semibold mb-2">Método de Cobro:</div>
+                        <div class="p-3 bg-base-200 rounded-lg">{{ metodo_cobro|default:"Efectivo" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Próximos pasos -->
+        <div class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">Próximos Pasos</h3>
+                <div class="alert alert-warning mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                        <div class="font-bold">Transacción Pendiente de Procesamiento</div>
+                        <div class="text-sm">
+                            Esta transacción requiere procesamiento adicional según el método de pago/cobro seleccionado.
+                        </div>
+                    </div>
+                </div>
+                <!-- Instrucciones según el método -->
+                {% if metodo_pago == 'efectivo' or metodo_cobro == 'efectivo' %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Presentarse en Sucursal</div>
+                        <div class="step">Verificación de Identidad</div>
+                        <div class="step">Procesamiento de Pago</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-info bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Instrucciones para Pago en Efectivo:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>Presentarse en cualquiera de nuestras sucursales</li>
+                            <li>Traer documento de identidad válido</li>
+                            <li>
+                                Proporcionar el ID de transacción: <code class="bg-base-300 px-2 py-1 rounded">{{ transaccion.id_transaccion }}</code>
+                            </li>
+                            <li>Realizar el pago correspondiente</li>
+                        </ul>
+                    </div>
+                {% elif 'tarjeta' in metodo_pago or 'tarjeta' in metodo_cobro %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Procesamiento Automático</div>
+                        <div class="step">Verificación del Pago</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-warning bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Procesamiento con Tarjeta:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>El procesamiento será automático</li>
+                            <li>Recibirá notificaciones por email</li>
+                            <li>Tiempo estimado: 2-5 minutos</li>
+                            <li>En caso de problemas, contacte al servicio al cliente</li>
+                        </ul>
+                    </div>
+                {% elif 'cuenta' in metodo_pago or 'cuenta' in metodo_cobro %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Verificación Bancaria</div>
+                        <div class="step">Transferencia</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-success bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Transferencia Bancaria:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>Se procesará la transferencia bancaria</li>
+                            <li>Tiempo estimado: 1-2 horas hábiles</li>
+                            <li>Recibirá confirmación por email</li>
+                            <li>Verifique los fondos disponibles en su cuenta</li>
+                        </ul>
+                    </div>
+                {% elif 'billetera' in metodo_pago or 'billetera' in metodo_cobro %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Autorización de Billetera</div>
+                        <div class="step">Procesamiento</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-accent bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Billetera Electrónica:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>Revisar notificaciones en su billetera electrónica</li>
+                            <li>Autorizar la transacción si es requerido</li>
+                            <li>Tiempo estimado: 5-15 minutos</li>
+                            <li>Pueden aplicar comisiones adicionales del proveedor</li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">En Proceso</div>
+                        <div class="step">Verificación</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-base-200 rounded-lg">
+                        <div class="font-semibold mb-2">Procesamiento General:</div>
+                        <p class="text-sm">Su transacción está siendo procesada. Recibirá notificaciones sobre el estado de la misma.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Acciones -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">Acciones Disponibles</h3>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'transacciones:lista' %}" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
+                             viewBox="0 0 20 20"
+                             fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        Ver Mis Transacciones
+                    </a>
+                    <a href="{% url 'transacciones:realizar_transaccion' %}"
+                       class="btn btn-outline">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
+                             viewBox="0 0 20 20"
+                             fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Nueva Transacción
+                    </a>
+                    <a href="{% url 'transacciones:simular_cambio' %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Simulador
+                    </a>
+                </div>
+                <!-- Información de contacto -->
+                <div class="divider">¿Necesita ayuda?</div>
+                <div class="text-center text-sm text-gray-600">
+                    <p>Si tiene dudas sobre su transacción, contacte nuestro servicio al cliente:</p>
+                    <p class="font-semibold mt-2">📞 (021) 123-4567 | 📧 soporte@globalexchange.com</p>
+                </div>
+            </div>
+        </div>
+        <!-- Información adicional -->
+        <div class="alert alert-info mt-6">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                </path>
+            </svg>
+            <div>
+                <div class="font-bold">Importante</div>
+                <div class="text-sm">
+                    Guarde el ID de transacción: <code class="bg-base-300 px-2 py-1 rounded">{{ transaccion.id_transaccion }}</code>
+                    para cualquier consulta o reclamo posterior.
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
