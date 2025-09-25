@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                             ("procesando", "Procesando"),
                             ("completada", "Completada"),
                             ("cancelada", "Cancelada"),
-                            ("fallida", "Fallida"),
+                            ("anulada", "Anulada"),
                         ],
                         default="pendiente",
                         help_text="Estado actual de la transacción",

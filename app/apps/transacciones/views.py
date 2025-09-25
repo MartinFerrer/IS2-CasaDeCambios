@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.usuarios.models import Cliente
@@ -1473,3 +1473,262 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
     except Exception as e:
         print(f"Error al cancelar transacción: {e}")
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
+    """Procesa la respuesta del componente bancario simulado.
+    
+    Recibe la respuesta del gateway de pagos externo simulado y actualiza
+    el estado de la transacción según el resultado (éxito o error).
+    
+    Args:
+        request: HttpRequest con datos JSON del resultado del pago
+    
+    Returns:
+        JsonResponse con el resultado del procesamiento
+
+    """
+    import json
+    from datetime import datetime
+
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "message": "Usuario no autenticado"}, status=401)
+
+    try:
+        # Parsear datos JSON
+        data = json.loads(request.body)
+        transaccion_id = data.get('transaccion_id')
+        exito = data.get('exito', False)
+        codigo_autorizacion = data.get('codigo_autorizacion')
+        mensaje_error = data.get('mensaje_error')
+
+        if not transaccion_id:
+            return JsonResponse({"success": False, "message": "ID de transacción requerido"}, status=400)
+
+        # Obtener la transacción
+        cliente = getattr(request, "cliente", None)
+        if not cliente:
+            return JsonResponse({"success": False, "message": "No hay cliente asociado"}, status=400)
+
+        transaccion = get_object_or_404(
+            Transaccion,
+            id_transaccion=transaccion_id,
+            cliente=cliente
+        )
+
+        # Verificar que la transacción esté en estado pendiente
+        if transaccion.estado != "pendiente":
+            return JsonResponse({
+                "success": False,
+                "message": f"La transacción está en estado '{transaccion.estado}' y no puede ser procesada"
+            }, status=400)
+
+        # Procesar según el resultado del banco
+        if exito:
+            # Pago exitoso
+            transaccion.estado = "completada"
+            transaccion.fecha_pago = datetime.now()
+
+            # Agregar información del código de autorización si está disponible
+            if codigo_autorizacion:
+                # Aquí podrías agregar un campo para el código de autorización si lo tienes en el modelo
+                pass
+
+            mensaje_log = f"Pago procesado exitosamente. Código: {codigo_autorizacion}"
+
+        else:
+            # Pago fallido
+            transaccion.estado = "pendiente"
+            mensaje_log = f"Pago rechazado por el banco. Error: {mensaje_error}"
+
+        # Guardar cambios
+        transaccion.save()
+
+        # Log del resultado
+        print(f"Transacción {transaccion_id}: {mensaje_log}")
+
+        return JsonResponse({
+            "success": True,
+            "message": "Resultado del pago procesado correctamente",
+            "transaccion": {
+                "id": str(transaccion.id_transaccion),
+                "estado": transaccion.estado,
+                "fecha_pago": transaccion.fecha_pago.isoformat() if transaccion.fecha_pago else None
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "message": "Datos JSON inválidos"}, status=400)
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al procesar pago bancario: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@login_required
+def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para la ventana emergente del banco simulado.
+    
+    Renderiza la interfaz de simulación bancaria en una ventana emergente
+    separada para procesar el pago de una transacción.
+    
+    Args:
+        request: HttpRequest de la solicitud
+        transaccion_id: ID único de la transacción a procesar
+    
+    Returns:
+        HttpResponse con la página de simulación bancaria
+
+    """
+    try:
+        # Obtener cliente asociado al usuario
+        cliente = getattr(request, "cliente", None)
+        if not cliente:
+            # Crear una transacción dummy para mostrar error
+            context = {
+                "error": "No hay cliente asociado al usuario",
+                "transaccion": None,
+                "cliente": None,
+            }
+            return render(request, "popup_banco_simulado.html", context)
+
+        # Obtener la transacción
+        try:
+            transaccion = get_object_or_404(
+                Transaccion,
+                id_transaccion=transaccion_id,
+                cliente=cliente
+            )
+        except Transaccion.DoesNotExist:
+            context = {
+                "error": "Transacción no encontrada",
+                "transaccion": None,
+                "cliente": cliente,
+            }
+            return render(request, "popup_banco_simulado.html", context)
+
+        # Verificar que la transacción esté en estado pendiente
+        if transaccion.estado != "pendiente":
+            context = {
+                "error": f"La transacción está en estado '{transaccion.estado}' y no puede ser procesada",
+                "transaccion": transaccion,
+                "cliente": cliente,
+            }
+            return render(request, "popup_banco_simulado.html", context)
+
+        # Determinar el tipo de procesamiento según el medio de pago
+        medio_pago = transaccion.medio_pago or ""
+        medio_cobro = transaccion.medio_cobro or ""
+
+        # Si es efectivo, generar código TAUSER para PAGAR
+        if medio_pago.lower() == "efectivo":
+            # Generar código único para TAUSER
+            import random
+            import string
+            codigo_tauser = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+            context = {
+                "transaccion": transaccion,
+                "cliente": cliente,
+                "es_efectivo": True,
+                "codigo_tauser": codigo_tauser,
+                "tipo_operacion": "pagar",  # Para pagar dinero
+            }
+
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Para tarjetas y cuentas bancarias, usar el popup bancario primero
+        context = {
+            "transaccion": transaccion,
+            "cliente": cliente,
+            "es_efectivo": False,
+        }
+
+        return render(request, "popup_banco_simulado.html", context)
+
+    except Exception as e:
+        print(f"Error en popup banco simulado: {e}")
+        context = {
+            "error": "Error interno del servidor",
+            "transaccion": None,
+            "cliente": None,
+        }
+        return render(request, "popup_banco_simulado.html", context)
+
+
+@login_required
+def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para generar código TAUSER de retiro después del pago bancario.
+    
+    Esta función se llama después de que se complete exitosamente un pago
+    por tarjeta o cuenta bancaria, para generar el código que permite
+    retirar el dinero en efectivo en un TAUSER.
+    
+    Args:
+        request: HttpRequest de la solicitud
+        transaccion_id: ID único de la transacción ya pagada
+    
+    Returns:
+        HttpResponse con la página del código TAUSER para retiro
+
+    """
+    try:
+        # Obtener cliente asociado al usuario
+        cliente = getattr(request, "cliente", None)
+        if not cliente:
+            context = {
+                "error": "No hay cliente asociado al usuario",
+                "transaccion": None,
+                "cliente": None,
+            }
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Obtener la transacción
+        try:
+            transaccion = get_object_or_404(
+                Transaccion,
+                id_transaccion=transaccion_id,
+                cliente=cliente
+            )
+        except Transaccion.DoesNotExist:
+            context = {
+                "error": "Transacción no encontrada",
+                "transaccion": None,
+                "cliente": cliente,
+            }
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Verificar que la transacción esté completada
+        if transaccion.estado != "completada":
+            context = {
+                "error": "La transacción debe estar completada para generar código de retiro",
+                "transaccion": transaccion,
+                "cliente": cliente,
+            }
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Generar código único para TAUSER (retiro)
+        import random
+        import string
+        codigo_tauser = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+        context = {
+            "transaccion": transaccion,
+            "cliente": cliente,
+            "es_efectivo": False,
+            "codigo_tauser": codigo_tauser,
+            "tipo_operacion": "retirar",  # Para retirar dinero
+        }
+
+        return render(request, "popup_codigo_tauser.html", context)
+
+    except Exception as e:
+        print(f"Error en popup código TAUSER retiro: {e}")
+        context = {
+            "error": "Error interno del servidor",
+            "transaccion": None,
+            "cliente": None,
+        }
+        return render(request, "popup_codigo_tauser.html", context)

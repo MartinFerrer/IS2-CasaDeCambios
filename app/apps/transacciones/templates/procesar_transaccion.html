@@ -309,7 +309,8 @@
                             <div class="text-xs opacity-60">Realizar otra</div>
                         </div>
                     </a>
-                    <button onclick="pagarTransaccion('{{ transaccion.id_transaccion }}')"
+                    <button id="btnPagarTransaccion"
+                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
                             class="btn btn-success btn-lg">
                         <svg xmlns="http://www.w3.org/2000/svg"
                              class="h-6 w-6"
@@ -400,7 +401,9 @@
             </div>
         </div>
     </dialog>
-    <script>
+    <!-- Popup de simulación bancaria se abre en ventana separada -->
+</dialog>
+<script>
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(function() {
                 showToast('ID copiado al portapapeles!', 'success');
@@ -459,7 +462,7 @@
                 .catch(error => {
                     document.getElementById('cancelModal').close();
                     console.error('Error al cancelar transacción:', error);
-                    showToast(`❌ Error de conexión: ${error.message}`, 'error');
+                    showToast(`Error de conexión: ${error.message}`, 'error');
                     
                     // Restaurar botón
                     cancelBtn.disabled = false;
@@ -486,18 +489,290 @@
             }, type === 'success' ? 3000 : 5000);
         }
 
-        function pagarTransaccion(transaccionId) {
-            // Mostrar notificación de procesamiento
-            showToast('🔄 Procesando pago de transacción...', 'info');
+        let ventanaBanco = null;
+        let transaccionActual = null;
+
+        function iniciarProcesoBancario(transaccionId) {
+            transaccionActual = transaccionId;
             
-            // Simular procesamiento de pago y redirigir a lista de transacciones
-            setTimeout(() => {
-                showToast('✅ Redirigiendo al procesamiento de pago...', 'success');
+            // Deshabilitar el botón
+            const btnPagar = document.getElementById('btnPagarTransaccion');
+            btnPagar.disabled = true;
+            btnPagar.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                <div class="text-left">
+                    <div class="font-semibold">Procesando...</div>
+                    <div class="text-xs opacity-60">Abriendo banco</div>
+                </div>
+            `;
+            
+            // Cerrar ventana anterior si existe
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+            
+            // Configurar la ventana emergente modal
+            const ancho = 700;
+            const alto = 600;
+            const izquierda = (screen.width - ancho) / 2;
+            const arriba = (screen.height - alto) / 2;
+            
+            const opciones = `
+                width=${ancho},
+                height=${alto},
+                left=${izquierda},
+                top=${arriba},
+                scrollbars=no,
+                resizable=no,
+                toolbar=no,
+                menubar=no,
+                location=no,
+                directories=no,
+                status=no,
+                modal=yes,
+                alwaysRaised=yes,
+                dependent=yes
+            `;
+            
+            // Abrir ventana del banco simulado
+            const url = `/transacciones/popup-banco/${transaccionId}/`;
+            ventanaBanco = window.open(url, 'BancoSimulado', opciones);
+            
+            if (ventanaBanco) {
+                // Focalizar la ventana y hacerla modal
+                ventanaBanco.focus();
                 
-                setTimeout(() => {
-                    window.location.href = '/transacciones/';
-                }, 1500);
+                // Bloquear interacción con la página padre
+                bloquearPaginaPadre();
+                
+                // Verificar si la ventana se cerró manualmente
+                const verificarVentana = setInterval(() => {
+                    if (ventanaBanco.closed) {
+                        clearInterval(verificarVentana);
+                        console.log('Ventana del banco cerrada por el usuario');
+                        desbloquearPaginaPadre();
+                        restaurarBotonPagar();
+                    }
+                }, 1000);
+                
+                // Mantener foco en la ventana del banco
+                const mantenerFoco = setInterval(() => {
+                    if (ventanaBanco && !ventanaBanco.closed) {
+                        ventanaBanco.focus();
+                    } else {
+                        clearInterval(mantenerFoco);
+                    }
+                }, 500);
+                
+                showToast('Redirigiendo al banco para procesar el pago...', 'info');
+            } else {
+                // Error al abrir ventana (bloqueador de popups)
+                showToast('Error: No se pudo abrir la ventana del banco. Revisa el bloqueador de ventanas emergentes.', 'error');
+                restaurarBotonPagar();
+            }
+        }
+
+        // Escuchar mensajes de la ventana emergente
+        window.addEventListener('message', function(event) {
+            // Verificar que el mensaje venga de nuestra ventana
+            if (event.source === ventanaBanco) {
+                switch(event.data.type) {
+                    case 'pagoCompletado':
+                        handlePagoCompletado(event.data);
+                        break;
+                    case 'abrirTauserRetiro':
+                        handleAbrirTauserRetiro(event.data);
+                        break;
+                    case 'errorBanco':
+                        handleErrorBanco(event.data);
+                        break;
+                    case 'reintentarPago':
+                        handleReintentarPago();
+                        break;
+                    case 'ventanaCerrada':
+                        handleVentanaCerrada(event.data);
+                        break;
+                    case 'ventanaCerradaSinCompletar':
+                        handleVentanaCerradaSinCompletar(event.data);
+                        break;
+                    case 'transaccionCompletada':
+                        handleTransaccionCompletada(event.data);
+                        break;
+                }
+            }
+        });
+
+        function handlePagoCompletado(data) {
+            console.log('Pago completado exitosamente:', data);
+            
+            // Cerrar la ventana si no se cerró automáticamente
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+            
+            // Desbloquear página padre
+            desbloquearPaginaPadre();
+            
+            // Mostrar mensaje y redirigir instantáneamente
+            showToast('Pago procesado exitosamente!', 'success');
+            window.location.href = '/transacciones/';
+        }
+
+        function handleAbrirTauserRetiro(data) {
+            console.log('Abriendo popup TAUSER para retiro:', data);
+            
+            // Cerrar la ventana del banco si aún está abierta
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+            
+            // Abrir popup para código TAUSER de retiro
+            const urlTauser = `/transacciones/popup-tauser-retiro/${data.transaccionId}/`;
+            ventanaBanco = window.open(
+                urlTauser, 
+                'tauserRetiro', 
+                'width=600,height=700,scrollbars=yes,resizable=yes,modal=yes,dependent=yes,alwaysRaised=yes'
+            );
+            
+            if (!ventanaBanco) {
+                showToast('Error: No se pudo abrir la ventana TAUSER. Revisa el bloqueador de ventanas emergentes.', 'error');
+                desbloquearPaginaPadre();
+                restaurarBotonPagar();
+            }
+        }
+
+        function handleErrorBanco(data) {
+            console.log('Error en el banco:', data);
+            showToast(`Error del banco: ${data.mensaje}`, 'error');
+            
+            // Cerrar la ventana si no se cerró automáticamente
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+            
+            // Desbloquear página padre y restaurar el botón
+            desbloquearPaginaPadre();
+            restaurarBotonPagar();
+        }
+
+        function handleReintentarPago() {
+            console.log('Usuario quiere reintentar el pago');
+            
+            // Cerrar ventana actual
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+            
+            // Desbloquear página padre temporalmente
+            desbloquearPaginaPadre();
+            
+            // Reintentar después de un breve delay
+            setTimeout(() => {
+                iniciarProcesoBancario(transaccionActual);
             }, 1000);
+        }
+
+        function handleVentanaCerrada(data) {
+            console.log('Ventana cerrada después de completar:', data);
+            // No hacer nada especial, el proceso ya se completó
+        }
+
+        function handleVentanaCerradaSinCompletar(data) {
+            console.log('Ventana cerrada sin completar el proceso:', data);
+            showToast('Proceso bancario cancelado por el usuario', 'warning');
+            desbloquearPaginaPadre();
+            restaurarBotonPagar();
+        }
+
+        function handleTransaccionCompletada(data) {
+            console.log('Transacción completada exitosamente:', data);
+            
+            // Cerrar la ventana si no se cerró automáticamente
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+            
+            // Desbloquear página padre
+            desbloquearPaginaPadre();
+            
+            // Mostrar mensaje según el método
+            if (data.metodo === 'tauser') {
+                showToast('Código TAUSER generado exitosamente!', 'success');
+            } else {
+                showToast('Transacción completada exitosamente!', 'success');
+            }
+            
+            // Redirigir a la lista de transacciones
+            window.location.href = '/transacciones/';
+        }
+
+        function restaurarBotonPagar() {
+            const btnPagar = document.getElementById('btnPagarTransaccion');
+            btnPagar.disabled = false;
+            btnPagar.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <div class="text-left">
+                    <div class="font-semibold">Pagar Transacción</div>
+                    <div class="text-xs opacity-60">Procesar pago</div>
+                </div>
+            `;
+        }
+
+        function bloquearPaginaPadre() {
+            // Crear overlay para bloquear interacción
+            const overlay = document.createElement('div');
+            overlay.id = 'modalOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 9998;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(2px);
+            `;
+            
+            // Mensaje de ventana activa
+            const mensaje = document.createElement('div');
+            mensaje.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+                max-width: 400px;
+                margin: 20px;
+            `;
+            mensaje.innerHTML = `
+                <div style="font-size: 48px; margin-bottom: 20px; font-weight: bold; color: #3b82f6;">$</div>
+                <h3 style="margin: 0 0 15px 0; color: #1f2937; font-size: 1.5rem;">Procesando Pago</h3>
+                <p style="margin: 0; color: #6b7280; line-height: 1.5;">
+                    La ventana del banco está activa.<br>
+                    Complete el proceso de pago para continuar.
+                </p>
+            `;
+            
+            overlay.appendChild(mensaje);
+            document.body.appendChild(overlay);
+            
+            // Prevenir scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function desbloquearPaginaPadre() {
+            const overlay = document.getElementById('modalOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+            
+            // Restaurar scroll
+            document.body.style.overflow = '';
         }
 
         function getCookie(name) {
@@ -521,5 +796,5 @@
             }
             return cookieValue;
         }
-    </script>
+</script>
 {% endblock content %}

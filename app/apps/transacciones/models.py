@@ -539,7 +539,7 @@ class Transaccion(models.Model):
         ("pendiente", "Pendiente"),
         ("completada", "Completada"),
         ("cancelada", "Cancelada"),
-        ("fallida", "Fallida"),
+        ("anulada", "Anulada"),
     ]
 
     id_transaccion = models.UUIDField(

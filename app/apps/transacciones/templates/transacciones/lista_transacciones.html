@@ -203,8 +203,8 @@
                                                 <div class="badge badge-success">Completada</div>
                                             {% elif transaccion.estado == 'cancelada' %}
                                                 <div class="badge badge-error">Cancelada</div>
-                                            {% elif transaccion.estado == 'fallida' %}
-                                                <div class="badge badge-error">Fallida</div>
+                                            {% elif transaccion.estado == 'anulada' %}
+                                                <div class="badge badge-error">Anulada</div>
                                             {% else %}
                                                 <div class="badge badge-neutral">{{ transaccion.estado }}</div>
                                             {% endif %}

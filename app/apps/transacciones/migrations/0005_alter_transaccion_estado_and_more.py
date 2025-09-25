@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='transaccion',
             name='estado',
-            field=models.CharField(choices=[('pendiente', 'Pendiente'), ('completada', 'Completada'), ('cancelada', 'Cancelada'), ('fallida', 'Fallida')], default='pendiente', help_text='Estado actual de la transacción', max_length=20),
+            field=models.CharField(choices=[('pendiente', 'Pendiente'), ('completada', 'Completada'), ('cancelada', 'Cancelada'), ('anulada', 'Anulada')], default='pendiente', help_text='Estado actual de la transacción', max_length=20),
         ),
         migrations.AlterField(
             model_name='transaccion',
