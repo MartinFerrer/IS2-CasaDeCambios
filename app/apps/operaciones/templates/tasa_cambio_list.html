@@ -31,11 +31,10 @@
                     <thead>
                         <tr>
                             <th class="bg-blue-100">Divisa de Destino</th>
-                            <th class="bg-blue-100">Valor (Gs.)</th>
+                            <th class="bg-blue-100">Precio Base (Gs.)</th>
                             <th class="bg-blue-100">Comisión Compra (Gs.)</th>
                             <th class="bg-blue-100">Comisión Venta (Gs.)</th>
-                            <th class="bg-blue-100">Fecha de Vigencia</th>
-                            <th class="bg-blue-100">Hora de Vigencia</th>
+                            <th class="bg-blue-100">Fecha de Actualización</th>
                             <th class="bg-blue-100">Estado</th>
                             <th class="bg-blue-100 text-center">Acciones</th>
                         </tr>
@@ -46,11 +45,10 @@
                                 {% if tasa.activo %}
                                     <tr>
                                         <td>{{ tasa.divisa_destino }}</td>
-                                        <td>{{ tasa.valor|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.precio_base|strip_trailing_zeros }}</td>
                                         <td>{{ tasa.comision_compra|strip_trailing_zeros }}</td>
                                         <td>{{ tasa.comision_venta|strip_trailing_zeros }}</td>
-                                        <td>{{ tasa.fecha_vigencia }}</td>
-                                        <td>{{ tasa.hora_vigencia }}</td>
+                                        <td>{{ tasa.fecha_actualizacion|date:"d/m/Y H:i" }}</td>
                                         <td>
                                             <span class="badge badge-success">Activa</span>
                                         </td>
@@ -88,7 +86,7 @@
                                 {% endif %}
                             {% endfor %}
                             <tr class="bg-gray-50">
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="7" class="text-center py-4">
                                     <hr class="my-2 border-t border-gray-300">
                                     <span class="text-xs font-semibold uppercase text-gray-500">Tasas Inactivas</span>
                                 </td>
@@ -97,11 +95,10 @@
                                 {% if not tasa.activo %}
                                     <tr>
                                         <td>{{ tasa.divisa_destino }}</td>
-                                        <td>{{ tasa.valor|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.precio_base|strip_trailing_zeros }}</td>
                                         <td>{{ tasa.comision_compra|strip_trailing_zeros }}</td>
                                         <td>{{ tasa.comision_venta|strip_trailing_zeros }}</td>
-                                        <td>{{ tasa.fecha_vigencia }}</td>
-                                        <td>{{ tasa.hora_vigencia }}</td>
+                                        <td>{{ tasa.fecha_actualizacion|date:"d/m/Y H:i" }}</td>
                                         <td>
                                             <span class="badge badge-error">Inactiva</span>
                                         </td>
@@ -140,7 +137,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="8" class="text-center py-4">No hay tasas de cambio registradas.</td>
+                                <td colspan="7" class="text-center py-4">No hay tasas de cambio registradas.</td>
                             </tr>
                         {% endif %}
                     </tbody>

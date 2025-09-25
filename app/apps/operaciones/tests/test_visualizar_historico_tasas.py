@@ -21,7 +21,7 @@ def test_historial_tasas_api(client):
         "operaciones.TasaCambio",
         divisa_origen=pyg,
         divisa_destino=usd,
-        valor=7000,
+        precio_base=7000,
         comision_compra=50,
         comision_venta=60,
         activo=True,
@@ -31,7 +31,7 @@ def test_historial_tasas_api(client):
         "operaciones.TasaCambio",
         divisa_origen=usd,
         divisa_destino=pyg,
-        valor=140.000,  # cumplir con max_digits=9, decimal_places=3
+        precio_base=140.000,  # cumplir con max_digits=9, decimal_places=3
         comision_compra=10.000,  # cumplir con max_digits=7, decimal_places=3
         comision_venta=10.000,  # cumplir con max_digits=7, decimal_places=3
         activo=True,

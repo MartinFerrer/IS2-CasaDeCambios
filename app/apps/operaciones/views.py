@@ -175,11 +175,9 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
                 tasa_cambio_original=nueva_tasa,
                 divisa_origen=nueva_tasa.divisa_origen,
                 divisa_destino=nueva_tasa.divisa_destino,
-                valor=nueva_tasa.valor,
+                precio_base=nueva_tasa.precio_base,
                 comision_compra=nueva_tasa.comision_compra,
                 comision_venta=nueva_tasa.comision_venta,
-                fecha_vigencia=nueva_tasa.fecha_vigencia,
-                hora_vigencia=nueva_tasa.hora_vigencia,
                 activo=nueva_tasa.activo,
                 motivo="Creación de Tasa",
             )
@@ -210,11 +208,9 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
                 tasa_cambio_original=tasa_editada,
                 divisa_origen=tasa_editada.divisa_origen,
                 divisa_destino=tasa_editada.divisa_destino,
-                valor=tasa_editada.valor,
+                precio_base=tasa_editada.precio_base,
                 comision_compra=tasa_editada.comision_compra,
                 comision_venta=tasa_editada.comision_venta,
-                fecha_vigencia=tasa_editada.fecha_vigencia,
-                hora_vigencia=tasa_editada.hora_vigencia,
                 activo=tasa_editada.activo,
                 motivo="Edición de Tasa",
             )
@@ -244,11 +240,9 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
             tasa_cambio_original=tasa,
             divisa_origen=tasa.divisa_origen,
             divisa_destino=tasa.divisa_destino,
-            valor=tasa.valor,
+            precio_base=tasa.precio_base,
             comision_compra=tasa.comision_compra,
             comision_venta=tasa.comision_venta,
-            fecha_vigencia=tasa.fecha_vigencia,
-            hora_vigencia=tasa.hora_vigencia,
             activo=tasa.activo,
             motivo="Desactivación de Tasa",
         )
@@ -276,11 +270,9 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
             tasa_cambio_original=tasa,
             divisa_origen=tasa.divisa_origen,
             divisa_destino=tasa.divisa_destino,
-            valor=tasa.valor,
+            precio_base=tasa.precio_base,
             comision_compra=tasa.comision_compra,
             comision_venta=tasa.comision_venta,
-            fecha_vigencia=tasa.fecha_vigencia,
-            hora_vigencia=tasa.hora_vigencia,
             activo=tasa.activo,
             motivo="Activación de Tasa",
         )
@@ -311,13 +303,13 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
         # Calcular precio de compra y venta
         if tasa.divisa_origen.codigo == "PYG":
             # Si la divisa origen es PYG, entonces vendemos la divisa destino
-            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
-            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
+            precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)
+            precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)
             divisa_mostrar = tasa.divisa_destino
         else:
             # Si la divisa destino es PYG, entonces compramos la divisa origen
-            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
-            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
+            precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)
+            precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)
             divisa_mostrar = tasa.divisa_origen
 
         tasas_data.append(
@@ -331,7 +323,6 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
                 "precio_compra": precio_compra,
                 "precio_venta": precio_venta,
                 "fecha_actualizacion": tasa.fecha_actualizacion.isoformat(),
-                "fecha_vigencia": tasa.fecha_vigencia.isoformat(),
             }
         )
 
@@ -352,12 +343,12 @@ def historial_tasas_api(request: HttpRequest) -> JsonResponse:
         # Determinar qué divisa mostrar
         if tasa.divisa_origen.codigo == "PYG":
             divisa = tasa.divisa_destino.codigo
-            precio_compra = float(tasa.valor) + float(tasa.comision_compra)
-            precio_venta = float(tasa.valor) - float(tasa.comision_venta)
+            precio_compra = float(tasa.precio_base) + float(tasa.comision_compra)
+            precio_venta = float(tasa.precio_base) - float(tasa.comision_venta)
         else:
             divisa = tasa.divisa_origen.codigo
-            precio_compra = float(tasa.valor) - float(tasa.comision_compra)
-            precio_venta = float(tasa.valor) + float(tasa.comision_venta)
+            precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)
+            precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)
 
         # Inicializar estructura si no existe
         if divisa not in historial:
