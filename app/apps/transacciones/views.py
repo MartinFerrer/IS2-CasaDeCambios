@@ -131,8 +131,8 @@ def _compute_simulation(params: Dict, request) -> Dict:
     cliente = getattr(request, "cliente", None)
 
     # Determinar monedas origen y destino según tipo de operación
-    moneda_origen = "PYG" if tipo == "compra" else divisa_seleccionada
-    moneda_destino = divisa_seleccionada if tipo == "compra" else "PYG"
+    moneda_origen = divisa_seleccionada
+    moneda_destino = "PYG"
 
     # Buscar tasa de cambio activa (siempre con PYG como origen en la BD)
     tasa_cambio = None

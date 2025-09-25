@@ -150,7 +150,7 @@
                             </p>
                             <p class="text-2xl font-extrabold text-primary">
                                 <strong id="monto-final-label">Monto a Recibir:</strong>
-                                <span id="monto-final-val">0</span> <span id="moneda-destino-val">-</span>
+                                <span id="monto-final-val">0</span> <span id="moneda-destino-val">PYG</span>
                             </p>
                         </div>
                     </div>
@@ -234,8 +234,6 @@
             const comisionMedioPagoSection = document.getElementById('comision-medio-pago-section');
             const comisionMedioPagoVal = document.getElementById('comision-medio-pago-val');
             const comisionMedioPagoPct = document.getElementById('comision-medio-pago-pct');
-            // transactionBreakdown removed (now using commission-breakdown)
-            // breakdownContent removed (desglose integrado)
             const walletWarning = document.getElementById('wallet-warning');
             const proceedBtn = document.getElementById('proceed-btn');
 
@@ -281,12 +279,12 @@
                     divisaLabel.textContent = 'Quiero';
                     montoLabel.textContent = 'Monto que Deseo';
                     montoOriginalLabel.textContent = 'Monto que Deseo:';
-                    montoFinalLabel.textContent = 'Total a Pagar (PYG):';
+                    montoFinalLabel.textContent = 'Total a Pagar:';
                 } else {
                     divisaLabel.textContent = 'Tengo';
                     montoLabel.textContent = 'Monto que Tengo';
                     montoOriginalLabel.textContent = 'Monto que Tengo:';
-                    montoFinalLabel.textContent = 'Monto a Recibir (PYG):';
+                    montoFinalLabel.textContent = 'Monto a Recibir:';
                 }
             }
 
@@ -384,11 +382,22 @@
 
                     // Actualizar resultados
                     // Mostrar montos con formato y énfasis
+                    const tipo = getTipoOperacion();
+
                     montoOriginalVal.textContent = formatNumber(data.monto_original, data.moneda_origen);
                     monedaOrigenVal.textContent = data.moneda_origen;
-                    tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} ${data.moneda_destino}`;
-                    montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, data.moneda_destino)}</span>`;
-                    monedaDestinoVal.textContent = data.moneda_destino;
+
+
+                    if (tipo === 'compra') {
+
+                        tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
+                    } else {
+
+                        tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
+                    }
+
+                    montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, "PYG")}</span>`;
+                    monedaDestinoVal.textContent = "PYG";
                     comisionBaseVal.textContent = formatNumber(data.comision_base, data.moneda_destino);
                     descuentoVal.textContent = data.descuento;
                     comisionFinalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
