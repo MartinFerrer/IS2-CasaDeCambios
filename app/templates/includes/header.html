@@ -1,80 +1,120 @@
 <header class="navbar bg-blue-700 text-white shadow-lg p-4">
-    <div class="container mx-auto flex justify-between items-center">
-        <div class="flex-1">
-            <a href="{% url 'presentacion:home' %}"
-               class="btn btn-ghost text-2xl font-semibold hover:text-white">
-                Global Exchange
-            </a>
-        </div>
-
-        <nav class="flex-none hidden lg:flex items-center space-x-4">
-            <ul class="menu menu-horizontal px-1">
-                <li>
-                    <a href="{% url 'presentacion:home' %}"
-                       class="hover:bg-blue-600 rounded-md">Mis transacciones</a>
-                </li>
-                <li>
-                    <a href="{% url 'presentacion:home' %}"
-                       class="hover:bg-blue-600 rounded-md">Realizar Transacción</a>
-                </li>
-                {% if not request.user.is_authenticated %}
-                    <li>
-                        <a href="{% url 'seguridad:login' %}"
-                           class="hover:bg-blue-600 rounded-md">Iniciar Sesión</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-
-        {% if request.user.is_authenticated %}
-        <div class="flex-none">
-            <div class="dropdown dropdown-end">
-                <label tabindex="0" class="btn btn-ghost rounded-btn m-1 hover:text-white">
-                    <span class="mr-2">{{ request.user.nombre|default:'Usuario' }}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-5 w-5"
-                         viewBox="0 0 20 20"
-                         fill="currentColor">
-                        <path fill-rule="evenodd"
-                              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                              clip-rule="evenodd" />
-                    </svg>
-                </label>
-
-                <ul tabindex="0"
-                    class="menu dropdown-content z-[1] p-2 shadow bg-base-100 text-neutral rounded-box w-64">
-                    <li>
-                        <a>Perfil</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'transacciones:configuracion_medios_pago' %}">
-                            Configuración
-                        </a>
-                    </li>
-
-                    <!-- Selector de cliente simplificado -->
-                    <li class="border-t border-neutral-content mt-2 pt-2">
-                        <form method="post" action="{% url 'presentacion:cambiar_cliente' %}">
-                            {% csrf_token %}
-                            <select name="cliente_id"
-                                    class="select select-sm select-bordered w-full text-black"
-                                    onchange="this.form.submit()">
-                                {% for c in request.user.clientes.all %}
-                                    <option value="{{ c.id }}"
-                                        {% if request.cliente and request.cliente.id == c.id %}selected{% endif %}>
-                                        {{ c.nombre }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </form>
-                    </li>
-
-                    <li class="border-t border-neutral-content mt-2 pt-2">
-                        <a href="{% url 'seguridad:logout' %}">Cerrar Sesión</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        {% endif %}
+  <div class="container mx-auto flex justify-between items-center">
+    <div class="flex-1">
+      <a href="{% url 'presentacion:home' %}"
+         class="btn btn-ghost text-2xl font-semibold hover:text-white">
+        Global Exchange
+      </a>
     </div>
+
+    <nav class="flex-none hidden lg:flex items-center space-x-4">
+      <ul class="menu menu-horizontal px-1">
+        <li>
+          <a href="{% url 'presentacion:home' %}"
+             class="hover:bg-blue-600 rounded-md">Mis transacciones</a>
+        </li>
+        <li>
+          <a href="{% url 'presentacion:home' %}"
+             class="hover:bg-blue-600 rounded-md">Realizar Transacción</a>
+        </li>
+        {% if not request.user.is_authenticated %}
+          <li>
+            <a href="{% url 'seguridad:login' %}"
+               class="hover:bg-blue-600 rounded-md">Iniciar Sesión</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+
+    {% if request.user.is_authenticated %}
+    <div class="flex-none">
+      <details class="dropdown dropdown-end">
+        <summary class="btn btn-ghost rounded-btn m-1 hover:text-white flex items-center whitespace-nowrap max-w-xs overflow-hidden">
+          <span class="mr-2 truncate text-white">
+            {{ request.user.nombre|default:'Usuario' }}
+            {% if request.cliente %}
+              ({{ request.cliente.nombre }})
+            {% endif %}
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg"
+               class="h-5 w-5 text-white"
+               viewBox="0 0 20 20"
+               fill="currentColor">
+            <path fill-rule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clip-rule="evenodd" />
+          </svg>
+        </summary>
+
+        <ul class="menu dropdown-content bg-blue-700 text-white rounded-box z-10 min-w-[240px] w-auto p-2 shadow-lg">
+          <li>
+            <a class="hover:bg-blue-600">Perfil</a>
+          </li>
+          <li>
+            <a href="{% url 'transacciones:configuracion_medios_pago' %}" class="hover:bg-blue-600">
+              Configuración
+            </a>
+          </li>
+
+          <!-- Selector de cliente -->
+        <li class="border-t border-white mt-2 pt-2">
+            <div class="w-80">
+                <select id="clienteSelector"
+                        name="cliente_id"
+                        class="select select-bordered w-60 text-black rounded-lg border-gray-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for c in request.user.clientes.all %}
+                        <option value="{{ c.id }}"
+                                {% if request.cliente and request.cliente.id == c.id %}selected{% endif %}>
+                            {{ c.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </li>
+
+        <script>
+            document.getElementById("clienteSelector").addEventListener("change", function() {
+                const cliente_id = this.value;
+
+                fetch("{% url 'presentacion:cambiar_cliente' %}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}",
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: new URLSearchParams({
+                        "cliente_id": cliente_id
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        
+                        const currentPath = window.location.pathname;
+                        
+                        // Detectar si estamos en una vista que necesita cliente_id en URL
+                        const regex = /\/configuracion\/cliente\/\d+\//;
+                        if (regex.test(currentPath)) {
+                            // Reemplazar cliente_id por el nuevo
+                            const newPath = currentPath.replace(/\/configuracion\/cliente\/\d+\//, `/configuracion/cliente/${cliente_id}/`);
+                            window.location.href = newPath;
+                        } else {
+                            // Si no hay cliente_id en la URL, recargar la misma página
+                            window.location.href = currentPath;
+                        }
+                    } else {
+                        console.error("Error al cambiar cliente");
+                    }
+                });
+            });
+        </script>
+
+          <li class="border-t border-white mt-2 pt-2">
+            <a href="{% url 'seguridad:logout' %}" class="hover:bg-blue-600">Cerrar Sesión</a>
+          </li>
+        </ul>
+      </details>
+    </div>
+    {% endif %}
+  </div>
 </header>

@@ -8,14 +8,15 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
 
@@ -286,7 +287,18 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
 
 
 def simular_cambio_view(request: HttpRequest) -> HttpResponse:
-    """Página de simulación de cambio con cliente seleccionado en sesión."""
+    """Página para simular operaciones de cambio.
+
+    Presenta una página donde el usuario puede simular una operación de compra/venta
+    de divisas. Si el usuario está autenticado, se intenta asociar un cliente desde
+    la sesión o usar el primer cliente del usuario como cliente por defecto.
+
+    :param request: Objeto HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "simular_cambio.html" y el contexto que
+        incluye las divisas disponibles y el cliente asociado (si existe).
+    :rtype: django.http.HttpResponse
+    """
     cliente_asociado = None
     if request.user.is_authenticated:
         cliente_id = request.session.get("cliente_id")
@@ -307,9 +319,20 @@ def simular_cambio_view(request: HttpRequest) -> HttpResponse:
 
 @require_GET
 def api_simular_cambio(request: HttpRequest) -> JsonResponse:
-    """Return JSON with a live simulation using querystring params.
+    """Devuelva una simulación en JSON basada en parámetros GET.
 
-    Example: /api/simular?monto=100&moneda_origen=PYG&moneda_destino=USD&tipo_operacion=compra
+    Parámetros esperados en la querystring (GET):
+    - monto: cantidad numérica a convertir.
+    - divisa_seleccionada: código de la divisa destino (ej. "USD").
+    - tipo_operacion: "compra" o "venta".
+    - metodo_pago: identificador del medio de pago (ej. "efectivo", "tarjeta_1").
+    - metodo_cobro: identificador del medio de cobro.
+    - cliente_id: (opcional) id del cliente para aplicar descuentos/medios.
+
+    :param request: HttpRequest con la querystring de simulación.
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con los detalles de la simulación (tasas, comisiones, totales).
+    :rtype: django.http.JsonResponse
     """
     params = request.GET.dict()
     cliente_id = params.get("cliente_id")
@@ -319,7 +342,16 @@ def api_simular_cambio(request: HttpRequest) -> JsonResponse:
 
 @require_GET
 def api_clientes_usuario(request: HttpRequest) -> JsonResponse:
-    """Retorna los clientes asociados al usuario autenticado."""
+    """Devuelve en JSON la lista de clientes asociados al usuario autenticado.
+
+    Si el usuario no está autenticado retorna una lista vacía.
+
+    :param request: HttpRequest del usuario que solicita la lista.
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con clave "clientes" conteniendo una lista de objetos
+        con campos: id, nombre, ruc.
+    :rtype: django.http.JsonResponse
+    """
     if not request.user.is_authenticated:
         return JsonResponse({"clientes": []})
 
@@ -329,11 +361,17 @@ def api_clientes_usuario(request: HttpRequest) -> JsonResponse:
 
 @require_GET
 def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonResponse:
-    """Retorna los medios de pago asociados a un cliente.
+    """Retorna en JSON los medios de pago y cobro habilitados para un cliente.
 
-    Filtra las opciones según el tipo de operación:
-    - Compra: todos los medios de pago disponibles, solo efectivo para cobro
-    - Venta: solo efectivo para pago y cobro
+    El endpoint valida que el cliente exista y que el usuario tenga acceso. También
+    adapta la respuesta según el parámetro GET ``tipo`` ("compra" o "venta").
+
+    :param request: HttpRequest que puede contener el parámetro GET "tipo".
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente cuyos medios se consultan.
+    :type cliente_id: int
+    :return: JsonResponse con estructura {"medios_pago": [...], "medios_cobro": [...]}.
+    :rtype: django.http.JsonResponse
     """
     try:
         cliente = Cliente.objects.get(pk=cliente_id)
@@ -518,9 +556,16 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
 
 @require_GET
 def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
-    """Retorna las divisas disponibles basadas en las tasas de cambio activas.
+    """Devuelve las divisas destino disponibles según tasas activas.
 
-    Solo retorna divisas_destino ya que todas las transacciones son desde/hacia PYG.
+    El servicio busca tasas de cambio activas con PYG como divisa origen y devuelve
+    las divisas destino (excluye PYG) con su código, nombre y símbolo.
+
+    :param request: HttpRequest (no requiere parámetros adicionales).
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con clave "divisas" que contiene una lista de objetos
+        {"codigo", "nombre", "simbolo"}.
+    :rtype: django.http.JsonResponse
     """
     # Obtener todas las divisas destino que tienen tasas de cambio activas con PYG como origen
     divisas_destino = set()
@@ -538,7 +583,17 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
 
 
 def comprar_divisa_view(request):
-    """Página para comprar divisas con cliente asociado automáticamente."""
+    """Página para iniciar una operación de compra de divisas.
+
+    Muestra las divisas disponibles (excluyendo PYG) y renderiza el template
+    para que el usuario inicie la compra. El cliente asociado puede ser provisto
+    por middleware (request.cliente) o por sesión.
+
+    :param request: HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "comprar_divisa.html" y contexto.
+    :rtype: django.http.HttpResponse
+    """
     # Obtener divisas disponibles (excluyendo PYG)
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
 
@@ -550,6 +605,17 @@ def comprar_divisa_view(request):
 
 
 def vender_divisa_view(request: HttpRequest) -> HttpResponse:
+    """Página para iniciar una operación de venta de divisas.
+
+    Intenta obtener el cliente asociado desde la sesión o desde los clientes
+    del usuario autenticado y renderiza el template de venta.
+
+    :param request: HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "vender_divisa.html" y el cliente asociado
+        en el contexto (si existe).
+    :rtype: django.http.HttpResponse
+    """
     cliente_asociado = None
     if request.user.is_authenticated:
         cliente_id = request.session.get("cliente_id")
@@ -563,36 +629,36 @@ def vender_divisa_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def configuracion_medios_pago(request: HttpRequest) -> HttpResponse:
-    """Muestra lista de clientes asociados al usuario en sesión.
+def configuracion_medios_pago(request):
+    """Redirige a la configuración de medios de pago del cliente activo en sesión.
 
-    Args:
-        request: HttpRequest object.
+    Si `request.cliente` está definido (ej. por middleware) redirige a la vista de
+    configuración para ese cliente; si no, redirige a la lista de clientes/transacciones.
 
-    Returns:
-        HttpResponse: Rendered lista_clientes.html template.
-
+    :param request: HttpRequest del usuario.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse redirigiendo a la página de configuración o lista.
+    :rtype: django.http.HttpResponse
     """
-    # Obtener clientes asociados al usuario actual
-    clientes = request.user.clientes.all()
-
-    contexto = {
-        "clientes": clientes,
-    }
-    return render(request, "transacciones/configuracion/lista_clientes.html", contexto)
+    if request.cliente:
+        return redirect("transacciones:medios_pago_cliente", cliente_id=request.cliente.id)
+    else:
+        return redirect("transacciones:lista")
 
 
 @login_required
 def medios_pago_cliente(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Muestra todos los medios de pago registrados (tarjetas, cuentas, billeteras).
+    """Muestra los medios de pago de un cliente concreto.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente a mostrar.
+    Recupera tarjetas, cuentas y billeteras del cliente y renderiza la plantilla
+    de configuración de medios de pago.
 
-    Returns:
-        HttpResponse: Rendered medios_pago_cliente.html template.
-
+    :param request: HttpRequest del usuario autenticado.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente a mostrar.
+    :type cliente_id: int
+    :return: HttpResponse con la plantilla "transacciones/configuracion/medios_pago_cliente.html".
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
@@ -611,15 +677,17 @@ def medios_pago_cliente(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
 @login_required
 def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Procesa el formulario para agregar una nueva tarjeta de crédito a un cliente.
+    """Crear una nueva tarjeta de crédito para un cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente al que se agregará la tarjeta.
+    Procesa el formulario POST para crear y asociar una tarjeta al cliente. Maneja
+    validaciones y muestra mensajes al usuario en caso de error o éxito.
 
-    Returns:
-        HttpResponse: Rendered crear_tarjeta.html template o redirect.
-
+    :param request: HttpRequest que puede contener un POST con los datos de la tarjeta.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente al que se agregará la tarjeta.
+    :type cliente_id: int
+    :return: HttpResponse renderizando el formulario o redirigiendo a la lista de medios.
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
@@ -670,15 +738,17 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
 @login_required
 def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Procesa el formulario para agregar una nueva cuenta bancaria a un cliente.
+    """Agregar una cuenta bancaria a un cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente al que se agregará la cuenta.
+    Procesa el formulario para crear una nueva cuenta bancaria, asigna alias si
+    es necesario y maneja errores de validación mostrando mensajes.
 
-    Returns:
-        HttpResponse: Rendered crear_cuenta_bancaria.html template o redirect.
-
+    :param request: HttpRequest con datos del formulario (POST) o GET para mostrar el form.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente destino.
+    :type cliente_id: int
+    :return: HttpResponse con el formulario o redirección tras creación.
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
@@ -730,15 +800,17 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
 
 @login_required
 def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Procesa el formulario para agregar una nueva billetera electrónica a un cliente.
+    """Crear una billetera electrónica para un cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente al que se agregará la billetera.
+    Procesa el POST del formulario para crear la billetera, manejar alias y
+    habilitaciones para pago/cobro. Muestra mensajes de éxito o error.
 
-    Returns:
-        HttpResponse: Rendered crear_billetera.html template o redirect.
-
+    :param request: HttpRequest con datos del formulario.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente al que se asociará la billetera.
+    :type cliente_id: int
+    :return: HttpResponse renderizando el formulario o redirigiendo a la vista de medios.
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
@@ -781,16 +853,19 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
 @login_required
 def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> HttpResponse:
-    """Edita una tarjeta de crédito existente.
+    """Editar una tarjeta de crédito existente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario de la tarjeta.
-        medio_id: ID de la tarjeta a editar.
+    Actualiza los campos de la tarjeta según el POST recibido y guarda los
+    cambios. Maneja validaciones y muestra mensajes al usuario.
 
-    Returns:
-        HttpResponse: Rendered editar_tarjeta.html template o redirect.
-
+    :param request: HttpRequest con datos para actualizar la tarjeta.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario (usado para validar pertenencia).
+    :type cliente_id: int
+    :param medio_id: ID de la tarjeta a editar.
+    :type medio_id: int
+    :return: HttpResponse renderizando el formulario de edición o redirigiendo.
+    :rtype: django.http.HttpResponse
     """
     tarjeta = get_object_or_404(TarjetaCredito, id=medio_id, cliente__usuarios=request.user)
 
@@ -845,16 +920,19 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
 
 @login_required
 def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int) -> HttpResponse:
-    """Edita una cuenta bancaria existente.
+    """Editar una cuenta bancaria existente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario de la cuenta.
-        medio_id: ID de la cuenta a editar.
+    Actualiza los datos de la cuenta y maneja la persistencia y errores de
+    validación mostrando mensajes informativos.
 
-    Returns:
-        HttpResponse: Rendered editar_cuenta_bancaria.html template o redirect.
-
+    :param request: HttpRequest con datos de actualización.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario.
+    :type cliente_id: int
+    :param medio_id: ID de la cuenta a editar.
+    :type medio_id: int
+    :return: HttpResponse con el formulario o redirección tras guardar.
+    :rtype: django.http.HttpResponse
     """
     cuenta = get_object_or_404(CuentaBancaria, id=medio_id, cliente__usuarios=request.user)
 
@@ -907,16 +985,19 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
 
 @login_required
 def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> HttpResponse:
-    """Edita una billetera electrónica existente.
+    """Editar una billetera electrónica existente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario de la billetera.
-        medio_id: ID de la billetera a editar.
+    Actualiza los campos de la billetera (identificador, contacto, alias y
+    habilitaciones) y muestra mensajes de éxito o error.
 
-    Returns:
-        HttpResponse: Rendered editar_billetera.html template o redirect.
-
+    :param request: HttpRequest con los datos de la billetera.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario.
+    :type cliente_id: int
+    :param medio_id: ID de la billetera a editar.
+    :type medio_id: int
+    :return: HttpResponse renderizando el formulario o redirigiendo tras guardado.
+    :rtype: django.http.HttpResponse
     """
     billetera = get_object_or_404(BilleteraElectronica, id=medio_id, cliente__usuarios=request.user)
 
@@ -971,17 +1052,21 @@ def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> Ht
 
 @login_required
 def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_id: int) -> HttpResponse:
-    """Elimina un medio de pago específico.
+    """Eliminar un medio de pago del cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario del medio de pago.
-        tipo: Tipo de medio de pago ('tarjeta', 'cuenta', 'billetera').
-        medio_id: ID del medio de pago a eliminar.
+    Elimina físicamente la entidad correspondiente (tarjeta, cuenta o billetera)
+    después de validar la pertenencia al usuario. Redirige a la lista de medios.
 
-    Returns:
-        HttpResponse: Rendered confirmar_eliminar.html template o redirect.
-
+    :param request: HttpRequest del usuario que solicita la eliminación.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario (informativo en la URL).
+    :type cliente_id: int
+    :param tipo: Tipo de medio: 'tarjeta', 'cuenta' o 'billetera'.
+    :type tipo: str
+    :param medio_id: ID del medio a eliminar.
+    :type medio_id: int
+    :return: HttpResponse redirigiendo a la vista de medios del cliente.
+    :rtype: django.http.HttpResponse
     """
     if tipo == "tarjeta":
         medio = get_object_or_404(TarjetaCredito, id=medio_id, cliente__usuarios=request.user)
@@ -1002,6 +1087,18 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
 
 @login_required
 def vista_transacciones(request):
+    """Lista las transacciones del cliente seleccionado en sesión.
+
+    Requiere que exista un cliente seleccionado en sesión; si no lo hay, redirige
+    al home con un mensaje. Recupera las transacciones asociadas al cliente y
+    renderiza la plantilla de listado.
+
+    :param request: HttpRequest que contiene la sesión con "cliente_id".
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "transacciones/lista.html" y el contexto
+        que incluye las transacciones y el cliente.
+    :rtype: django.http.HttpResponse
+    """
     cliente_id = request.session.get("cliente_id")
     if not cliente_id:
         messages.warning(request, "Primero selecciona un cliente.")
