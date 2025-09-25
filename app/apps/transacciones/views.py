@@ -150,7 +150,7 @@ def _compute_simulation(params: Dict, request) -> Dict:
         comision_com = Decimal("50.0")
         comision_vta = Decimal("75.0")
     else:
-        pb_dolar = tasa_cambio.valor
+        pb_dolar = tasa_cambio.precio_base
         comision_com = tasa_cambio.comision_compra
         comision_vta = tasa_cambio.comision_venta
 
