@@ -49,6 +49,6 @@ class ClienteMiddleware:
                 if cliente:
                     request.session["cliente_id"] = cliente.id
                     request.cliente = cliente
-
+            request.session.modified = True
         response = self.get_response(request)
         return response
