@@ -35,6 +35,8 @@ class Divisa(models.Model):
     )
 
     class Meta:
+        """Meta información para el modelo Divisa."""
+
         db_table = "divisa"
         verbose_name = "Divisa"
         verbose_name_plural = "Divisas"
@@ -48,18 +50,15 @@ class TasaCambio(models.Model):
     """Representa la Tasa de Cambio de una divisa a otra.
 
     Este modelo almacena el valor de la tasa de cambio entre dos divisas, junto
-    con las comisiones asociadas para la compra y venta. También incluye la fecha
-    en que la tasa entra en vigencia.
+    con las comisiones asociadas para la compra y venta.
 
     Argumentos:
         id_tasa_cambio (UUIDField): Identificador único para la tasa de cambio.
         divisa_origen (ForeignKey): La divisa desde la que se realiza la conversión.
         divisa_destino (ForeignKey): La divisa a la que se realiza la conversión.
-        valor (DecimalField): El valor de la tasa de cambio.
+        precio_base (DecimalField): El precio base de la divisa.
         comision_compra (DecimalField): Comisión aplicada al comprar la divisa destino.
         comision_venta (DecimalField): Comisión aplicada al vender la divisa destino.
-        fecha_vigencia (DateField): Fecha en que la tasa de cambio es válida.
-        hora_vigencia (TimeField): Hora en que la tasa de cambio es válida.
         activo (BooleanField): Indica si la tasa de cambio está actualmente activa.
 
     """
@@ -79,10 +78,10 @@ class TasaCambio(models.Model):
         related_name="tasas_destino",
         help_text="La divisa a la cual se va a convertir.",
     )
-    valor = models.DecimalField(
+    precio_base = models.DecimalField(
         max_digits=9,
         decimal_places=3,
-        help_text="El valor de la divisa de origen en términos de la divisa de destino.",
+        help_text="El precio base de la divisa de origen en términos de la divisa de destino.",
     )
     comision_compra = models.DecimalField(
         max_digits=7,
@@ -97,24 +96,20 @@ class TasaCambio(models.Model):
     fecha_actualizacion = models.DateTimeField(
         auto_now=True, help_text="Fecha y hora de la última actualización de la tasa."
     )
-    fecha_vigencia = models.DateField(help_text="Fecha a partir de la cual esta tasa es válida.")
     activo = models.BooleanField(
         default=True, help_text="Indica si la tasa de cambio está activa o ha sido desactivada."
     )
-    hora_vigencia = models.TimeField(
-        null=True, blank=True, help_text="Hora en la que la tasa de cambio entra en vigencia."
-    )
 
     def clean(self):
-        """Valida que una de las divisas en la tasa de cambio sea la Divisa base (PYG) y que los valores sean positivos."""
+        """Valida que una de las divisas sea la Divisa base (PYG) y que los valores sean positivos."""
         # Validar que una de las divisas sea PYG
         es_divisa_base = self.divisa_origen.codigo == "PYG" or self.divisa_destino.codigo == "PYG"
         if not es_divisa_base:
             raise ValidationError("Una de las divisas en la tasa de cambio debe ser la Divisa base (PYG).")
 
-        # Validar que el valor sea positivo
-        if self.valor is not None and self.valor <= 0:
-            raise ValidationError("El valor de la tasa de cambio debe ser positivo.")
+        # Validar que el precio base sea positivo
+        if self.precio_base is not None and self.precio_base <= 0:
+            raise ValidationError("El precio base de la divisa debe ser positivo.")
 
         # Validar que las comisiones sean no negativas
         if self.comision_compra is not None and self.comision_compra < 0:
@@ -143,11 +138,11 @@ class TasaCambio(models.Model):
     def consultar_tasa_actual(self) -> Decimal:
         """Método para consultar la tasa de cambio actual.
 
-        Retorna el valor actual de la tasa de cambio almacenado en el atributo 'valor'.
+        Retorna el precio base actual de la divisa almacenado en el atributo 'precio_base'.
         En esta clase se define la clave primaria (PK) y las restricciones de unicidad
         para asegurar la integridad de los datos de operaciones de cambio.
         """
-        return self.valor
+        return self.precio_base
 
     class Meta:
         """Meta información para el modelo TasaCambio.
@@ -168,7 +163,7 @@ class TasaCambio(models.Model):
     def __str__(self):
         """Representación en string del objeto, útil para la administración."""
         estado = "Activa" if self.activo else "Inactiva"
-        return f"{self.divisa_origen} a {self.divisa_destino} - Valor: {self.valor} ({estado})"
+        return f"{self.divisa_origen} a {self.divisa_destino} - Precio Base: {self.precio_base} ({estado})"
 
 
 class TasaCambioHistorial(models.Model):
@@ -183,11 +178,9 @@ class TasaCambioHistorial(models.Model):
         tasa_cambio_original (ForeignKey): Referencia a la tasa de cambio original.
         divisa_origen (ForeignKey): La divisa desde la que se realiza la conversión.
         divisa_destino (ForeignKey): La divisa a la que se realiza la conversión.
-        valor (DecimalField): El valor de la tasa de cambio en el momento del registro.
+        precio_base (DecimalField): El precio base de la divisa en el momento del registro.
         comision_compra (DecimalField): Comisión aplicada al comprar la divisa destino.
         comision_venta (DecimalField): Comisión aplicada al vender la divisa destino.
-        fecha_vigencia (DateField): Fecha en que la tasa de cambio era válida.
-        hora_vigencia (TimeField): Hora en que la tasa de cambio era válida.
         fecha_registro (DateTimeField): Fecha y hora cuando se registró este historial.
         activo (BooleanField): Estado de la tasa de cambio en el momento del registro.
         motivo (CharField): Motivo del cambio realizado.
@@ -197,11 +190,9 @@ class TasaCambioHistorial(models.Model):
     tasa_cambio_original = models.ForeignKey("TasaCambio", on_delete=models.CASCADE, related_name="historial")
     divisa_origen = models.ForeignKey("Divisa", on_delete=models.PROTECT, related_name="tasas_historial_origen")
     divisa_destino = models.ForeignKey("Divisa", on_delete=models.PROTECT, related_name="tasas_historial_destino")
-    valor = models.DecimalField(max_digits=9, decimal_places=3)
+    precio_base = models.DecimalField(max_digits=9, decimal_places=3)
     comision_compra = models.DecimalField(max_digits=7, decimal_places=3)
     comision_venta = models.DecimalField(max_digits=7, decimal_places=3)
-    fecha_vigencia = models.DateField()
-    hora_vigencia = models.TimeField(null=True, blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     activo = models.BooleanField(default=True)
     motivo = models.CharField(max_length=255, help_text="Motivo del cambio (ej. Creación, Edición, Desactivación)")

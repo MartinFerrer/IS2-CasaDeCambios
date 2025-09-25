@@ -9,7 +9,6 @@ Incluye:
 from decimal import Decimal
 
 from django import forms
-from django.utils import timezone
 
 from .models import Divisa, TasaCambio
 
@@ -31,42 +30,32 @@ class TasaCambioForm(forms.ModelForm):
         fields = [
             "divisa_origen",
             "divisa_destino",
-            "valor",
+            "precio_base",
             "comision_compra",
             "comision_venta",
-            "fecha_vigencia",
-            "hora_vigencia",
             "activo",
         ]
         labels = {
-            "valor": "Valor de la Tasa",
+            "precio_base": "Precio Base",
             "comision_compra": "Comisión por Compra (Gs.)",
             "comision_venta": "Comisión por Venta (Gs.)",
-            "fecha_vigencia": "Fecha de Vigencia",
-            "hora_vigencia": "Hora de Vigencia",
             "activo": "Activa",
         }
         help_texts = {
-            "valor": "Ingrese el monto en Gs. de la tasa de cambio.",
-            "comision_compra": "Monto en Gs. que se resta al valor de la tasa para la compra.",
-            "comision_venta": "Monto en Gs. que se suma al valor de la tasa para la venta.",
-            "fecha_vigencia": "Fecha en la que la tasa de cambio entra en vigencia.",
-            "hora_vigencia": "Hora en la que la tasa de cambio entra en vigencia.",
+            "precio_base": "Ingrese el precio base en Gs. de la divisa.",
+            "comision_compra": "Monto en Gs. que se resta al precio base para la compra.",
+            "comision_venta": "Monto en Gs. que se suma al precio base para la venta.",
             "activo": "Marque para activar esta tasa de cambio.",
         }
         widgets = {
-            "fecha_vigencia": forms.DateInput(attrs={"class": "input input-bordered w-full", "type": "date"}),
-            "hora_vigencia": forms.TimeInput(
-                attrs={"class": "input input-bordered w-full", "type": "time", "value": "07:00"}
-            ),
-            "valor": forms.NumberInput(
+            "precio_base": forms.NumberInput(
                 attrs={
                     "class": "input input-bordered w-full validator",
                     "type": "number",
                     "min": "1",
                     "step": "0.001",
                     "required": "required",
-                    "title": "El valor no puede ser un número negativo.",
+                    "title": "El precio base no puede ser un número negativo.",
                     "placeholder": "",
                 }
             ),
@@ -93,19 +82,6 @@ class TasaCambioForm(forms.ModelForm):
                 }
             ),
         }
-
-    def clean(self):
-        """Valida que la combinación de fecha_vigencia y hora_vigencia no sea anterior a la fecha y hora actual."""
-        cleaned_data = super().clean()
-        fecha = cleaned_data.get("fecha_vigencia")
-        hora = cleaned_data.get("hora_vigencia")
-        if fecha and hora:
-            vigencia_datetime = timezone.make_aware(timezone.datetime.combine(fecha, hora))
-            if vigencia_datetime < timezone.now():
-                raise forms.ValidationError(
-                    "La fecha y hora de vigencia no pueden ser anteriores a la fecha y hora actual."
-                )
-        return cleaned_data
 
     def __init__(self, *args, **kwargs):
         """Inicializa el formulario y aplica clases de DaisyUI a los widgets."""
@@ -138,8 +114,8 @@ class TasaCambioForm(forms.ModelForm):
         # Después de que el formulario se inicializa (y carga los datos de la instancia),
         # verificamos si los valores de los campos son 0 y los reemplazamos por una cadena vacía.
         if self.instance:
-            if self.instance.valor == Decimal("0.00"):
-                self.fields["valor"].initial = ""
+            if self.instance.precio_base == Decimal("0.00"):
+                self.fields["precio_base"].initial = ""
             if self.instance.comision_compra == Decimal("0.00"):
                 self.fields["comision_compra"].initial = ""
             if self.instance.comision_venta == Decimal("0.00"):
@@ -152,11 +128,9 @@ class TasaCambioForm(forms.ModelForm):
             elif field_name not in [
                 "divisa_origen",
                 "divisa_destino",
-                "valor",
+                "precio_base",
                 "comision_compra",
                 "comision_venta",
-                "fecha_vigencia",
-                "hora_vigencia",
             ]:
                 # El resto de los campos de texto y número usan Input
                 field.widget.attrs.update({"class": "input input-bordered w-full"})

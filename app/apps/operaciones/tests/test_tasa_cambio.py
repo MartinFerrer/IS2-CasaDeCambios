@@ -1,12 +1,10 @@
 """Pruebas unitarias para el modelo TasaCambio."""
 
-import datetime
 from decimal import Decimal
 
 import pytest
 from apps.operaciones.models import Divisa, TasaCambio
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 
 
 @pytest.mark.django_db
@@ -22,17 +20,15 @@ class TestTasaCambioModel:
             codigo="USD", defaults={"nombre": "Dólar", "simbolo": "$", "estado": "activa"}
         )
 
-    def test_valor_negativo_no_permitido(self):
-        """No debe permitirse val|or negativo en la tasa de cambio."""
+    def test_precio_base_negativo_no_permitido(self):
+        """No debe permitirse precio base negativo en la tasa de cambio."""
         with pytest.raises(ValidationError):
             TasaCambio.objects.create(
                 divisa_origen=self.divisa_pyg,
                 divisa_destino=self.divisa_usd,
-                valor=Decimal("-1.000"),
+                precio_base=Decimal("-1.000"),
                 comision_compra=Decimal("10.000"),
                 comision_venta=Decimal("15.000"),
-                fecha_vigencia=timezone.now().date(),
-                hora_vigencia=datetime.time(7, 0),
                 activo=True,
             )
 
@@ -42,11 +38,9 @@ class TestTasaCambioModel:
             TasaCambio.objects.create(
                 divisa_origen=self.divisa_pyg,
                 divisa_destino=self.divisa_usd,
-                valor=Decimal("7000.000"),
+                precio_base=Decimal("7000.000"),
                 comision_compra=Decimal("-5.000"),
                 comision_venta=Decimal("15.000"),
-                fecha_vigencia=timezone.now().date(),
-                hora_vigencia=datetime.time(7, 0),
                 activo=True,
             )
 
@@ -56,25 +50,21 @@ class TestTasaCambioModel:
             TasaCambio.objects.create(
                 divisa_origen=self.divisa_pyg,
                 divisa_destino=self.divisa_usd,
-                valor=Decimal("7000.000"),
+                precio_base=Decimal("7000.000"),
                 comision_compra=Decimal("10.000"),
                 comision_venta=Decimal("-2.000"),
-                fecha_vigencia=timezone.now().date(),
-                hora_vigencia=datetime.time(7, 0),
                 activo=True,
             )
 
-    def test_valor_cero_no_permitido(self):
-        """No debe permitirse valor cero en la tasa de cambio."""
+    def test_precio_base_cero_no_permitido(self):
+        """No debe permitirse precio base cero en la tasa de cambio."""
         with pytest.raises(ValidationError):
             TasaCambio.objects.create(
                 divisa_origen=self.divisa_pyg,
                 divisa_destino=self.divisa_usd,
-                valor=Decimal("0.000"),
+                precio_base=Decimal("0.000"),
                 comision_compra=Decimal("10.000"),
                 comision_venta=Decimal("15.000"),
-                fecha_vigencia=timezone.now().date(),
-                hora_vigencia=datetime.time(7, 0),
                 activo=True,
             )
 
@@ -83,11 +73,9 @@ class TestTasaCambioModel:
         tasa = TasaCambio(
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
         )
         tasa.clean()  # No debe lanzar excepción
@@ -100,11 +88,9 @@ class TestTasaCambioModel:
         tasa = TasaCambio(
             divisa_origen=divisa_eur,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("1.000"),
+            precio_base=Decimal("1.000"),
             comision_compra=Decimal("0.000"),
             comision_venta=Decimal("0.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
         )
         with pytest.raises(ValidationError):
@@ -115,11 +101,9 @@ class TestTasaCambioModel:
         tasa = TasaCambio.objects.create(
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
         )
         assert TasaCambio.objects.filter(pk=tasa.pk).exists()
@@ -127,15 +111,13 @@ class TestTasaCambioModel:
         assert tasa.divisa_destino.codigo == "USD"
 
     def test_consultar_tasa_actual(self):
-        """Verifica que consultar_tasa_actual retorna el valor correcto."""
+        """Verifica que consultar_tasa_actual retorna el precio base correcto."""
         tasa = TasaCambio.objects.create(
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
         )
         assert tasa.consultar_tasa_actual() == Decimal("7000.000")
@@ -145,11 +127,9 @@ class TestTasaCambioModel:
         TasaCambio.objects.create(
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
         )
         with pytest.raises(ValidationError):
@@ -157,10 +137,8 @@ class TestTasaCambioModel:
             TasaCambio.objects.create(
                 divisa_origen=self.divisa_pyg,
                 divisa_destino=self.divisa_usd,
-                valor=Decimal("8000.000"),
+                precio_base=Decimal("8000.000"),
                 comision_compra=Decimal("20.000"),
                 comision_venta=Decimal("25.000"),
-                fecha_vigencia=timezone.now().date(),
-                hora_vigencia=datetime.time(8, 0),
                 activo=True,
             )

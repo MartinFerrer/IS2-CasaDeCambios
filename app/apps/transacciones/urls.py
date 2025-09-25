@@ -52,4 +52,5 @@ urlpatterns = [
         views.eliminar_medio_pago,
         name="eliminar_medio_pago",
     ),
+    path("", views.vista_transacciones, name="lista"),
 ]
