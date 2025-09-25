@@ -58,20 +58,24 @@
 
           <!-- Selector de cliente -->
         <li class="border-t border-white mt-2 pt-2">
-            <div class="w-80">
-                <select id="clienteSelector"
-                        name="cliente_id"
-                        class="select select-bordered w-60 text-black rounded-lg border-gray-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% for c in request.user.clientes.all %}
-                        <option value="{{ c.id }}"
-                                {% if request.cliente and request.cliente.id == c.id %}selected{% endif %}>
-                            {{ c.nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-        </li>
-
+          <div class="w-80">
+              <select id="clienteSelector"
+                      name="cliente_id"
+                      class="select select-bordered w-60 text-black rounded-lg border-gray-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      {% if not request.user.clientes.exists %}disabled{% endif %}>
+                  {% if request.user.clientes.exists %}
+                      {% for c in request.user.clientes.all %}
+                          <option value="{{ c.id }}"
+                                  {% if request.cliente and request.cliente.id == c.id %}selected{% endif %}>
+                              {{ c.nombre }}
+                          </option>
+                      {% endfor %}
+                  {% else %}
+                      <option selected disabled>No tiene cliente asociado</option>
+                  {% endif %}
+              </select>
+          </div>
+      </li>
         <script>
             document.getElementById("clienteSelector").addEventListener("change", function() {
                 const cliente_id = this.value;
