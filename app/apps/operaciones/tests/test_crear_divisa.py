@@ -17,12 +17,8 @@ class TestDivisaViews(TestCase):
     def test_crear_divisa_get(self):
         try:
             response = self.client.get(reverse("operaciones:crear_divisa"))
-            # If we get a response, the view works
             self.assertIn(response.status_code, [200, 302])
         except TemplateDoesNotExist:
-            # Template issues are environment-specific, not code issues
-            # We can still verify the view logic works by checking it doesn't
-            # crash with a 500 error
             pass
 
     def test_crear_divisa_post_valid(self):
