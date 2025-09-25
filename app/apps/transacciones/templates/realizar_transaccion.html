@@ -5,7 +5,19 @@
 {% endblock title %}
 {% block content %}
     <div class="container mx-auto p-8">
-        <h2 class="text-3xl font-bold mb-6 text-center">Realizar Transacción de Cambio de Divisas</h2>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">Realizar Transacción de Cambio de Divisas</h2>
+            <a href="/" class="btn btn-outline">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Volver al inicio
+            </a>
+        </div>
         <!-- Información del Cliente -->
         {% if user.is_authenticated and request.cliente %}
             <div class="alert alert-info mb-6">
@@ -211,34 +223,82 @@
         </div>
         <!-- Modal de Confirmación -->
         <div id="confirmation-modal" class="modal">
-            <div class="modal-box">
-                <h3 class="font-bold text-lg">Confirmar Transacción</h3>
-                <div class="py-4">
-                    <div class="space-y-2">
-                        <p>
-                            <strong>Tipo de Operación:</strong> <span id="modal-tipo"></span>
-                        </p>
-                        <p>
-                            <strong>Divisa:</strong> <span id="modal-divisa"></span>
-                        </p>
-                        <p>
-                            <strong>Monto:</strong> <span id="modal-monto"></span>
-                        </p>
-                        <p>
-                            <strong>Total:</strong> <span id="modal-total"></span>
-                        </p>
-                        <p>
-                            <strong>Método de Pago:</strong> <span id="modal-metodo-pago"></span>
-                        </p>
-                        <p>
-                            <strong>Método de Cobro:</strong> <span id="modal-metodo-cobro"></span>
-                        </p>
+            <div class="modal-box max-w-lg">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-xl text-primary">Confirmar Transacción</h3>
+                    <button id="close-modal" class="btn btn-sm btn-circle btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- Content -->
+                <div class="bg-base-200 rounded-lg p-4 mb-6">
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="flex justify-between items-center p-2 bg-base-100 rounded">
+                            <span class="font-semibold text-gray-600">Tipo de Operación:</span>
+                            <span id="modal-tipo" class="font-bold text-primary"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-base-100 rounded">
+                            <span id="modal-divisa-label" class="font-semibold text-gray-600">Divisa:</span>
+                            <span id="modal-divisa" class="font-bold"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-base-100 rounded">
+                            <span class="font-semibold text-gray-600">Monto:</span>
+                            <span id="modal-monto" class="font-bold"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-success text-success-content rounded">
+                            <span id="modal-total-label" class="font-semibold">Total a Pagar/Recibir:</span>
+                            <span id="modal-total" class="font-bold text-lg"></span>
+                        </div>
+                        <div class="divider my-2"></div>
+                        <div class="flex justify-between items-center p-2 bg-base-100 rounded">
+                            <span class="font-semibold text-gray-600">Método de Pago:</span>
+                            <span id="modal-metodo-pago" class="font-bold"></span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-base-100 rounded">
+                            <span class="font-semibold text-gray-600">Método de Cobro:</span>
+                            <span id="modal-metodo-cobro" class="font-bold"></span>
+                        </div>
                     </div>
                 </div>
+                <!-- Warning -->
+                <div class="alert alert-warning mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span class="text-sm">La transacción quedará pendiente hasta que se procese el pago correspondiente.</span>
+                </div>
+                <!-- Actions -->
                 <div class="modal-action">
-                    <button id="confirm-transaction" class="btn btn-success">Confirmar</button>
-                    <button class="btn"
-                            onclick="document.getElementById('confirmation-modal').checked = false">Cancelar</button>
+                    <button id="cancel-transaction" class="btn btn-outline">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-4 w-4 mr-2"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancelar
+                    </button>
+                    <button id="confirm-transaction" class="btn btn-success">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-4 w-4 mr-2"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Confirmar Transacción
+                    </button>
                 </div>
             </div>
         </div>
@@ -277,6 +337,8 @@
         // Modal elements
         const confirmationModal = document.getElementById('confirmation-modal');
         const confirmBtn = document.getElementById('confirm-transaction');
+        const cancelBtn = document.getElementById('cancel-transaction');
+        const closeModalBtn = document.getElementById('close-modal');
 
         // Estado global
         const currentCliente = {% if request.cliente %}{{ request.cliente.id }}{% else %}null{% endif %};
@@ -503,6 +565,23 @@
             const metodoPago = metodoPagoSelect.options[metodoPagoSelect.selectedIndex].text;
             const metodoCobro = metodoCobroSelect.options[metodoCobroSelect.selectedIndex].text;
 
+            // Actualizar labels dinámicos según el tipo de operación
+            const divisaLabel = document.getElementById('modal-divisa-label');
+            const totalLabel = document.getElementById('modal-total-label');
+            
+            if (tipo === 'compra') {
+                divisaLabel.textContent = 'Divisa a Comprar:';
+                totalLabel.textContent = 'Total a Pagar:';
+            } else {
+                divisaLabel.textContent = 'Divisa a Vender:';
+                totalLabel.textContent = 'Total a Recibir:';
+            }
+
+            // Obtener información de comisiones de los métodos
+            const comisionPago = lastSimulationData.comision_medio_pago_porcentaje || 0;
+            const comisionCobro = lastSimulationData.comision_medio_cobro_porcentaje || 0;
+            
+            // Actualizar contenido
             document.getElementById('modal-tipo').textContent = tipoText;
             document.getElementById('modal-divisa').textContent = divisa;
             document.getElementById('modal-monto').textContent = `${formatNumber(lastSimulationData.monto_original, lastSimulationData.moneda_origen)} ${lastSimulationData.moneda_origen}`;
@@ -517,37 +596,67 @@
         async function confirmTransaction() {
             if (!lastSimulationData) return;
 
+            // Show loading state
+            confirmBtn.textContent = 'Procesando...';
+            confirmBtn.disabled = true;
+
             try {
-                const response = await fetch('{% url "transacciones:api_crear_transaccion" %}', {
-                    method: 'POST',
+                // Cambiar a GET con parámetros en la URL
+                const params = new URLSearchParams({
+                    tipo_operacion: getTipoOperacion(),
+                    divisa_seleccionada: divisaSelect.value,
+                    monto: parseFloat(montoInput.value),
+                    metodo_pago: metodoPagoSelect.value,
+                    metodo_cobro: metodoCobroSelect.value
+                });
+
+                const response = await fetch(`{% url "transacciones:api_crear_transaccion" %}?${params.toString()}`, {
+                    method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({
-                        tipo_operacion: getTipoOperacion(),
-                        divisa_seleccionada: divisaSelect.value,
-                        monto: parseFloat(montoInput.value),
-                        metodo_pago: metodoPagoSelect.value,
-                        metodo_cobro: metodoCobroSelect.value
-                    })
+                    }
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    // Redirigir a la página de procesamiento
-                    window.location.href = data.redirect_url;
+                    // Redirigir a la página de procesamiento con parámetros
+                    const redirectParams = new URLSearchParams({
+                        metodo_pago: metodoPagoSelect.value,
+                        metodo_cobro: metodoCobroSelect.value
+                    });
+                    window.location.href = `${data.redirect_url}?${redirectParams.toString()}`;
                 } else {
-                    alert('Error al crear la transacción: ' + (data.error || 'Error desconocido'));
+                    showError('Error al crear la transacción: ' + (data.error || 'Error desconocido'));
                 }
 
             } catch (error) {
                 console.error('Error confirming transaction:', error);
-                alert('Error al procesar la transacción');
+                showError('Error al procesar la transacción. Intente nuevamente.');
+            } finally {
+                // Reset button state
+                confirmBtn.textContent = 'Confirmar';
+                confirmBtn.disabled = false;
+                confirmationModal.classList.remove('modal-open');
             }
+        }
 
-            confirmationModal.classList.remove('modal-open');
+        // Función para mostrar errores
+        function showError(message) {
+            // Crear y mostrar un toast de error
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-top toast-end';
+            toast.innerHTML = `
+                <div class="alert alert-error">
+                    <span>${message}</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            // Remover el toast después de 5 segundos
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 5000);
         }
 
         // Event listeners
@@ -572,13 +681,29 @@
             proceedBtn.addEventListener('click', showConfirmationModal);
         }
 
-        // Event listener para confirmar en el modal
+        // Event listeners para el modal
         confirmBtn.addEventListener('click', confirmTransaction);
+        
+        // Función para cerrar modal
+        function closeModal() {
+            confirmationModal.classList.remove('modal-open');
+        }
+        
+        // Event listeners para cerrar modal
+        cancelBtn.addEventListener('click', closeModal);
+        closeModalBtn.addEventListener('click', closeModal);
 
         // Cerrar modal al hacer clic fuera
         confirmationModal.addEventListener('click', function(e) {
             if (e.target === confirmationModal) {
-                confirmationModal.classList.remove('modal-open');
+                closeModal();
+            }
+        });
+
+        // Cerrar modal con tecla Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && confirmationModal.classList.contains('modal-open')) {
+                closeModal();
             }
         });
 

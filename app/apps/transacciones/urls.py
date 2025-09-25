@@ -55,6 +55,11 @@ urlpatterns = [
     # URLs para realizar transacciones reales
     path("realizar-transaccion/", views.realizar_transaccion_view, name="realizar_transaccion"),
     path("api/crear-transaccion", views.api_crear_transaccion, name="api_crear_transaccion"),
+    path(
+        "api/cancelar-transaccion/<str:transaccion_id>/",
+        views.api_cancelar_transaccion,
+        name="api_cancelar_transaccion",
+    ),
     path("procesar/<str:transaccion_id>/", views.procesar_transaccion_view, name="procesar_transaccion"),
     path("", views.vista_transacciones, name="lista"),
 ]

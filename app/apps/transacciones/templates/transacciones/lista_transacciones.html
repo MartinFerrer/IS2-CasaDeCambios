@@ -29,6 +29,16 @@
                     </svg>
                     Simulador
                 </a>
+                <a href="/" class="btn btn-outline">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Volver al inicio
+                </a>
             </div>
         </div>
         <!-- Información del Cliente -->
@@ -77,13 +87,15 @@
                         </div>
                         <div class="stat">
                             <div class="stat-title">Pendientes</div>
-                            <div class="stat-value text-warning">
-                                {% with pendientes=transacciones|dictsort:"estado"|dictsortreversed:"estado" %}{{ transacciones|length }}{% endwith %}
-                            </div>
+                            <div class="stat-value text-warning" id="pendientes-count">0</div>
                         </div>
                         <div class="stat">
                             <div class="stat-title">Completadas</div>
-                            <div class="stat-value text-success">0</div>
+                            <div class="stat-value text-success" id="completadas-count">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Canceladas</div>
+                            <div class="stat-value text-error" id="canceladas-count">0</div>
                         </div>
                     </div>
                     <!-- Tabla de transacciones -->
@@ -98,6 +110,8 @@
                                     <th>Monto Origen</th>
                                     <th>Monto Destino</th>
                                     <th>Tasa</th>
+                                    <th>Medio de Pago</th>
+                                    <th>Medio de Cobro</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -161,6 +175,24 @@
                                         </td>
                                         <td>
                                             <div class="font-mono text-xs">{{ transaccion.tasa_aplicada|floatformat:4 }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="text-xs">
+                                                {% if transaccion.nombre_medio_pago %}
+                                                    {{ transaccion.nombre_medio_pago }}
+                                                {% else %}
+                                                    <span class="text-gray-400">-</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-xs">
+                                                {% if transaccion.nombre_medio_cobro %}
+                                                    {{ transaccion.nombre_medio_cobro }}
+                                                {% else %}
+                                                    <span class="text-gray-400">-</span>
+                                                {% endif %}
+                                            </div>
                                         </td>
                                         <td>
                                             {% if transaccion.estado == 'pendiente' %}
@@ -257,6 +289,34 @@
         </div>
     </div>
     <script>
+        // Función para contar transacciones por estado
+        function actualizarEstadisticas() {
+            const badges = document.querySelectorAll('.table tbody tr .badge');
+            let pendientes = 0;
+            let completadas = 0;
+            let canceladas = 0;
+            
+            badges.forEach(badge => {
+                const texto = badge.textContent.trim().toLowerCase();
+                if (texto === 'pendiente') {
+                    pendientes++;
+                } else if (texto === 'completada') {
+                    completadas++;
+                } else if (texto === 'cancelada') {
+                    canceladas++;
+                }
+            });
+            
+            // Actualizar los contadores en el DOM
+            const pendientesElement = document.getElementById('pendientes-count');
+            const completadasElement = document.getElementById('completadas-count');
+            const canceladasElement = document.getElementById('canceladas-count');
+            
+            if (pendientesElement) pendientesElement.textContent = pendientes;
+            if (completadasElement) completadasElement.textContent = completadas;
+            if (canceladasElement) canceladasElement.textContent = canceladas;
+        }
+
         function verDetalle(transaccionId) {
             // Por ahora, mostrar un placeholder
             // En el futuro, hacer una llamada AJAX para obtener detalles
@@ -283,6 +343,11 @@
             if (e.target === this) {
                 cerrarDetalle();
             }
+        });
+
+        // Ejecutar al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            actualizarEstadisticas();
         });
     </script>
 {% endblock content %}

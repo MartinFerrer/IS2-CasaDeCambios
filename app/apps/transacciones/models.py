@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -536,7 +537,6 @@ class Transaccion(models.Model):
 
     ESTADOS_TRANSACCION = [
         ("pendiente", "Pendiente"),
-        ("procesando", "Procesando"),
         ("completada", "Completada"),
         ("cancelada", "Cancelada"),
         ("fallida", "Fallida"),
@@ -581,8 +581,20 @@ class Transaccion(models.Model):
     tasa_aplicada = models.DecimalField(
         max_digits=15, decimal_places=8, help_text="Tasa de cambio aplicada en la transacción"
     )
-    monto_origen = models.DecimalField(max_digits=15, decimal_places=8, help_text="Monto en la divisa de origen")
-    monto_destino = models.DecimalField(max_digits=15, decimal_places=8, help_text="Monto en la divisa de destino")
+    monto_origen = models.DecimalField(max_digits=20, decimal_places=8, help_text="Monto en la divisa de origen")
+    monto_destino = models.DecimalField(max_digits=20, decimal_places=8, help_text="Monto en la divisa de destino")
+    medio_pago = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Identificador del medio de pago utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+    )
+    medio_cobro = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Identificador del medio de cobro utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+    )
 
     class Meta:
         """Configuración para el modelo Transaccion.
@@ -622,18 +634,18 @@ class Transaccion(models.Model):
         super().clean()
 
         # Validar que los montos sean positivos
-        if self.montoOrigen is not None and self.montoOrigen <= 0:
-            raise ValidationError({"montoOrigen": "El monto de origen debe ser positivo."})
+        if self.monto_origen is not None and self.monto_origen <= 0:
+            raise ValidationError({"monto_origen": "El monto de origen debe ser positivo."})
 
-        if self.montoDestino is not None and self.montoDestino <= 0:
-            raise ValidationError({"montoDestino": "El monto de destino debe ser positivo."})
+        if self.monto_destino is not None and self.monto_destino <= 0:
+            raise ValidationError({"monto_destino": "El monto de destino debe ser positivo."})
 
         # Validar que la tasa aplicada sea positiva
-        if self.tasaAplicada is not None and self.tasaAplicada <= 0:
-            raise ValidationError({"tasaAplicada": "La tasa aplicada debe ser positiva."})
+        if self.tasa_aplicada is not None and self.tasa_aplicada <= 0:
+            raise ValidationError({"tasa_aplicada": "La tasa aplicada debe ser positiva."})
 
         # Validar que las divisas sean diferentes
-        if self.divisaOrigen and self.divisaDestino and self.divisaOrigen == self.divisaDestino:
+        if self.divisa_origen and self.divisa_destino and self.divisa_origen == self.divisa_destino:
             raise ValidationError("Las divisas de origen y destino deben ser diferentes.")
 
     def save(self, *args, **kwargs):
