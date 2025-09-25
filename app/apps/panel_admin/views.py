@@ -8,12 +8,13 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.transacciones.models import EntidadFinanciera
+from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
 from .forms import ClienteForm, UsuarioForm
@@ -38,6 +39,7 @@ def configuracion(request: HttpRequest) -> HttpResponse:
     Se pasan los siguentes queryset para la configuracion:
         - TipoCliente: Configuración de descuento sobre la comisión
         - EntidadFinanciera: Gestión de entidades financieras
+        - LimiteTransacciones: Configuración de límites de transacciones
 
     Args:
         request: HttpRequest object.
@@ -48,9 +50,14 @@ def configuracion(request: HttpRequest) -> HttpResponse:
     """
     tipos_clientes = TipoCliente.objects.all()
     entidades = EntidadFinanciera.objects.all().order_by('tipo', 'nombre')
+    limite_actual = LimiteTransacciones.get_limite_actual()
+    historial_limites = LimiteTransacciones.objects.all().order_by('-fecha_modificacion')
+
     return render(request, "configuracion.html", {
         "tipos_clientes": tipos_clientes,
-        "entidades": entidades
+        "entidades": entidades,
+        "limite_actual": limite_actual,
+        "historial_limites": historial_limites,
     })
 
 
@@ -107,6 +114,52 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
         return redirect("configuracion")
 
     messages.success(request, "Cambios guardados exitosamente.")
+    return redirect("configuracion")
+
+
+@require_POST
+def guardar_limites(request: HttpRequest) -> HttpResponse:
+    """Guarda los límites de transacciones enviados por el formulario.
+
+    Args:
+        request (HttpRequest): Petición HTTP POST con 'limite_diario' y 'limite_mensual'.
+
+    Retorna:
+        HttpResponse: Redirige a 'configuracion' con mensaje de éxito o error.
+
+    """
+    limite_diario_str = request.POST.get('limite_diario')
+    limite_mensual_str = request.POST.get('limite_mensual')
+
+    if not limite_diario_str or not limite_mensual_str:
+        messages.error(request, "Faltan valores en el formulario de límites.")
+        return redirect("configuracion")
+
+    try:
+        limite_diario = Decimal(limite_diario_str).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        limite_mensual = Decimal(limite_mensual_str).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError):
+        messages.error(request, "Los valores ingresados no son válidos.")
+        return redirect("configuracion")
+
+    try:
+        with transaction.atomic():
+            limite = LimiteTransacciones(
+                limite_diario=limite_diario,
+                limite_mensual=limite_mensual
+            )
+            limite.full_clean()  # Usa las validaciones del modelo
+            limite.save()
+
+        messages.success(request, f"Límites actualizados exitosamente. "
+                       f"Diario: ₲{limite.limite_diario:,.0f}, "
+                       f"Mensual: ₲{limite.limite_mensual:,.0f}")
+    except ValidationError as e:
+        for error in e.messages:
+            messages.error(request, error)
+    except Exception as e:
+        messages.error(request, f"Error al guardar los límites: {e}")
+
     return redirect("configuracion")
 
 
