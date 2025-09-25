@@ -1108,6 +1108,124 @@ def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
     return render(request, "realizar_transaccion.html", context)
 
 
+def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
+    """Verifica si una transacción excede los límites diarios y mensuales configurados.
+    
+    Args:
+        cliente: Instancia del cliente
+        monto_pyg: Monto de la transacción en guaraníes (PYG)
+        fecha_transaccion: Fecha de la transacción (usa datetime.date.today() si es None)
+    
+    Returns:
+        dict: {'valid': bool, 'error_message': str, 'limits_info': dict}
+
+    """
+    from datetime import date
+
+    from .models import LimiteTransacciones
+
+    try:
+        # Obtener límites actuales
+        limite_config = LimiteTransacciones.get_limite_actual()
+
+        # Si no hay límites configurados, permitir la transacción
+        if not limite_config:
+            return {'valid': True, 'error_message': None, 'limits_info': None}
+
+        # Usar fecha actual si no se especifica
+        if fecha_transaccion is None:
+            fecha_transaccion = date.today()
+
+        # Calcular inicio del mes
+        inicio_mes = date(fecha_transaccion.year, fecha_transaccion.month, 1)
+
+        # Obtener transacciones existentes del cliente (pendientes y completadas)
+        transacciones_existentes = Transaccion.objects.filter(
+            cliente=cliente,
+            estado__in=['pendiente', 'completada']
+        )
+
+        # Calcular montos acumulados del día (convertir a PYG)
+        transacciones_dia = transacciones_existentes.filter(
+            fecha_creacion__date=fecha_transaccion
+        )
+
+        monto_dia_pyg = Decimal('0')
+        for trans in transacciones_dia:
+            # Convertir monto a PYG según el tipo de operación
+            if trans.tipo_operacion == 'compra':
+                # En compra, el cliente paga en PYG
+                # Lo que cuenta para el límite es lo que paga en PYG
+                monto_dia_pyg += trans.monto_origen
+            else:  # venta
+                # En venta, el cliente recibe PYG (monto_destino)
+                # Lo que cuenta para el límite es lo que recibe en PYG
+                monto_dia_pyg += trans.monto_destino
+
+        # Calcular montos acumulados del mes
+        transacciones_mes = transacciones_existentes.filter(
+            fecha_creacion__date__gte=inicio_mes,
+            fecha_creacion__date__lte=fecha_transaccion
+        )
+
+        monto_mes_pyg = Decimal('0')
+        for trans in transacciones_mes:
+            if trans.tipo_operacion == 'compra':
+                monto_mes_pyg += trans.monto_origen
+            else:  # venta
+                monto_mes_pyg += trans.monto_destino
+
+        # Verificar límite diario
+        nuevo_monto_dia = monto_dia_pyg + Decimal(str(monto_pyg))
+        if nuevo_monto_dia > limite_config.limite_diario:
+            return {
+                'valid': False,
+                'error_message': f'Límite diario excedido. '
+                               f'Límite: ₲{limite_config.limite_diario:,.0f}, '
+                               f'Usado hoy: ₲{monto_dia_pyg:,.0f}, '
+                               f'Nuevo total sería: ₲{nuevo_monto_dia:,.0f}',
+                'limits_info': {
+                    'limite_diario': float(limite_config.limite_diario),
+                    'usado_dia': float(monto_dia_pyg),
+                    'nuevo_total_dia': float(nuevo_monto_dia)
+                }
+            }
+
+        # Verificar límite mensual
+        nuevo_monto_mes = monto_mes_pyg + Decimal(str(monto_pyg))
+        if nuevo_monto_mes > limite_config.limite_mensual:
+            return {
+                'valid': False,
+                'error_message': f'Límite mensual excedido. '
+                               f'Límite: ₲{limite_config.limite_mensual:,.0f}, '
+                               f'Usado este mes: ₲{monto_mes_pyg:,.0f}, '
+                               f'Nuevo total sería: ₲{nuevo_monto_mes:,.0f}',
+                'limits_info': {
+                    'limite_mensual': float(limite_config.limite_mensual),
+                    'usado_mes': float(monto_mes_pyg),
+                    'nuevo_total_mes': float(nuevo_monto_mes)
+                }
+            }
+
+        return {
+            'valid': True,
+            'error_message': None,
+            'limits_info': {
+                'limite_diario': float(limite_config.limite_diario),
+                'limite_mensual': float(limite_config.limite_mensual),
+                'usado_dia': float(monto_dia_pyg),
+                'usado_mes': float(monto_mes_pyg),
+                'disponible_dia': float(limite_config.limite_diario - monto_dia_pyg),
+                'disponible_mes': float(limite_config.limite_mensual - monto_mes_pyg)
+            }
+        }
+
+    except Exception as e:
+        # En caso de error, registrar pero permitir la transacción para no bloquear el sistema
+        print(f"Error verificando límites de transacción: {e}")
+        return {'valid': True, 'error_message': None, 'limits_info': None}
+
+
 @require_GET
 def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
     """Crea una nueva transacción basada en parámetros de simulación.
@@ -1183,6 +1301,23 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         # Obtener y validar los medios de pago/cobro
         metodo_pago = params.get("metodo_pago", "efectivo")
         metodo_cobro = params.get("metodo_cobro", "efectivo")
+
+        # Verificar límites de transacción antes de crear
+        # Calcular el monto en PYG según el tipo de operación
+        if tipo_operacion == "compra":
+            monto_pyg_transaccion = monto_origen
+        else:  # venta
+            # En venta, el cliente recibe PYG (monto_destino)
+            monto_pyg_transaccion = monto_destino
+
+        # Validar límites
+        limite_result = _verificar_limites_transaccion(cliente, monto_pyg_transaccion)
+        if not limite_result['valid']:
+            return JsonResponse({
+                "error": limite_result['error_message'],
+                "tipo_error": "limite_excedido",
+                "limits_info": limite_result['limits_info']
+            }, status=400)
 
         transaccion = Transaccion.objects.create(
             cliente=cliente,
