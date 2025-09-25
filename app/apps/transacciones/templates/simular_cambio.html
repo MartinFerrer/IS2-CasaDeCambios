@@ -6,23 +6,17 @@
 {% block content %}
     <div class="container mx-auto p-8">
         <h2 class="text-3xl font-bold mb-6 text-center">Simulador de Cambio de Divisas</h2>
-        <!-- Selección de Cliente -->
-        {% if user.is_authenticated and clientes %}
-            <div class="card bg-base-100 shadow-lg mb-6">
-                <div class="card-body">
-                    <h3 class="card-title">Seleccionar Cliente</h3>
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Cliente</span>
-                        </label>
-                        <select id="cliente-select" class="select select-bordered" required>
-                            <option value="">Seleccione un cliente</option>
-                            {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.nombre }} - {{ cliente.ruc }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
+        <!-- Información del Cliente -->
+        {% if user.is_authenticated and request.cliente %}
+            <div class="alert alert-info mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                <span>Simulando para el cliente: <strong>{{ request.cliente.nombre }}</strong> ({{ request.cliente.ruc }})</span>
             </div>
         {% elif user.is_authenticated %}
             <div class="alert alert-warning mb-6">
@@ -156,7 +150,7 @@
                             </p>
                             <p class="text-2xl font-extrabold text-primary">
                                 <strong id="monto-final-label">Monto a Recibir:</strong>
-                                <span id="monto-final-val">0</span> <span id="moneda-destino-val">-</span>
+                                <span id="monto-final-val">0</span> <span id="moneda-destino-val">PYG</span>
                             </p>
                         </div>
                     </div>
@@ -215,7 +209,6 @@
         <script>
         (function() {
             // Elementos del DOM
-            const clienteSelect = document.getElementById('cliente-select');
             const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
             const divisaSelect = document.getElementById('divisa-select');
             const montoInput = document.getElementById('monto-input');
@@ -241,13 +234,11 @@
             const comisionMedioPagoSection = document.getElementById('comision-medio-pago-section');
             const comisionMedioPagoVal = document.getElementById('comision-medio-pago-val');
             const comisionMedioPagoPct = document.getElementById('comision-medio-pago-pct');
-            // transactionBreakdown removed (now using commission-breakdown)
-            // breakdownContent removed (desglose integrado)
             const walletWarning = document.getElementById('wallet-warning');
             const proceedBtn = document.getElementById('proceed-btn');
 
             // Estado global
-            let currentCliente = null;
+            const currentCliente = {% if request.cliente %}{{ request.cliente.id }}{% else %}null{% endif %};
             let availableDivisas = [];
 
             // Funciones de formateo
@@ -286,14 +277,14 @@
                 const tipo = getTipoOperacion();
                 if (tipo === 'compra') {
                     divisaLabel.textContent = 'Quiero';
-                    montoLabel.textContent = 'Monto que Tengo (PYG)';
-                    montoOriginalLabel.textContent = 'Monto que Tengo:';
-                    montoFinalLabel.textContent = 'Monto a Recibir:';
+                    montoLabel.textContent = 'Monto que Deseo';
+                    montoOriginalLabel.textContent = 'Monto que Deseo:';
+                    montoFinalLabel.textContent = 'Total a Pagar:';
                 } else {
                     divisaLabel.textContent = 'Tengo';
                     montoLabel.textContent = 'Monto que Tengo';
                     montoOriginalLabel.textContent = 'Monto que Tengo:';
-                    montoFinalLabel.textContent = 'Monto a Recibir (PYG):';
+                    montoFinalLabel.textContent = 'Monto a Recibir:';
                 }
             }
 
@@ -320,15 +311,15 @@
             }
 
             // Cargar medios de pago del cliente
-            async function loadMediosPago(clienteId) {
-                if (!clienteId) {
+            async function loadMediosPago() {
+                if (!currentCliente) {
                     resetMediosPago();
                     return;
                 }
 
                 try {
                     const tipo = getTipoOperacion();
-                    const response = await fetch(`{% url "transacciones:api_medios_pago_cliente" cliente_id=0 %}`.replace('0', clienteId) + `?tipo=${tipo}`);
+                    const response = await fetch(`{% url "transacciones:api_medios_pago_cliente" cliente_id=0 %}`.replace('0', currentCliente) + `?tipo=${tipo}`);
                     const data = await response.json();
 
                     // Limpiar y rellenar método de pago
@@ -371,7 +362,6 @@
                 const monto = parseFloat(montoInput.value) || 0;
                 const divisa = divisaSelect.value;
                 const tipo = getTipoOperacion();
-                const clienteId = clienteSelect?.value || '';
 
                 if (monto < 1 || !divisa) {
                     resultsCard.classList.add('hidden');
@@ -383,8 +373,7 @@
                     divisa_seleccionada: divisa,
                     tipo_operacion: tipo,
                     metodo_pago: metodoPagoSelect.value,
-                    metodo_cobro: metodoCobroSelect.value,
-                    cliente_id: clienteId
+                    metodo_cobro: metodoCobroSelect.value
                 });
 
                 try {
@@ -393,11 +382,22 @@
 
                     // Actualizar resultados
                     // Mostrar montos con formato y énfasis
+                    const tipo = getTipoOperacion();
+
                     montoOriginalVal.textContent = formatNumber(data.monto_original, data.moneda_origen);
                     monedaOrigenVal.textContent = data.moneda_origen;
-                    tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} ${data.moneda_destino}`;
-                    montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, data.moneda_destino)}</span>`;
-                    monedaDestinoVal.textContent = data.moneda_destino;
+
+
+                    if (tipo === 'compra') {
+
+                        tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
+                    } else {
+
+                        tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
+                    }
+
+                    montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, "PYG")}</span>`;
+                    monedaDestinoVal.textContent = "PYG";
                     comisionBaseVal.textContent = formatNumber(data.comision_base, data.moneda_destino);
                     descuentoVal.textContent = data.descuento;
                     comisionFinalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
@@ -437,7 +437,7 @@
 
                     // Habilitar botón proceder si hay cliente seleccionado
                     if (proceedBtn) {
-                        proceedBtn.disabled = !clienteId;
+                        proceedBtn.disabled = !currentCliente;
                     }
 
                     resultsCard.classList.remove('hidden');
@@ -449,20 +449,12 @@
             }
 
             // Event listeners
-            if (clienteSelect) {
-                clienteSelect.addEventListener('change', function() {
-                    currentCliente = this.value;
-                    loadMediosPago(this.value);
-                    performSimulation();
-                });
-            }
-
             tipoOperacionInputs.forEach(input => {
                 input.addEventListener('change', function() {
                     updateLabels();
                     // Recargar medios de pago porque las opciones de cobro cambian según el tipo
                     if (currentCliente) {
-                        loadMediosPago(currentCliente);
+                        loadMediosPago();
                     }
                     performSimulation();
                 });
@@ -476,6 +468,9 @@
             // Inicialización
             updateLabels();
             loadDivisas();
+            if (currentCliente) {
+                loadMediosPago();
+            }
         })();
         </script>
     </div>

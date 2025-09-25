@@ -8,6 +8,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -15,22 +17,108 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Cliente
-
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
 
 
-def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
+def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
+    """Calcula la comisión del medio de pago."""
+    if metodo_pago.startswith("tarjeta_") and cliente:
+        try:
+            tarjeta_id = int(metodo_pago.split("_")[1])
+            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
+            if tarjeta.entidad:
+                return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
+            return Decimal("5.0")
+        except (ValueError, TarjetaCredito.DoesNotExist):
+            return Decimal("5.0")
+    elif metodo_pago.startswith("cuenta_") and cliente:
+        try:
+            cuenta_id = int(metodo_pago.split("_")[1])
+            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
+            if cuenta.entidad:
+                return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
+            return Decimal("0.0")
+        except (ValueError, CuentaBancaria.DoesNotExist):
+            return Decimal("0.0")
+    elif metodo_pago.startswith("billetera_") and cliente:
+        try:
+            billetera_id = int(metodo_pago.split("_")[1])
+            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
+            if billetera.entidad:
+                return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
+            return Decimal("3.0")
+        except (ValueError, BilleteraElectronica.DoesNotExist):
+            return Decimal("3.0")
+    else:
+        comisiones_medios = {
+            "efectivo": Decimal("0.0"),
+            "cuenta": Decimal("0.0"),
+            "tarjeta": Decimal("5.0"),
+            "billetera": Decimal("3.0"),
+        }
+        if metodo_pago.startswith("tarjeta"):
+            return comisiones_medios["tarjeta"]
+        elif metodo_pago.startswith("cuenta"):
+            return comisiones_medios["cuenta"]
+        elif metodo_pago.startswith("billetera"):
+            return comisiones_medios["billetera"]
+        return comisiones_medios["efectivo"]
+
+
+def _get_collection_commission(metodo_cobro: str, cliente, tipo: str) -> Decimal:
+    """Calcula la comisión del medio de cobro."""
+    if metodo_cobro.startswith("tarjeta_") and cliente:
+        try:
+            tarjeta_id = int(metodo_cobro.split("_")[1])
+            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
+            if tarjeta.entidad:
+                return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
+            return Decimal("5.0")
+        except (ValueError, TarjetaCredito.DoesNotExist):
+            return Decimal("5.0")
+    elif metodo_cobro.startswith("cuenta_") and cliente:
+        try:
+            cuenta_id = int(metodo_cobro.split("_")[1])
+            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
+            if cuenta.entidad:
+                return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
+            return Decimal("0.0")
+        except (ValueError, CuentaBancaria.DoesNotExist):
+            return Decimal("0.0")
+    elif metodo_cobro.startswith("billetera_") and cliente:
+        try:
+            billetera_id = int(metodo_cobro.split("_")[1])
+            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
+            if billetera.entidad:
+                return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
+            return Decimal("3.0")
+        except (ValueError, BilleteraElectronica.DoesNotExist):
+            return Decimal("3.0")
+    else:
+        comisiones_medios = {
+            "efectivo": Decimal("0.0"),
+            "cuenta": Decimal("0.0"),
+            "tarjeta": Decimal("5.0"),
+            "billetera": Decimal("3.0"),
+        }
+        if metodo_cobro.startswith("tarjeta"):
+            return comisiones_medios["tarjeta"]
+        elif metodo_cobro.startswith("cuenta"):
+            return comisiones_medios["cuenta"]
+        elif metodo_cobro.startswith("billetera"):
+            return comisiones_medios["billetera"]
+        return comisiones_medios["efectivo"]
+
+
+def _compute_simulation(params: Dict, request) -> Dict:
     """Cálculo centralizado de la simulación.
 
     params: dict con keys: monto (float), divisa_seleccionada, tipo_operacion,
     metodo_pago, metodo_cobro
-    user: request.user (puede ser AnonymousUser)
-    cliente_id: ID del cliente seleccionado para la simulación
+    request: HttpRequest que incluye el cliente en request.cliente (del middleware)
 
     Todas las transacciones son desde/hacia PYG:
-    - Compra: cliente da PYG y recibe divisa seleccionada
+    - Compra: cliente especifica monto de divisa extranjera que desea y se calcula el precio en PYG
     - Venta: cliente da divisa seleccionada y recibe PYG
     """
     monto = float(params.get("monto") or 0)
@@ -39,21 +127,12 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     metodo_pago = params.get("metodo_pago") or "efectivo"
     metodo_cobro = params.get("metodo_cobro") or "efectivo"
 
-    # Obtener cliente seleccionado para descuentos
-    cliente = None
-    if cliente_id:
-        try:
-            cliente = Cliente.objects.get(pk=cliente_id)
-        except Cliente.DoesNotExist:
-            pass
+    # Obtener cliente del middleware para descuentos
+    cliente = getattr(request, "cliente", None)
 
     # Determinar monedas origen y destino según tipo de operación
-    if tipo == "compra":
-        moneda_origen = "PYG"
-        moneda_destino = divisa_seleccionada
-    else:  # venta
-        moneda_origen = divisa_seleccionada
-        moneda_destino = "PYG"
+    moneda_origen = divisa_seleccionada
+    moneda_destino = "PYG"
 
     # Buscar tasa de cambio activa (siempre con PYG como origen en la BD)
     tasa_cambio = None
@@ -66,11 +145,10 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
 
     # Si no hay tasa de cambio, usar valores por defecto
     if not tasa_cambio:
-        # Tasas de ejemplo relativas a PYG
         rates_to_pyg = {"USD": 7000.0, "EUR": 7600.0, "BRL": 1300.0}
         pb_dolar = Decimal(str(rates_to_pyg.get(divisa_seleccionada, 7000.0)))
-        comision_com = Decimal("50.0")  # Comisión de compra por defecto
-        comision_vta = Decimal("75.0")  # Comisión de venta por defecto
+        comision_com = Decimal("50.0")
+        comision_vta = Decimal("75.0")
     else:
         pb_dolar = tasa_cambio.valor
         comision_com = tasa_cambio.comision_compra
@@ -81,171 +159,39 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     if cliente and cliente.tipo_cliente:
         pordes = cliente.tipo_cliente.descuento_sobre_comision
 
-    # Obtener comisión del medio de pago específico si es aplicable
-    comision_medio_pago_valor = Decimal("0.0")
-    # Obtener comisión del medio de cobro específico si es aplicable
-    comision_medio_cobro_valor = Decimal("0.0")
-
-    # Procesar medio de pago
-    if metodo_pago.startswith("tarjeta_") and cliente:
-        try:
-            tarjeta_id = int(metodo_pago.split("_")[1])
-            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
-            if tarjeta.entidad:
-                if tipo == "compra":
-                    comision_medio_pago_valor = tarjeta.entidad.comision_compra
-                else:
-                    comision_medio_pago_valor = tarjeta.entidad.comision_venta
-            else:
-                comision_medio_pago_valor = Decimal("5.0")  # Comisión por defecto
-        except (ValueError, TarjetaCredito.DoesNotExist):
-            comision_medio_pago_valor = Decimal("5.0")  # Comisión por defecto
-
-    elif metodo_pago.startswith("cuenta_") and cliente:
-        try:
-            cuenta_id = int(metodo_pago.split("_")[1])
-            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
-            if cuenta.entidad:
-                if tipo == "compra":
-                    comision_medio_pago_valor = cuenta.entidad.comision_compra
-                else:
-                    comision_medio_pago_valor = cuenta.entidad.comision_venta
-            else:
-                comision_medio_pago_valor = Decimal("0.0")  # Comisión por defecto
-        except (ValueError, CuentaBancaria.DoesNotExist):
-            comision_medio_pago_valor = Decimal("0.0")  # Comisión por defecto
-
-    elif metodo_pago.startswith("billetera_") and cliente:
-        try:
-            billetera_id = int(metodo_pago.split("_")[1])
-            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
-            if billetera.entidad:
-                if tipo == "compra":
-                    comision_medio_pago_valor = billetera.entidad.comision_compra
-                else:
-                    comision_medio_pago_valor = billetera.entidad.comision_venta
-            else:
-                comision_medio_pago_valor = Decimal("3.0")  # Comisión por defecto
-        except (ValueError, BilleteraElectronica.DoesNotExist):
-            comision_medio_pago_valor = Decimal("3.0")  # Comisión por defecto
-    else:
-        # Para efectivo o medios genéricos, usar comisiones por defecto
-        comisiones_medios = {
-            "efectivo": Decimal("0.0"),  # 0%
-            "cuenta": Decimal("0.0"),  # 0%
-            "tarjeta": Decimal("5.0"),  # 5%
-            "billetera": Decimal("3.0"),  # 3%
-        }
-
-        # Determinar tipo de medio de pago para comisión
-        if metodo_pago.startswith("tarjeta"):
-            comision_medio_pago_valor = comisiones_medios["tarjeta"]
-        elif metodo_pago.startswith("cuenta"):
-            comision_medio_pago_valor = comisiones_medios["cuenta"]
-        elif metodo_pago.startswith("billetera"):
-            comision_medio_pago_valor = comisiones_medios["billetera"]
-        else:
-            comision_medio_pago_valor = comisiones_medios["efectivo"]
-
-    # Procesar medio de cobro
-    if metodo_cobro.startswith("tarjeta_") and cliente:
-        try:
-            tarjeta_id = int(metodo_cobro.split("_")[1])
-            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
-            if tarjeta.entidad:
-                if tipo == "compra":
-                    comision_medio_cobro_valor = tarjeta.entidad.comision_compra
-                else:
-                    comision_medio_cobro_valor = tarjeta.entidad.comision_venta
-            else:
-                comision_medio_cobro_valor = Decimal("5.0")  # Comisión por defecto
-        except (ValueError, TarjetaCredito.DoesNotExist):
-            comision_medio_cobro_valor = Decimal("5.0")  # Comisión por defecto
-
-    elif metodo_cobro.startswith("cuenta_") and cliente:
-        try:
-            cuenta_id = int(metodo_cobro.split("_")[1])
-            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
-            if cuenta.entidad:
-                if tipo == "compra":
-                    comision_medio_cobro_valor = cuenta.entidad.comision_compra
-                else:
-                    comision_medio_cobro_valor = cuenta.entidad.comision_venta
-            else:
-                comision_medio_cobro_valor = Decimal("0.0")  # Comisión por defecto
-        except (ValueError, CuentaBancaria.DoesNotExist):
-            comision_medio_cobro_valor = Decimal("0.0")  # Comisión por defecto
-
-    elif metodo_cobro.startswith("billetera_") and cliente:
-        try:
-            billetera_id = int(metodo_cobro.split("_")[1])
-            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
-            if billetera.entidad:
-                if tipo == "compra":
-                    comision_medio_cobro_valor = billetera.entidad.comision_compra
-                else:
-                    comision_medio_cobro_valor = billetera.entidad.comision_venta
-            else:
-                comision_medio_cobro_valor = Decimal("3.0")  # Comisión por defecto
-        except (ValueError, BilleteraElectronica.DoesNotExist):
-            comision_medio_cobro_valor = Decimal("3.0")  # Comisión por defecto
-    else:
-        # Para efectivo o medios genéricos, usar comisiones por defecto
-        comisiones_medios = {
-            "efectivo": Decimal("0.0"),  # 0%
-            "cuenta": Decimal("0.0"),  # 0%
-            "tarjeta": Decimal("5.0"),  # 5%
-            "billetera": Decimal("3.0"),  # 3%
-        }
-
-        # Determinar tipo de medio de cobro para comisión
-        if metodo_cobro.startswith("tarjeta"):
-            comision_medio_cobro_valor = comisiones_medios["tarjeta"]
-        elif metodo_cobro.startswith("cuenta"):
-            comision_medio_cobro_valor = comisiones_medios["cuenta"]
-        elif metodo_cobro.startswith("billetera"):
-            comision_medio_cobro_valor = comisiones_medios["billetera"]
-        else:
-            comision_medio_cobro_valor = comisiones_medios["efectivo"]
+    # Obtener comisiones de medios
+    comision_medio_pago_valor = _get_payment_commission(metodo_pago, cliente, tipo)
+    comision_medio_cobro_valor = _get_collection_commission(metodo_cobro, cliente, tipo)
 
     # Calcular según las fórmulas corregidas
     if tipo == "compra":
-        # Cliente da PYG y recibe divisa
-        # Precio final compra = precio base + (comisión compra - (comisión compra * descuento por segmento))
+        # Para compra: el usuario especifica cuánta divisa extranjera desea
+        # y calculamos cuántos guaraníes necesita
         comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
         tc_efectiva = pb_dolar + comision_efectiva
 
-        # Aplicar comisión del medio de pago al monto que se paga en PYG
-        comision_medio_pago = Decimal(str(monto)) * comision_medio_pago_valor / Decimal("100")
-        monto_efectivo_para_cambio = monto - float(comision_medio_pago)
+        # monto = cantidad de divisa extranjera deseada
+        # converted = cantidad de guaraníes necesarios (sin comisión de medio)
+        converted = monto * float(tc_efectiva)
+        comision_medio_pago = Decimal(str(converted)) * comision_medio_pago_valor / Decimal("100")
+        total = converted + float(comision_medio_pago)  # Total en guaraníes a pagar
 
-        # Calcular divisa que se recibe con el monto efectivo (después de comisión del medio)
-        converted = monto_efectivo_para_cambio / float(tc_efectiva)  # Monto en divisa destino
-        comision_final = float(comision_efectiva)
-        total_antes_comision_medio = monto / float(tc_efectiva)  # Para mostrar diferencia
-        total = converted
-        tasa_display = float(tc_efectiva)
-
-        # Para compra, no se aplica comisión de cobro (se cobra en efectivo)
-        comision_medio_cobro = Decimal("0.0")
-    else:  # venta
-        # Cliente da divisa y recibe PYG
-        # Precio final venta = precio base - (comisión venta - (comisión venta * descuento por segmento))
-        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
-        tc_efectiva = pb_dolar - comision_efectiva
-        converted = monto * float(tc_efectiva)  # Monto en PYG antes de comisión medio
         comision_final = float(comision_efectiva)
         total_antes_comision_medio = converted
-
-        # Para venta, NO aplicar comisión del medio de pago (cliente da divisa en efectivo)
+        tasa_display = float(tc_efectiva)
+        comision_medio_cobro = Decimal("0.0")
+    else:  # venta
+        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
+        tc_efectiva = pb_dolar - comision_efectiva
+        converted = monto * float(tc_efectiva)
+        comision_final = float(comision_efectiva)
+        total_antes_comision_medio = converted
         comision_medio_pago = Decimal("0.0")
-
-        # Aplicar comisión del medio de cobro al recibir PYG
         comision_medio_cobro = Decimal(str(total_antes_comision_medio)) * comision_medio_cobro_valor / Decimal("100")
         total = total_antes_comision_medio - float(comision_medio_cobro)
         tasa_display = float(tc_efectiva)
 
-    # Determinar tipo de medio de pago para display
+    # Determinar tipos de medios para display
     tipo_medio_pago = "efectivo"
     if metodo_pago.startswith("tarjeta"):
         tipo_medio_pago = "tarjeta"
@@ -254,7 +200,6 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     elif metodo_pago.startswith("billetera"):
         tipo_medio_pago = "billetera"
 
-    # Determinar tipo de medio de cobro para display
     tipo_medio_cobro = "efectivo"
     if metodo_cobro.startswith("tarjeta"):
         tipo_medio_cobro = "tarjeta"
@@ -290,8 +235,7 @@ def simular_cambio_view(request: HttpRequest) -> HttpResponse:
     """Página para simular operaciones de cambio.
 
     Presenta una página donde el usuario puede simular una operación de compra/venta
-    de divisas. Si el usuario está autenticado, se intenta asociar un cliente desde
-    la sesión o usar el primer cliente del usuario como cliente por defecto.
+    de divisas. El cliente se obtiene automáticamente del middleware.
 
     :param request: Objeto HttpRequest.
     :type request: django.http.HttpRequest
@@ -299,20 +243,11 @@ def simular_cambio_view(request: HttpRequest) -> HttpResponse:
         incluye las divisas disponibles y el cliente asociado (si existe).
     :rtype: django.http.HttpResponse
     """
-    cliente_asociado = None
-    if request.user.is_authenticated:
-        cliente_id = request.session.get("cliente_id")
-        if cliente_id:
-            cliente_asociado = Cliente.objects.filter(id=cliente_id, usuarios=request.user).first()
-        else:
-            # fallback al primer cliente del usuario
-            cliente_asociado = Cliente.objects.filter(usuarios=request.user).first()
-
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
 
     context = {
-        "cliente_asociado": cliente_asociado,
         "divisas": divisas,
+        # El cliente se obtiene automáticamente del middleware en request.cliente
     }
     return render(request, "simular_cambio.html", context)
 
@@ -327,7 +262,6 @@ def api_simular_cambio(request: HttpRequest) -> JsonResponse:
     - tipo_operacion: "compra" o "venta".
     - metodo_pago: identificador del medio de pago (ej. "efectivo", "tarjeta_1").
     - metodo_cobro: identificador del medio de cobro.
-    - cliente_id: (opcional) id del cliente para aplicar descuentos/medios.
 
     :param request: HttpRequest con la querystring de simulación.
     :type request: django.http.HttpRequest
@@ -335,8 +269,7 @@ def api_simular_cambio(request: HttpRequest) -> JsonResponse:
     :rtype: django.http.JsonResponse
     """
     params = request.GET.dict()
-    cliente_id = params.get("cliente_id")
-    result = _compute_simulation(params, request.user, cliente_id)
+    result = _compute_simulation(params, request)
     return JsonResponse(result)
 
 
