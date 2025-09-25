@@ -1,11 +1,9 @@
 """Pruebas unitarias para el modelo TasaCambioHistorial."""
 
-import datetime
 from decimal import Decimal
 
 import pytest
 from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
-from django.utils import timezone
 
 
 @pytest.mark.django_db
@@ -23,11 +21,9 @@ class TestTasaCambioHistorialModel:
         self.tasa = TasaCambio.objects.create(
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
         )
 
@@ -37,11 +33,9 @@ class TestTasaCambioHistorialModel:
             tasa_cambio_original=self.tasa,
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
             motivo="Creación",
         )
@@ -57,11 +51,9 @@ class TestTasaCambioHistorialModel:
             tasa_cambio_original=self.tasa,
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
             motivo="Edición",
         )
@@ -74,11 +66,9 @@ class TestTasaCambioHistorialModel:
             tasa_cambio_original=self.tasa,
             divisa_origen=self.divisa_pyg,
             divisa_destino=self.divisa_usd,
-            valor=Decimal("7000.000"),
+            precio_base=Decimal("7000.000"),
             comision_compra=Decimal("10.000"),
             comision_venta=Decimal("15.000"),
-            fecha_vigencia=timezone.now().date(),
-            hora_vigencia=datetime.time(7, 0),
             activo=True,
             motivo="Creación",
         )
