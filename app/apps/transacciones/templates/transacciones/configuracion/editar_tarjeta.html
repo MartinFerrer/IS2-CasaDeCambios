@@ -69,6 +69,21 @@
                                    required
                                    maxlength="100">
                         </div>
+                        <!-- Entidad emisora de tarjeta -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Entidad Emisora *</span>
+                            </label>
+                            <select name="entidad" class="select select-bordered w-full" required>
+                                <option value="">Seleccione la entidad emisora</option>
+                                {% for entidad in entidades_tarjeta %}
+                                    <option value="{{ entidad.id }}"
+                                            {% if tarjeta.entidad and tarjeta.entidad.id == entidad.id %}selected{% endif %}>
+                                        {{ entidad.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <!-- Fecha de Expiración y CVV -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="form-control w-full">
@@ -142,7 +157,6 @@
                                    name="alias"
                                    class="input input-bordered w-full"
                                    placeholder="Ej: Tarjeta Principal"
-                                   value="{{ tarjeta.alias }}"
                                    maxlength="50">
                             <label class="label">
                                 <span class="label-text-alt text-gray-500">Si se deja vacío, se generará automáticamente</span>

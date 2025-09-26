@@ -6,6 +6,23 @@
 {% block header %}
     {% include "includes/header_admin.html" %}
 {% endblock %}
+{% block extra_head %}
+    <style>
+    .modal {
+        overflow: visible !important;
+    }
+    .modal-box {
+        overflow: visible !important;
+    }
+    .dropdown {
+        position: relative;
+    }
+    .dropdown-content {
+        position: absolute !important;
+        z-index: 9999 !important;
+    }
+    </style>
+{% endblock %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
@@ -29,7 +46,10 @@
                         <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                     </form>
                     <h3 class="font-bold text-lg text-blue-700 mb-4">Crear Nuevo Usuario</h3>
-                    <form method="post" action="{% url 'usuario_crear' %}" class="space-y-4">
+                    <form method="post"
+                          action="{% url 'usuario_crear' %}"
+                          class="space-y-4"
+                          onsubmit="return validarRoles(this)">
                         {% csrf_token %}
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-control">
@@ -64,12 +84,48 @@
                             </div>
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text">Rol</span>
+                                    <span class="label-text">Roles *</span>
                                 </label>
-                                <select name="groups" class="select select-bordered w-full" required>
-                                    <option value="" disabled selected>Selecciona un rol</option>
-                                    {% for grupo in grupos %}<option value="{{ grupo.id }}">{{ grupo.name }}</option>{% endfor %}
-                                </select>
+                                <div class="dropdown w-full">
+                                    <div tabindex="0"
+                                         role="button"
+                                         class="btn btn-outline w-full justify-between"
+                                         id="roles-dropdown-btn">
+                                        <span id="roles-selected-text" class="font-normal">Seleccione uno o más roles...</span>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                    <div tabindex="0"
+                                         class="dropdown-content z-[9999] card card-compact w-full p-0 shadow bg-base-100 border border-gray-200">
+                                        <div class="card-body p-0">
+                                            <div class="overflow-y-auto">
+                                                <table class="table table-sm">
+                                                    <tbody>
+                                                        {% for grupo in grupos %}
+                                                            {% if grupo.name != "Usuario Asociado a Cliente" %}
+                                                                <tr class="hover cursor-pointer role-row"
+                                                                    onclick="toggleRole('{{ grupo.id }}', this)"
+                                                                    data-role-id="{{ grupo.id }}"
+                                                                    data-role-name="{{ grupo.name }}">
+                                                                    <td class="w-8">
+                                                                        <input type="checkbox"
+                                                                               name="groups"
+                                                                               value="{{ grupo.id }}"
+                                                                               class="checkbox checkbox-primary checkbox-sm"
+                                                                               onchange="updateSelectedRoles()"
+                                                                               onclick="event.stopPropagation()" />
+                                                                    </td>
+                                                                    <td>{{ grupo.name }}</td>
+                                                                </tr>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-control col-span-2">
                                 <label class="label cursor-pointer">
@@ -116,7 +172,7 @@
                                 <th class="bg-blue-100">ID</th>
                                 <th class="bg-blue-100">Nombre</th>
                                 <th class="bg-blue-100">Email</th>
-                                <th class="bg-blue-100">Rol</th>
+                                <th class="bg-blue-100">Roles</th>
                                 <th class="bg-blue-100">Estado</th>
                                 <th class="bg-blue-100 text-center">Acciones</th>
                             </tr>
@@ -129,9 +185,11 @@
                                     <td>{{ usuario.email|default:"-" }}</td>
                                     <td>
                                         {% if usuario.groups.exists %}
-                                            {{ usuario.groups.first.name }}
+                                            <div class="flex flex-col space-y-1">
+                                                {% for grupo in usuario.groups.all %}<span>{{ grupo.name }}</span>{% endfor %}
+                                            </div>
                                         {% else %}
-                                            Sin rol
+                                            <span class="text-gray-500">Sin roles</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -165,7 +223,8 @@
                                                 <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Usuario</h3>
                                                 <form method="post"
                                                       action="{% url 'usuario_editar' usuario.id %}"
-                                                      class="space-y-4">
+                                                      class="space-y-4"
+                                                      onsubmit="return validarRoles(this)">
                                                     {% csrf_token %}
                                                     <div class="grid grid-cols-2 gap-4">
                                                         <div class="form-control">
@@ -200,17 +259,49 @@
                                                         </div>
                                                         <div class="form-control">
                                                             <label class="label">
-                                                                <span class="label-text">Rol</span>
+                                                                <span class="label-text">Roles *</span>
                                                             </label>
-                                                            <select name="groups" class="select select-bordered w-full" required>
-                                                                <option value="" disabled>Selecciona un rol</option>
-                                                                {% for grupo in grupos %}
-                                                                    <option value="{{ grupo.id }}"
-                                                                            {% if grupo in usuario.groups.all %}selected{% endif %}>
-                                                                        {{ grupo.name }}
-                                                                    </option>
-                                                                {% endfor %}
-                                                            </select>
+                                                            <div class="dropdown w-full">
+                                                                <div tabindex="0"
+                                                                     role="button"
+                                                                     class="btn btn-outline w-full justify-between"
+                                                                     id="roles-dropdown-btn-{{ usuario.id }}">
+                                                                    <span id="roles-selected-text-{{ usuario.id }}" class="font-normal">Seleccione uno o más roles...</span>
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path>
+                                                                    </svg>
+                                                                </div>
+                                                                <div tabindex="0"
+                                                                     class="dropdown-content z-[9999] card card-compact w-full p-0 shadow bg-base-100 border border-gray-200">
+                                                                    <div class="card-body p-0">
+                                                                        <div class="overflow-y-auto">
+                                                                            <table class="table table-sm">
+                                                                                <tbody>
+                                                                                    {% for grupo in grupos %}
+                                                                                        {% if grupo.name != "Usuario Asociado a Cliente" %}
+                                                                                            <tr class="hover cursor-pointer role-row"
+                                                                                                onclick="toggleRoleEdit('{{ grupo.id }}', '{{ usuario.id }}', this)"
+                                                                                                data-role-id="{{ grupo.id }}"
+                                                                                                data-role-name="{{ grupo.name }}">
+                                                                                                <td class="w-8">
+                                                                                                    <input type="checkbox"
+                                                                                                           name="groups"
+                                                                                                           value="{{ grupo.id }}"
+                                                                                                           class="checkbox checkbox-primary checkbox-sm"
+                                                                                                           {% if grupo in usuario.groups.all %}checked{% endif %}
+                                                                                                           onchange="updateSelectedRolesEdit('{{ usuario.id }}')"
+                                                                                                           onclick="event.stopPropagation()" />
+                                                                                                </td>
+                                                                                                <td>{{ grupo.name }}</td>
+                                                                                            </tr>
+                                                                                        {% endif %}
+                                                                                    {% endfor %}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         <div class="form-control col-span-2">
                                                             <label class="label cursor-pointer">
@@ -282,4 +373,132 @@
             </div>
         </div>
     </div>
+    <script>
+        function validarRoles(formulario) {
+            var checkboxes = formulario.querySelectorAll('input[name="groups"]:checked');
+            if (checkboxes.length === 0) {
+                alert('Debe seleccionar al menos un rol.');
+                return false;
+            }
+            return true;
+        }
+
+        function updateSelectedRoles() {
+            const checkboxes = document.querySelectorAll('#modal_crear_usuario input[name="groups"]:checked');
+            const selectedText = document.getElementById('roles-selected-text');
+            const badgesContainer = document.getElementById('selected-roles-badges');
+            
+            // Limpiar badges existentes
+            badgesContainer.innerHTML = '';
+            
+            if (checkboxes.length === 0) {
+                selectedText.textContent = 'Seleccione uno o más roles...';
+                selectedText.className = 'text-gray-500';
+            } else {
+                selectedText.textContent = `${checkboxes.length} rol(es) seleccionado(s)`;
+                selectedText.className = 'text-gray-900';
+                
+                // Crear badges para cada rol seleccionado
+                checkboxes.forEach(checkbox => {
+                    const row = checkbox.closest('tr');
+                    const roleName = row.getAttribute('data-role-name');
+                    const badge = document.createElement('div');
+                    badge.className = 'badge badge-primary badge-sm gap-1';
+                    badge.innerHTML = `
+                        ${roleName}
+                        <button type="button" onclick="removeRole('${checkbox.value}')" class="btn btn-ghost btn-xs p-0 min-h-0 h-auto">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    `;
+                    badgesContainer.appendChild(badge);
+                });
+            }
+        }
+
+        function updateSelectedRolesEdit(userId) {
+            const checkboxes = document.querySelectorAll(`#modal_editar_usuario_${userId} input[name="groups"]:checked`);
+            const selectedText = document.getElementById(`roles-selected-text-${userId}`);
+            const badgesContainer = document.getElementById(`selected-roles-badges-${userId}`);
+            
+            // Limpiar badges existentes
+            badgesContainer.innerHTML = '';
+            
+            if (checkboxes.length === 0) {
+                selectedText.textContent = 'Seleccione uno o más roles...';
+                selectedText.className = 'text-gray-500';
+            } else {
+                selectedText.textContent = `${checkboxes.length} rol(es) seleccionado(s)`;
+                selectedText.className = 'text-gray-900';
+                
+                // Crear badges para cada rol seleccionado
+                checkboxes.forEach(checkbox => {
+                    const row = checkbox.closest('tr');
+                    const roleName = row.getAttribute('data-role-name');
+                    const badge = document.createElement('div');
+                    badge.className = 'badge badge-primary badge-sm gap-1';
+                    badge.innerHTML = `
+                        ${roleName}
+                        <button type="button" onclick="removeRoleEdit('${checkbox.value}', '${userId}')" class="btn btn-ghost btn-xs p-0 min-h-0 h-auto">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    `;
+                    badgesContainer.appendChild(badge);
+                });
+            }
+        }
+
+        function toggleRole(roleId, rowElement) {
+            const checkbox = rowElement.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            updateSelectedRoles();
+        }
+
+        function toggleRoleEdit(roleId, userId, rowElement) {
+            const checkbox = rowElement.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            updateSelectedRolesEdit(userId);
+        }
+
+        function removeRole(roleId) {
+            const checkbox = document.querySelector(`#modal_crear_usuario input[name="groups"][value="${roleId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                updateSelectedRoles();
+            }
+        }
+
+        function removeRoleEdit(roleId, userId) {
+            const checkbox = document.querySelector(`#modal_editar_usuario_${userId} input[name="groups"][value="${roleId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                updateSelectedRolesEdit(userId);
+            }
+        }
+
+        // Inicializar todos los dropdowns de editar cuando se abre la página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Buscar todos los modales de editar y actualizar sus selecciones
+            const editModals = document.querySelectorAll('[id^="modal_editar_usuario_"]');
+            editModals.forEach(modal => {
+                const userId = modal.id.replace('modal_editar_usuario_', '');
+                updateSelectedRolesEdit(userId);
+            });
+        });
+
+        // Cerrar dropdown al hacer clic fuera
+        document.addEventListener('click', function(event) {
+            const dropdowns = document.querySelectorAll('.dropdown');
+            dropdowns.forEach(dropdown => {
+                if (!dropdown.contains(event.target)) {
+                    // Remover focus del dropdown para cerrarlo
+                    const buttons = dropdown.querySelectorAll('[tabindex="0"]');
+                    buttons.forEach(btn => btn.blur());
+                }
+            });
+        });
+    </script>
 {% endblock %}

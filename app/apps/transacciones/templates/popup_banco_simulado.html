@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Banco Simulado - Gateway de Pagos</title>
+        <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css"
+              rel="stylesheet"
+              type="text/css" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .bank-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .bank-header {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .bank-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .status-card {
+            padding: 30px;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        .action-buttons {
+            padding: 20px 30px;
+            background: #f8fafc;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-ghost { background: #e5e7eb; color: #374151; }
+        .btn-ghost:hover { background: #d1d5db; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .hidden { display: none !important; }
+        </style>
+    </head>
+    <body>
+        <div class="bank-container">
+            <!-- Header del banco -->
+            <div class="bank-header">
+                <div class="bank-logo">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-10 w-10"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.78 0-2.678-2.153-1.415-3.414l5-5A2 2 0 009 9.172V5L8 4z" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">Banco Central Simulado</h1>
+                <p class="opacity-90">Gateway de Procesamiento de Pagos</p>
+            </div>
+            <!-- Información de la transacción -->
+            <div class="p-6">
+                {% if error %}
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-semibold text-red-800 mb-3">Error</h3>
+                        <p class="text-red-600">{{ error }}</p>
+                    </div>
+                {% elif transaccion %}
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">Detalles de la Transacción</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="font-medium">ID:</span> <span class="font-mono">{{ transaccion.id_transaccion }}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium">Cliente:</span> {{ transaccion.cliente.nombre }}
+                            </div>
+                            <div>
+                                <span class="font-medium">Tipo:</span> {{ transaccion.tipo_operacion|capfirst }}
+                            </div>
+                            <div>
+                                <span class="font-medium">Monto:</span> {{ transaccion.monto_destino|floatformat:0 }} {{ transaccion.divisa_destino.codigo }}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- Estados del procesamiento -->
+                {% if not error %}
+                    <div class="status-card">
+                        <!-- Estado: Conectando -->
+                        <div id="estadoConectando">
+                            <div class="spinner"></div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">Estableciendo conexión segura</h3>
+                            <p class="text-gray-600">Verificando credenciales y datos de la transacción...</p>
+                        </div>
+                        <!-- Estado: Procesando -->
+                        <div id="estadoProcesando" class="hidden">
+                            <div class="spinner"></div>
+                            <h3 class="text-lg font-semibold text-blue-800 mb-2">Procesando pago</h3>
+                            <p class="text-blue-600 mb-4">El banco está validando y autorizando la transacción</p>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                     id="progressBar"
+                                     style="width: 0%"></div>
+                            </div>
+                            <div class="text-sm text-gray-600 mt-2" id="progressText">0%</div>
+                        </div>
+                        <!-- Estado: Éxito -->
+                        <div id="estadoExitoso" class="hidden">
+                            <div class="result-icon">✓</div>
+                            <h3 class="text-lg font-semibold text-green-800 mb-2">Pago Aprobado</h3>
+                            <p class="text-green-600 mb-4">La transacción ha sido procesada exitosamente</p>
+                            <div class="text-sm text-gray-600 mt-4">
+                                <div class="loading loading-dots loading-sm"></div>
+                                Redirigiendo automáticamente...
+                            </div>
+                        </div>
+                        <!-- Estado: Error -->
+                        <div id="estadoError" class="hidden">
+                            <div class="result-icon">✗</div>
+                            <h3 class="text-lg font-semibold text-red-800 mb-2">Pago Rechazado</h3>
+                            <p class="text-red-600 mb-4" id="mensajeError">Error en el procesamiento de la transacción</p>
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                                <div class="text-xs text-gray-600">Código de error</div>
+                                <div class="font-mono text-sm font-bold text-gray-800" id="codigoError">-</div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Estado de error del servidor -->
+                    <div class="status-card">
+                        <div class="result-icon">✗</div>
+                        <h3 class="text-lg font-semibold text-red-800 mb-2">Error del Sistema</h3>
+                        <p class="text-red-600 mb-4">{{ error }}</p>
+                    </div>
+                {% endif %}
+            </div>
+            <!-- Botones de acción -->
+            <div class="action-buttons">
+                <button id="btnCerrar"
+                        class="btn btn-ghost"
+                        onclick="cerrarVentana()"
+                        disabled>Cerrar</button>
+                <button id="btnReintentar"
+                        class="btn btn-warning hidden"
+                        onclick="reintentarPago()">Reintentar</button>
+            </div>
+        </div>
+        <!-- Token CSRF -->
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+        <script>
+        {% if not error and transaccion %}
+        const transaccionId = '{{ transaccion.id_transaccion }}';
+        let procesoCompletado = false;
+
+        // Iniciar el proceso automáticamente
+        window.addEventListener('load', function() {
+            setTimeout(iniciarProcesamiento, 2000);
+        });
+        {% else %}
+        const transaccionId = '';
+        let procesoCompletado = true; // Para que no se procese nada
+        {% endif %}
+
+        function iniciarProcesamiento() {
+            // Cambiar a estado procesando
+            document.getElementById('estadoConectando').classList.add('hidden');
+            document.getElementById('estadoProcesando').classList.remove('hidden');
+
+            // Simular progreso
+            let progreso = 0;
+            const interval = setInterval(() => {
+                progreso += Math.random() * 15;
+                if (progreso > 100) progreso = 100;
+                
+                document.getElementById('progressBar').style.width = progreso + '%';
+                document.getElementById('progressText').textContent = Math.round(progreso) + '%';
+                
+                if (progreso >= 100) {
+                    clearInterval(interval);
+                    setTimeout(finalizarProceso, 1000);
+                }
+            }, 400);
+        }
+
+        function finalizarProceso() {
+            // 70% éxito, 30% error
+            const exito = Math.random() > 0.3;
+            
+            if (exito) {
+                mostrarExito();
+            } else {
+                mostrarError();
+            }
+        }
+
+        function mostrarExito() {
+            // Ocultar procesando
+            document.getElementById('estadoProcesando').classList.add('hidden');
+            document.getElementById('estadoExitoso').classList.remove('hidden');
+            
+            procesoCompletado = true;
+            
+            // Procesar en el backend
+            procesarPagoBackend(true, null, null);
+            
+            // Mostrar mensaje de éxito por 2 segundos y luego abrir popup TAUSER
+            setTimeout(() => {
+                // Cerrar este popup
+                window.close();
+                
+                // Abrir popup para código TAUSER de retiro
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'abrirTauserRetiro',
+                        transaccionId: transaccionId
+                    }, '*');
+                }
+            }, 2000);
+        }
+
+        function mostrarError() {
+            // Ocultar procesando
+            document.getElementById('estadoProcesando').classList.add('hidden');
+            document.getElementById('estadoError').classList.remove('hidden');
+            
+            // Generar error aleatorio
+            const errores = [
+                { codigo: 'ERR-001', mensaje: 'Fondos insuficientes en la cuenta' },
+                { codigo: 'ERR-002', mensaje: 'Tarjeta bloqueada o vencida' },
+                { codigo: 'ERR-003', mensaje: 'Error de conexión con el banco emisor' },
+                { codigo: 'ERR-004', mensaje: 'Transacción rechazada por políticas de seguridad' },
+                { codigo: 'ERR-005', mensaje: 'Límite diario de transacciones excedido' }
+            ];
+            
+            const errorSeleccionado = errores[Math.floor(Math.random() * errores.length)];
+            document.getElementById('codigoError').textContent = errorSeleccionado.codigo;
+            document.getElementById('mensajeError').textContent = errorSeleccionado.mensaje;
+            
+            // Habilitar botones
+            document.getElementById('btnReintentar').classList.remove('hidden');
+            document.getElementById('btnCerrar').disabled = false;
+            
+            // Procesar en el backend
+            procesarPagoBackend(false, null, errorSeleccionado.codigo + ': ' + errorSeleccionado.mensaje);
+        }
+
+        function procesarPagoBackend(exito, codigoAutorizacion, mensajeError) {
+            fetch('/transacciones/api/procesar-pago-bancario/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    transaccion_id: transaccionId,
+                    exito: exito,
+                    mensaje_error: mensajeError
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Error al procesar resultado del pago:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error de conexión:', error);
+            });
+        }
+
+        function reintentarPago() {
+            // Resetear a estado inicial
+            document.getElementById('estadoError').classList.add('hidden');
+            document.getElementById('estadoConectando').classList.remove('hidden');
+            
+            // Ocultar botones
+            document.getElementById('btnReintentar').classList.add('hidden');
+            document.getElementById('btnCerrar').disabled = true;
+            
+            setTimeout(iniciarProcesamiento, 1500);
+        }
+
+        function continuarYCerrar() {
+            if (procesoCompletado) {
+                // Notificar a la ventana padre y cerrar
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'pagoCompletado',
+                        transaccionId: transaccionId,
+                        exito: true
+                    }, '*');
+                }
+                window.close();
+            }
+        }
+
+        function cerrarVentana() {
+            // Notificar a la ventana padre si es necesario
+            if (window.opener && procesoCompletado) {
+                window.opener.postMessage({
+                    type: 'ventanaCerrada',
+                    transaccionId: transaccionId
+                }, '*');
+            }
+            window.close();
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            // Si no encuentra la cookie, usar el token del input hidden
+            if (!cookieValue) {
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfInput) {
+                    cookieValue = csrfInput.value;
+                }
+            }
+            return cookieValue;
+        }
+
+        // Manejar cierre de ventana
+        window.addEventListener('beforeunload', function() {
+            if (window.opener && !procesoCompletado) {
+                window.opener.postMessage({
+                    type: 'ventanaCerradaSinCompletar',
+                    transaccionId: transaccionId
+                }, '*');
+            }
+        });
+        </script>
+    </body>
+</html>

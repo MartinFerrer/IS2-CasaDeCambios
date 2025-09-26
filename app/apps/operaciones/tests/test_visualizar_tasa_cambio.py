@@ -16,7 +16,7 @@ def test_tasas_cambio_api(client):
         "operaciones.TasaCambio",
         divisa_origen=pyg,
         divisa_destino=usd,
-        valor=7000,
+        precio_base=7000,
         comision_compra=50,
         comision_venta=60,
         activo=True,
@@ -32,4 +32,3 @@ def test_tasas_cambio_api(client):
     assert "precio_compra" in tasa_data
     assert "precio_venta" in tasa_data
     assert "fecha_actualizacion" in tasa_data
-    assert "fecha_vigencia" in tasa_data

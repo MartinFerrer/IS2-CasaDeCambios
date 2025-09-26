@@ -3,8 +3,15 @@
     Vender Divisa
 {% endblock title %}
 {% block content %}
-    <div class="container mx-auto p-8">
-        <h2 class="text-3xl font-bold mb-4">Vender Divisa</h2>
-        <p>Esta es la página para la venta de divisas. ¡Aquí irá el formulario de venta!</p>
-    </div>
+<div class="container mx-auto p-8">
+    <h2 class="text-3xl font-bold mb-4">Vender Divisa</h2>
+
+    {% if cliente_asociado %}
+        <p>Cliente asociado: <strong>{{ cliente_asociado.nombre }}</strong></p>
+    {% else %}
+        <p>No hay cliente asociado.</p>
+    {% endif %}
+
+    <p>Esta es la página para la venta de divisas. ¡Aquí irá el formulario de venta!</p>
+</div>
 {% endblock content %}

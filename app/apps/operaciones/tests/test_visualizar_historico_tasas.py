@@ -21,7 +21,7 @@ def test_historial_tasas_api(client):
         "operaciones.TasaCambio",
         divisa_origen=pyg,
         divisa_destino=usd,
-        valor=7000,
+        precio_base=7000,
         comision_compra=50,
         comision_venta=60,
         activo=True,
@@ -31,7 +31,7 @@ def test_historial_tasas_api(client):
         "operaciones.TasaCambio",
         divisa_origen=usd,
         divisa_destino=pyg,
-        valor=140.000,  # cumplir con max_digits=9, decimal_places=3
+        precio_base=140.000,  # cumplir con max_digits=9, decimal_places=3
         comision_compra=10.000,  # cumplir con max_digits=7, decimal_places=3
         comision_venta=10.000,  # cumplir con max_digits=7, decimal_places=3
         activo=True,
@@ -44,14 +44,17 @@ def test_historial_tasas_api(client):
     if response.get("Content-Type").startswith("application/json"):
         data = response.json()
         assert "historial" in data
-        assert isinstance(data["historial"], dict)
-        # Debe haber claves para USD y PYG (según lógica de la view)
-        assert "USD" in data["historial"] or "PYG" in data["historial"] or "Guaraní" in data["historial"]
-        # Cada divisa debe tener listas de fechas, compra y venta
-        for _divisa, valores in data["historial"].items():
-            assert "fechas" in valores
-            assert "compra" in valores
-            assert "venta" in valores
+        assert isinstance(data["historial"], list)
+        # Debe haber al menos una tasa de cambio
+        assert len(data["historial"]) > 0
+        # Verificar estructura de cada elemento de la lista
+        for tasa in data["historial"]:
+            assert "divisa_origen" in tasa
+            assert "divisa_destino" in tasa
+            assert "precio_base" in tasa
+            assert "comision_compra" in tasa
+            assert "comision_venta" in tasa
+            assert "activo" in tasa
     else:
         # Si devuelve HTML, hay un error en la vista - imprimir contenido para debug
         print(f"Vista devolvió HTML en lugar de JSON. Content-Type: {response.get('Content-Type')}")

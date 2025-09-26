@@ -76,7 +76,7 @@
                                     <label class="label">
                                         <span class="label-text">{{ field.label }}</span>
                                     </label>
-                                    {% if field.name == 'valor' or field.name == 'comision_compra' or field.name == 'comision_venta' %}
+                                    {% if field.name == 'precio_base' or field.name == 'comision_compra' or field.name == 'comision_venta' %}
                                         {{ field }}
                                         <p class="validator-hint text-sm text-gray-500 mt-1"></p>
                                     {% else %}
@@ -93,7 +93,7 @@
                         {% endfor %}
                     </div>
                     <div class="mt-6 flex justify-end space-x-4">
-                        <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                        <a href="{% url 'tasa_cambio_listar' %}"
                            class="btn btn-outline btn-neutral">Cancelar</a>
                         <button type="submit" class="btn btn-primary">
                             {% if form.instance.pk %}
