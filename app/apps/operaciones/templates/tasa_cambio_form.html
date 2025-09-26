@@ -85,7 +85,7 @@
                                     {% if field.help_text %}<p class="text-sm text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
                                     {% for error in field.errors %}
                                         <label class="label">
-                                            <span class="label-text-alt text-error">{{ error }}</span>
+                                            <pre class="label-text-alt text-error whitespace-pre-wrap text-sm">{{ error }}</pre>
                                         </label>
                                     {% endfor %}
                                 {% endif %}
