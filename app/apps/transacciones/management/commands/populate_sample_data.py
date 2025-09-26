@@ -1,6 +1,6 @@
-"""Django management command to populate sample data for testing.
+"""Comando de gestión de Django para poblar datos de ejemplo para pruebas.
 
-This command creates sample data for:
+Este comando crea datos de ejemplo para:
 - TipoCliente
 - Cliente
 - Usuario
@@ -24,22 +24,22 @@ Usuario = get_user_model()
 
 
 class Command(BaseCommand):
-    """Management command to populate sample data."""
+    """Comando de gestión para poblar datos de ejemplo."""
 
-    help = "Populate database with sample data for testing"
+    help = "Poblar la base de datos con datos de ejemplo para pruebas"
 
     def add_arguments(self, parser):
-        """Add command line arguments."""
+        """Agregar argumentos de línea de comandos."""
         parser.add_argument(
             "--clear",
             action="store_true",
-            help="Clear existing data before populating",
+            help="Limpiar datos existentes antes de poblar",
         )
 
     def handle(self, *args, **options):
-        """Handle the management command."""
+        """Manejar el comando de gestión."""
         if options["clear"]:
-            self.stdout.write("Clearing existing data...")
+            self.stdout.write("Limpiando datos existentes...")
             self.clear_data()
 
         try:
@@ -50,25 +50,22 @@ class Command(BaseCommand):
                 self.create_clientes()
                 self.create_medios_financieros()
 
-            self.stdout.write(self.style.SUCCESS("Successfully populated database with sample data"))
+            self.stdout.write(self.style.SUCCESS("Se ha poblado la base de datos con datos de ejemplo"))
         except Exception as e:
-            raise CommandError(f"Error populating data: {e}")
+            raise CommandError(f"Error populando datos: {e}")
 
     def clear_data(self):
-        """Clear existing sample data."""
-        # Clear in reverse order of dependencies
+        """Limpiar datos."""
         TarjetaCredito.objects.all().delete()
         CuentaBancaria.objects.all().delete()
         BilleteraElectronica.objects.all().delete()
-        # EntidadFinanciera.objects.all().delete()  # Skipped per user request
         TasaCambio.objects.all().delete()
         Cliente.objects.all().delete()
         Usuario.objects.filter(email__contains="test").delete()
-        # Don't delete Divisa as they might be used by other data
 
     def create_divisas(self):
-        """Create sample divisas."""
-        self.stdout.write("Creating divisas...")
+        """Crear divisas."""
+        self.stdout.write("Creando divisas...")
 
         divisas_data = [
             {"codigo": "PYG", "nombre": "Guaraní Paraguayo", "simbolo": "₲"},
@@ -84,11 +81,11 @@ class Command(BaseCommand):
                 defaults={"nombre": divisa_data["nombre"], "simbolo": divisa_data["simbolo"], "estado": "activa"},
             )
             if created:
-                self.stdout.write(f"  Created divisa: {divisa.codigo}")
+                self.stdout.write(f"  Creada divisa: {divisa.codigo}")
 
     def create_tasas_cambio(self):
-        """Create sample exchange rates."""
-        self.stdout.write("Creating tasas de cambio...")
+        """Crear tasas de cambio de ejemplo."""
+        self.stdout.write("Creando tasas de cambio...")
 
         pyg = Divisa.objects.get(codigo="PYG")
 
@@ -133,11 +130,11 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                self.stdout.write(f"  Created tasa: {tasa.divisa_origen.codigo} -> {tasa.divisa_destino.codigo}")
+                self.stdout.write(f"  Creada tasa: {tasa.divisa_origen.codigo} -> {tasa.divisa_destino.codigo}")
 
     def create_tipos_cliente(self):
-        """Create sample client types."""
-        self.stdout.write("Creating tipos de cliente...")
+        """Crear tipos de cliente de ejemplo."""
+        self.stdout.write("Creando tipos de cliente...")
 
         tipos_data = [
             {"nombre": "Minorista", "descuento": Decimal("0.0")},
@@ -150,11 +147,11 @@ class Command(BaseCommand):
                 nombre=tipo_data["nombre"], defaults={"descuento_sobre_comision": tipo_data["descuento"]}
             )
             if created:
-                self.stdout.write(f"  Created tipo cliente: {tipo.nombre}")
+                self.stdout.write(f"  Creado tipo cliente: {tipo.nombre}")
 
     def create_usuarios(self):
-        """Create sample users."""
-        self.stdout.write("Creating usuarios...")
+        """Crear usuarios de ejemplo."""
+        self.stdout.write("Creando usuarios...")
 
         usuarios_data = [
             {"email": "admin@test.com", "nombre": "Administrador Test", "is_staff": True},
@@ -170,11 +167,11 @@ class Command(BaseCommand):
             if created:
                 usuario.set_password("123")
                 usuario.save()
-                self.stdout.write(f"  Created usuario: {usuario.email}")
+                self.stdout.write(f"  Creado usuario: {usuario.email}")
 
     def create_clientes(self):
-        """Create sample clients."""
-        self.stdout.write("Creating clientes...")
+        """Crear clientes de ejemplo."""
+        self.stdout.write("Creando clientes...")
 
         tipos = list(TipoCliente.objects.all())
         usuarios = list(Usuario.objects.filter(email__contains="test"))
@@ -245,13 +242,13 @@ class Command(BaseCommand):
             )
 
             if created:
-                # Associate with users
-                cliente.usuarios.set(usuarios[:2])  # Associate with first 2 users
-                self.stdout.write(f"  Created cliente: {cliente.nombre}")
+                # Asociar con usuarios
+                cliente.usuarios.set(usuarios[:2])  # Asociar con los primeros 2 usuarios
+                self.stdout.write(f"  Creado cliente: {cliente.nombre}")
 
     def create_entidades_financieras(self):
-        """Create sample financial entities."""
-        self.stdout.write("Creating entidades financieras...")
+        """Crear entidades financieras de ejemplo."""
+        self.stdout.write("Creando entidades financieras...")
 
         entidades_data = [
             # Bancos
@@ -324,71 +321,77 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                self.stdout.write(f"  Created entidad: {entidad.nombre}")
+                self.stdout.write(f"  Creada entidad: {entidad.nombre}")
 
     def create_medios_financieros(self):
-        """Create sample financial means for each client."""
-        self.stdout.write("Creating medios financieros...")
+        """Crear medios financieros de ejemplo para cada cliente."""
+        self.stdout.write("Creando medios financieros...")
 
         clientes = list(Cliente.objects.all())
+        bancos = list(EntidadFinanciera.objects.filter(tipo="banco", activo=True))
+        emisores = list(EntidadFinanciera.objects.filter(tipo="emisor_tarjeta", activo=True))
+        proveedores_billetera = list(EntidadFinanciera.objects.filter(tipo="proveedor_billetera", activo=True))
 
         for i, cliente in enumerate(clientes):
-            self.stdout.write(f"  Creating medios for cliente: {cliente.nombre}")
+            self.stdout.write(f"  Creando medios para cliente: {cliente.nombre}")
 
-            # Create a credit card for each client
+            # Crear una tarjeta de crédito para cada cliente
+            emisor = emisores[i % len(emisores)] if emisores else None
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
                 numero_tarjeta=f"424242424242{4240 + i:04d}",
                 nombre_titular=cliente.nombre,
                 fecha_expiracion=date.today() + timedelta(days=365 * 2),
                 cvv="123",
-                entidad=None,  # No entity required
+                entidad=emisor,
                 habilitado_para_pago=True,
                 habilitado_para_cobro=False,
-                alias=f"Tarjeta Principal {cliente.nombre}",
+                alias=f"Tarjeta {emisor.nombre if emisor else 'Principal'} {cliente.nombre}",
             )
-            self.stdout.write(f"    Created tarjeta: {tarjeta.alias}")
+            self.stdout.write(f"    Creada tarjeta: {tarjeta.alias}")
 
-            # Create a bank account for each client
-            # Determine payment/collection capabilities based on client index
-            if i == 0:  # First client: only for payments
+            # Crear una cuenta bancaria para cada cliente
+            # Determinar capacidades de pago/cobro basadas en el índice del cliente
+            if i == 0:  # Primer cliente: solo para pagos
                 pago, cobro = True, False
-            elif i == 1:  # Second client: only for collections
+            elif i == 1:  # Segundo cliente: solo para cobros
                 pago, cobro = False, True
-            else:  # Others: both
+            else:  # Otros: ambos
                 pago, cobro = True, True
 
+            banco = bancos[i % len(bancos)] if bancos else None
             cuenta = CuentaBancaria.objects.create(
                 cliente=cliente,
                 numero_cuenta=f"12345678{i:02d}",
-                entidad=None,  # No entity required
+                entidad=banco,
                 titular_cuenta=cliente.nombre,
                 documento_titular=cliente.ruc.replace("-", ""),
                 habilitado_para_pago=pago,
                 habilitado_para_cobro=cobro,
-                alias=f"Cuenta Principal {cliente.nombre}",
+                alias=f"Cuenta {banco.nombre if banco else 'Principal'} {cliente.nombre}",
             )
-            self.stdout.write(f"    Created cuenta: {cuenta.alias}")
+            self.stdout.write(f"    Creada cuenta: {cuenta.alias}")
 
-            # Create an electronic wallet for each client
-            # Determine payment/collection capabilities
-            if i == 2:  # Third client: only for payments
+            # Crear una billetera electrónica para cada cliente
+            # Determinar capacidades de pago/cobro
+            if i == 2:  # Tercer cliente: solo para pagos
                 pago, cobro = True, False
-            elif i == 3:  # Fourth client: only for collections
+            elif i == 3:  # Cuarto cliente: solo para cobros
                 pago, cobro = False, True
-            else:  # Others: both
+            else:  # Otros: ambos
                 pago, cobro = True, True
 
+            proveedor = proveedores_billetera[i % len(proveedores_billetera)] if proveedores_billetera else None
             billetera = BilleteraElectronica.objects.create(
                 cliente=cliente,
-                entidad=None,  # No entity required
+                entidad=proveedor,
                 identificador=cliente.email,
                 numero_telefono=cliente.telefono,
                 email_asociado=cliente.email,
                 habilitado_para_pago=pago,
                 habilitado_para_cobro=cobro,
-                alias=f"Billetera {cliente.nombre}",
+                alias=f"Billetera {proveedor.nombre if proveedor else 'Principal'} {cliente.nombre}",
             )
-            self.stdout.write(f"    Created billetera: {billetera.alias}")
+            self.stdout.write(f"    Creada billetera: {billetera.alias}")
 
-        self.stdout.write("Medios financieros created successfully!")
+        self.stdout.write("¡Medios financieros creados exitosamente!")
