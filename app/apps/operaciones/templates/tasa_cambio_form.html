@@ -76,7 +76,7 @@
                                     <label class="label">
                                         <span class="label-text">{{ field.label }}</span>
                                     </label>
-                                    {% if field.name == 'valor' or field.name == 'comision_compra' or field.name == 'comision_venta' %}
+                                    {% if field.name == 'precio_base' or field.name == 'comision_compra' or field.name == 'comision_venta' %}
                                         {{ field }}
                                         <p class="validator-hint text-sm text-gray-500 mt-1"></p>
                                     {% else %}
@@ -85,7 +85,7 @@
                                     {% if field.help_text %}<p class="text-sm text-gray-500 mt-1">{{ field.help_text }}</p>{% endif %}
                                     {% for error in field.errors %}
                                         <label class="label">
-                                            <span class="label-text-alt text-error">{{ error }}</span>
+                                            <pre class="label-text-alt text-error whitespace-pre-wrap text-sm">{{ error }}</pre>
                                         </label>
                                     {% endfor %}
                                 {% endif %}

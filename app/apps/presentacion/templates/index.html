@@ -27,6 +27,7 @@
                                     <th class="py-2 px-4 text-left">Divisa</th>
                                     <th class="py-2 px-4 text-center">Compra (₲)</th>
                                     <th class="py-2 px-4 text-center">Venta (₲)</th>
+                                    <th class="py-2 px-4 text-center">Tendencia</th>
                                 </tr>
                             </thead>
                             <tbody id="tasas-tbody">
@@ -72,11 +73,37 @@
             <!-- Panel lateral -->
             <div class="flex-none w-full lg:w-1/4 bg-base-100 p-6 rounded-box shadow-lg flex flex-col gap-4">
                 <a href="{% url 'transacciones:simular_cambio' %}"
-                   class="btn btn-lg btn-secondary">Simular Cambio</a>
-                <a href="{% url 'transacciones:comprar_divisa' %}"
-                   class="btn btn-lg btn-primary">Comprar Divisa</a>
-                <a href="{% url 'transacciones:vender_divisa' %}"
-                   class="btn btn-lg btn-success">Vender Divisa</a>
+                   class="btn btn-lg btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Simular Cambio
+                </a>
+                <a href="{% url 'transacciones:realizar_transaccion' %}"
+                   class="btn btn-lg btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 110 2h-1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6H3a1 1 0 110-2h4zM9 3v1h6V3H9zm0 5a1 1 0 100 2 1 1 0 000-2zm0 4a1 1 0 100 2 1 1 0 000-2zm6-4a1 1 0 100 2 1 1 0 000-2zm0 4a1 1 0 100 2 1 1 0 000-2z" />
+                    </svg>
+                    Realizar Transacción
+                </a>
+                <a href="{% url 'transacciones:lista' %}" class="btn btn-lg btn-success">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Mis Transacciones
+                </a>
             </div>
         </div>
     </div>
@@ -91,18 +118,20 @@ class TasasManager {
         this.colors = ["#22c55e", "#ef4444", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899"];
         this.currentView = 'tasas';
         this.divisasDisponibles = [];
-        this.tasasActuales = []; // Guardamos las tasas actuales
+        this.tasasActuales = [];
+        this.historialDivisas = {}; // Guardar historial real
         this.initializeElements();
         this.loadTasas();
+
+        // Auto-refresh cada 30 segundos solo en vista de tasas
         setInterval(() => {
             if (this.currentView === 'tasas') {
                 this.loadTasas();
             }
-        }, 30000); // Actualiza cada 30s
+        }, 30000);
     }
 
     initializeElements() {
-        // Tasas actuales
         this.loadingElement = document.getElementById('loading-tasas');
         this.errorElement = document.getElementById('error-tasas');
         this.tasasContainer = document.getElementById('tasas-container');
@@ -110,7 +139,8 @@ class TasasManager {
         this.tasasTbody = document.getElementById('tasas-tbody');
         this.retryBtn = document.getElementById('retry-btn');
 
-        // Historial
+        this.loadingHistorial = document.getElementById('loading-historial');
+        this.errorHistorial = document.getElementById('error-historial');
         this.emptyHistorial = document.getElementById('empty-historial');
         this.divisaSelect = document.getElementById('divisa-select');
         this.periodoSelect = document.getElementById('periodo-select');
@@ -182,21 +212,49 @@ class TasasManager {
         this.emptyElement.classList.remove('hidden');
     }
 
-    formatNumber(number, decimals = 0) {
+    formatNumber(number, maxDecimals = 0) {
         return new Intl.NumberFormat('es-PY', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
+            minimumFractionDigits: 0,
+            maximumFractionDigits: maxDecimals
         }).format(number);
     }
 
     async loadTasas() {
         try {
             if (!this.tasasTbody.innerHTML) this.showLoading();
+
             const response = await fetch(this.apiUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
             const data = await response.json();
+            console.log('📊 Datos recibidos:', data); // Debug
+
             if (data.tasas && data.tasas.length > 0) {
-                this.tasasActuales = data.tasas; // Guardamos las tasas
+                // Procesar historial de cada divisa
+                data.tasas.forEach(tasa => {
+                    if (tasa.historial && tasa.historial.length > 0) {
+                        // Usar los precios calculados del backend
+                        this.historialDivisas[tasa.divisa.codigo] = tasa.historial.map(h => ({
+                            fecha: new Date(h.fecha_registro).toLocaleDateString('es-PY'),
+                            precio_compra: h.precio_compra_calculado || (parseFloat(h.precio_base) - parseFloat(h.comision_compra)),
+                            precio_venta: h.precio_venta_calculado || (parseFloat(h.precio_base) + parseFloat(h.comision_venta)),
+                            motivo: h.motivo || 'Sin motivo',
+                            fecha_iso: h.fecha_registro
+                        }));
+                        console.log(`📈 Historial para ${tasa.divisa.codigo}:`, this.historialDivisas[tasa.divisa.codigo]);
+                    } else {
+                        // Si no hay historial, usar la tasa actual
+                        this.historialDivisas[tasa.divisa.codigo] = [{
+                            fecha: new Date().toLocaleDateString('es-PY'),
+                            precio_compra: tasa.precio_compra,
+                            precio_venta: tasa.precio_venta,
+                            motivo: 'Registro actual',
+                            fecha_iso: new Date().toISOString()
+                        }];
+                    }
+                });
+
+                this.tasasActuales = data.tasas;
                 this.renderTasas(data.tasas);
                 this.updateDivisasSelect(data.tasas);
                 this.showTasas();
@@ -204,17 +262,46 @@ class TasasManager {
                 this.showEmpty();
             }
         } catch (error) {
-            console.error('Error loading tasas:', error);
+            console.error('❌ Error loading tasas:', error);
             this.showError();
         }
     }
-renderTasas(tasas) {
+
+    renderTasas(tasas) {
         const fragment = document.createDocumentFragment();
+
         tasas.forEach((tasa, index) => {
             const row = document.createElement('tr');
             row.className = index % 2 === 0
                 ? 'bg-white border-b border-gray-200 hover:bg-gray-50'
                 : 'bg-gray-50 border-b border-gray-200 hover:bg-gray-100';
+
+            const historial = this.historialDivisas[tasa.divisa.codigo];
+            console.log(`🔍 Calculando tendencia para ${tasa.divisa.codigo}:`, historial);
+
+            // Calcular tendencia mejorada
+            let trendIcon = this.getTrendIcon('neutral', 'Sin datos suficientes');
+
+            if (historial && historial.length > 1) {
+                // Ordenar por fecha para asegurar comparación correcta
+                const historialOrdenado = [...historial].sort((a, b) => new Date(a.fecha_iso) - new Date(b.fecha_iso));
+                const actual = historialOrdenado[historialOrdenado.length - 1];
+                const anterior = historialOrdenado[historialOrdenado.length - 2];
+
+                console.log(`📊 ${tasa.divisa.codigo} - Anterior: ${anterior.precio_compra}, Actual: ${actual.precio_compra}`);
+
+                const diferencia = actual.precio_compra - anterior.precio_compra;
+                const porcentaje = ((diferencia / anterior.precio_compra) * 100).toFixed(2);
+
+                if (Math.abs(diferencia) < 0.01) { // Threshold para considerar "sin cambio"
+                    trendIcon = this.getTrendIcon('neutral', `Sin cambio significativo`);
+                } else if (diferencia > 0) {
+                    trendIcon = this.getTrendIcon('up', `Subió ${porcentaje}% (₲${diferencia.toFixed(0)})`);
+                } else {
+                    trendIcon = this.getTrendIcon('down', `Bajó ${Math.abs(porcentaje)}% (₲${Math.abs(diferencia).toFixed(0)})`);
+                }
+            }
+
             row.innerHTML = `
                 <td class="py-3 px-4 flex items-center gap-4">
                     <img src="${tasa.divisa.flag_url}" alt="${tasa.divisa.codigo} flag" class="w-8 h-6 object-cover rounded-sm">
@@ -223,40 +310,64 @@ renderTasas(tasas) {
                         <span class="text-sm text-gray-500">${tasa.divisa.nombre}</span>
                     </div>
                 </td>
-                <td class="py-3 px-4 text-center font-mono">
-                    ${this.formatNumber(tasa.precio_compra)}
-                </td>
-                <td class="py-3 px-4 text-center font-mono">
-                    ${this.formatNumber(tasa.precio_venta)}
-                </td>
+                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-green-600">${this.formatNumber(tasa.precio_compra, 3)}</td>
+                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-red-600">${this.formatNumber(tasa.precio_venta, 3)}</td>
+                <td class="py-3 px-4 text-center text-lg">${trendIcon}</td>
             `;
             fragment.appendChild(row);
         });
+
         this.tasasTbody.innerHTML = '';
         this.tasasTbody.appendChild(fragment);
-
-        const thead = document.querySelector('#tasas-container thead');
-        if (thead) {
-            thead.className = 'bg-gray-100';
-            thead.querySelectorAll('th').forEach(th => {
-                th.classList.add('py-2', 'px-4', 'border-b', 'border-gray-300', 'text-left');
-            });
-        }
     }
 
+    getTrendIcon(direction, tooltip) {
+        const iconClasses = "h-6 w-6 inline-block";
 
-
+        switch(direction) {
+            case 'up':
+                return `
+                    <span class="text-green-500 flex items-center gap-1" title="${tooltip}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                        </svg>
+                        <span class="text-xs hidden sm:inline">↑</span>
+                    </span>
+                `;
+            case 'down':
+                return `
+                    <span class="text-red-500 flex items-center gap-1" title="${tooltip}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                        <span class="text-xs hidden sm:inline">↓</span>
+                    </span>
+                `;
+            default:
+                return `
+                    <span class="text-gray-400 flex items-center gap-1" title="${tooltip}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="text-xs hidden sm:inline">—</span>
+                    </span>
+                `;
+        }
+    }
 
     updateDivisasSelect(tasas) {
         this.divisasDisponibles = tasas;
         const currentValue = this.divisaSelect.value;
         this.divisaSelect.innerHTML = '<option value="">Seleccionar divisa</option>';
+
         tasas.forEach(tasa => {
             const option = document.createElement('option');
             option.value = tasa.divisa.codigo;
             option.textContent = `${tasa.divisa.codigo} - ${tasa.divisa.nombre}`;
             this.divisaSelect.appendChild(option);
         });
+
+        // Restaurar selección si existe
         if (currentValue && tasas.find(t => t.divisa.codigo === currentValue)) {
             this.divisaSelect.value = currentValue;
         }
@@ -264,40 +375,75 @@ renderTasas(tasas) {
 
     loadHistorial() {
         const divisaSeleccionada = this.divisaSelect.value;
-        const periodo = parseInt(this.periodoSelect.value) || 7;
+        const periodo = parseInt(this.periodoSelect.value) || 30;
 
-        if (!divisaSeleccionada) {
+        if (!divisaSeleccionada || !this.historialDivisas[divisaSeleccionada]) {
             this.renderEmptyChart();
             return;
         }
 
-        // Buscar la tasa actual
-        const tasa = this.tasasActuales.find(t => t.divisa.codigo === divisaSeleccionada);
-        if (!tasa) {
-            this.renderEmptyChart();
-            return;
-        }
+        console.log(`📊 Cargando historial para ${divisaSeleccionada}, período: ${periodo} días`);
 
-        // Simular historial de los últimos 'periodo' días
-        const historial = Array.from({ length: periodo }, (_, i) => {
-            const fecha = new Date();
-            fecha.setDate(fecha.getDate() - (periodo - 1 - i));
-            return {
-                fecha: fecha.toLocaleDateString('es-PY'),
-                precio_compra: tasa.precio_compra + Math.random() * 50 - 25,
-                precio_venta: tasa.precio_venta + Math.random() * 50 - 25
-            };
-        });
+        this.showLoadingHistorial();
 
-        this.renderChart(historial, divisaSeleccionada);
+        setTimeout(() => {
+            try {
+                let historial = this.historialDivisas[divisaSeleccionada];
+
+                // Filtrar por período (últimos N registros o por fecha)
+                if (historial.length > periodo) {
+                    historial = historial.slice(-periodo);
+                }
+
+                if (historial.length === 0) {
+                    this.renderEmptyChart();
+                    return;
+                }
+
+                console.log(`📈 Renderizando gráfico con ${historial.length} puntos para ${divisaSeleccionada}`);
+                this.renderChart(historial, divisaSeleccionada);
+                this.hideLoadingHistorial();
+
+            } catch (error) {
+                console.error('❌ Error al procesar historial:', error);
+                this.showErrorHistorial();
+            }
+        }, 500); // Pequeño delay para mostrar el loading
+    }
+
+    showLoadingHistorial() {
+        this.loadingHistorial.classList.remove('hidden');
+        this.errorHistorial.classList.add('hidden');
+        this.emptyHistorial.classList.add('hidden');
+    }
+
+    hideLoadingHistorial() {
+        this.loadingHistorial.classList.add('hidden');
+    }
+
+    showErrorHistorial() {
+        this.loadingHistorial.classList.add('hidden');
+        this.errorHistorial.classList.remove('hidden');
+        this.emptyHistorial.classList.add('hidden');
     }
 
     renderChart(historial, divisaCodigo) {
         this.emptyHistorial.classList.add('hidden');
 
-        const fechas = historial.map(h => h.fecha);
-        const preciosCompra = historial.map(h => h.precio_compra);
-        const preciosVenta = historial.map(h => h.precio_venta);
+        // Ordenar historial cronológicamente
+        const historialOrdenado = [...historial].sort((a, b) => new Date(a.fecha_iso) - new Date(b.fecha_iso));
+
+        const fechas = historialOrdenado.map(h => h.fecha);
+        const preciosCompra = historialOrdenado.map(h => h.precio_compra);
+        const preciosVenta = historialOrdenado.map(h => h.precio_venta);
+        const motivos = historialOrdenado.map(h => h.motivo);
+
+        console.log('📊 Datos para gráfico:', {
+            divisaCodigo,
+            fechas: fechas.length,
+            preciosCompra: preciosCompra.slice(0, 3),
+            preciosVenta: preciosVenta.slice(0, 3)
+        });
 
         const traceCompra = {
             x: fechas,
@@ -306,8 +452,13 @@ renderTasas(tasas) {
             mode: 'lines+markers',
             name: 'Precio Compra',
             line: { color: '#22c55e', width: 3 },
-            marker: { size: 6, color: '#22c55e' },
-            hovertemplate: '<b>Compra</b><br>Fecha: %{x}<br>Precio: ₲%{y:,.0f}<extra></extra>'
+            marker: { size: 8, color: '#22c55e', line: { width: 2, color: '#ffffff' } },
+            hovertemplate: '<b>💰 Compra</b><br>' +
+                          'Fecha: %{x}<br>' +
+                          'Precio: ₲%{y:,.0f}<br>' +
+                          'Motivo: %{text}<br>' +
+                          '<extra></extra>',
+            text: motivos
         };
 
         const traceVenta = {
@@ -317,39 +468,98 @@ renderTasas(tasas) {
             mode: 'lines+markers',
             name: 'Precio Venta',
             line: { color: '#ef4444', width: 3 },
-            marker: { size: 6, color: '#ef4444' },
-            hovertemplate: '<b>Venta</b><br>Fecha: %{x}<br>Precio: ₲%{y:,.0f}<extra></extra>'
+            marker: { size: 8, color: '#ef4444', line: { width: 2, color: '#ffffff' } },
+            hovertemplate: '<b>💸 Venta</b><br>' +
+                          'Fecha: %{x}<br>' +
+                          'Precio: ₲%{y:,.0f}<br>' +
+                          'Motivo: %{text}<br>' +
+                          '<extra></extra>',
+            text: motivos
         };
 
         const layout = {
-            title: { text: `Historial de Tasas - ${divisaCodigo}`, font: { size: 18, color: '#374151' } },
-            xaxis: { title: 'Fecha', gridcolor: '#e5e7eb' },
-            yaxis: { title: 'Precio (₲)', gridcolor: '#e5e7eb', tickformat: ',.0f' },
-            plot_bgcolor: 'rgba(0,0,0,0)',
-            paper_bgcolor: 'rgba(0,0,0,0)',
-            margin: { l: 80, r: 40, t: 60, b: 60 },
-            legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 },
-            hovermode: 'x unified'
+            title: {
+                text: `📊 Historial de Tasas - ${divisaCodigo}`,
+                font: { size: 20, color: '#1f2937', family: 'Arial, sans-serif' },
+                x: 0.5
+            },
+            xaxis: {
+                title: '📅 Fecha',
+                gridcolor: '#e5e7eb',
+                titlefont: { size: 14, color: '#374151' },
+                tickangle: -45
+            },
+            yaxis: {
+                title: '💰 Precio (₲)',
+                gridcolor: '#e5e7eb',
+                tickformat: ',.0f',
+                titlefont: { size: 14, color: '#374151' }
+            },
+            plot_bgcolor: 'rgba(249,250,251,0.8)',
+            paper_bgcolor: 'rgba(255,255,255,1)',
+            margin: { l: 80, r: 40, t: 80, b: 80 },
+            legend: {
+                orientation: 'h',
+                x: 0.5,
+                xanchor: 'center',
+                y: -0.15,
+                bgcolor: 'rgba(255,255,255,0.8)',
+                bordercolor: '#e5e7eb',
+                borderwidth: 1
+            },
+            hovermode: 'x unified',
+            font: { family: 'Arial, sans-serif', size: 12 }
         };
 
-        const config = { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'], locale: 'es' };
+        const config = {
+            responsive: true,
+            displayModeBar: true,
+            modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d'],
+            locale: 'es',
+            toImageButtonOptions: {
+                format: 'png',
+                filename: `historial_tasas_${divisaCodigo}_${new Date().toISOString().split('T')[0]}`,
+                height: 600,
+                width: 1000,
+                scale: 1
+            }
+        };
 
-        Plotly.newPlot('historial_plotly', [traceCompra, traceVenta], layout, config);
+        try {
+            Plotly.newPlot('historial_plotly', [traceCompra, traceVenta], layout, config);
+            console.log('✅ Gráfico renderizado exitosamente');
+        } catch (error) {
+            console.error('❌ Error al renderizar gráfico:', error);
+            this.showErrorHistorial();
+        }
     }
 
     renderEmptyChart() {
+        this.emptyHistorial.classList.remove('hidden');
+        this.hideLoadingHistorial();
+
         const layout = {
-            title: { text: 'Selecciona una divisa para ver el historial', font: { size: 16, color: '#6b7280' } },
+            title: {
+                text: '📊 Selecciona una divisa para ver el historial',
+                font: { size: 18, color: '#6b7280' },
+                x: 0.5
+            },
             xaxis: { visible: false },
             yaxis: { visible: false },
             plot_bgcolor: 'rgba(0,0,0,0)',
             paper_bgcolor: 'rgba(0,0,0,0)',
-            margin: { l: 40, r: 40, t: 60, b: 40 }
+            margin: { l: 40, r: 40, t: 80, b: 40 }
         };
-        Plotly.newPlot('historial_plotly', [], layout, { responsive: true });
+
+        const config = { responsive: true, displayModeBar: false };
+        Plotly.newPlot('historial_plotly', [], layout, config);
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => { new TasasManager(); });
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Iniciando TasasManager...');
+    new TasasManager();
+});
     </script>
 {% endblock extra_scripts %}

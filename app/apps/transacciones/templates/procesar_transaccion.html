@@ -1,0 +1,1191 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}
+    Transacción Procesada
+{% endblock title %}
+{% block content %}
+    <div class="container mx-auto p-8">
+        <div class="flex items-center justify-center mb-8">
+            <div class="text-center">
+                <div class="text-6xl mb-4">✅</div>
+                <h2 class="text-3xl font-bold text-success">¡Transacción Creada Exitosamente!</h2>
+                <p class="text-gray-600 mt-2">Tu transacción ha sido registrada y está lista para procesar</p>
+            </div>
+        </div>
+        <!-- Información de la transacción -->
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V17a2 2 0 01-2 2z" />
+                    </svg>
+                    Detalles de la Transacción
+                </h3>
+                <!-- ID de transacción destacado -->
+                <div class="bg-gradient-to-r from-success/20 to-success/10 border border-success/30 rounded-lg p-4 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-success mb-2">🔢 Código de Transacción</div>
+                            <div class="font-mono text-lg font-bold bg-white/60 px-4 py-2 rounded border-2 border-dashed border-success/40 text-gray-800">
+                                {{ transaccion.id_transaccion }}
+                            </div>
+                        </div>
+                        <div class="flex-none ml-4">
+                            <button class="btn btn-lg btn-success btn-outline"
+                                    onclick="copyToClipboard('{{ transaccion.id_transaccion }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-4 w-4"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Resumen de la transacción -->
+                <div class="bg-base-200 p-6 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <div>
+                                <span class="font-semibold">Cliente:</span>
+                                <span class="ml-2">{{ transaccion.cliente.nombre }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Tipo de Operación:</span>
+                                <span class="ml-2 capitalize">
+                                    {% if transaccion.tipo_operacion == 'compra' %}
+                                        Compra de divisa
+                                    {% else %}
+                                        Venta de divisa
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Estado:</span>
+                                <span class="badge badge-warning ml-2">Pendiente</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Fecha de Creación:</span>
+                                <span class="ml-2">{{ transaccion.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <span class="font-semibold">Divisa Origen:</span>
+                                <span class="ml-2">{{ transaccion.divisa_origen.codigo }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Divisa Destino:</span>
+                                <span class="ml-2">{{ transaccion.divisa_destino.codigo }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Tasa Aplicada:</span>
+                                <span class="ml-2">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</span>
+                            </div>
+                            <div>
+                                <span class="font-semibold">Monto:</span>
+                                <span class="ml-2">{{ transaccion.monto_origen|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Total destacado -->
+                    <div class="divider"></div>
+                    <div class="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 border-2 border-primary/20 rounded-xl p-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-semibold text-primary mb-3 uppercase tracking-wide">
+                                {% if transaccion.tipo_operacion == 'compra' %}
+                                    Total a Pagar
+                                {% else %}
+                                    Total a Recibir
+                                {% endif %}
+                            </div>
+                            <div class="text-3xl font-bold text-primary mb-3 drop-shadow-sm">
+                                {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
+                            </div>
+                            <div class="bg-white/70 rounded-lg px-4 py-2 inline-block">
+                                <div class="text-xs text-gray-600">Tasa de cambio aplicada</div>
+                                <div class="text-sm font-bold text-gray-800">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Verificación de Cotización -->
+        <div id="cotizacion-check" class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Verificación de Cotización
+                </h3>
+                <!-- Estado: Verificando -->
+                <div id="verificando-cotizacion"
+                     class="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg">
+                    <div class="loading loading-spinner loading-md text-blue-500"></div>
+                    <div>
+                        <div class="font-semibold text-blue-800">Verificando cotización actual...</div>
+                        <div class="text-sm text-blue-600">Comparando con la tasa de cambio del mercado</div>
+                    </div>
+                </div>
+                <!-- Estado: Sin cambios -->
+                <div id="cotizacion-vigente"
+                     class="hidden flex items-center space-x-3 p-4 bg-green-50 rounded-lg">
+                    <div class="text-green-500 text-2xl">✅</div>
+                    <div>
+                        <div class="font-semibold text-green-800">Cotización vigente</div>
+                        <div class="text-sm text-green-600">La tasa de cambio se mantiene estable. Puedes proceder con el pago.</div>
+                    </div>
+                </div>
+                <!-- Estado: Cambio detectado -->
+                <div id="cambio-cotizacion" class="hidden">
+                    <div class="alert alert-warning mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="stroke-current shrink-0 h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <div>
+                            <div class="font-bold">¡Cambio en la Cotización Detectado!</div>
+                            <div class="text-sm">La tasa de cambio ha variado significativamente desde que se creó la transacción.</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div class="text-sm font-semibold text-red-800 mb-2">Tasa Original</div>
+                            <div class="text-xl font-bold text-red-900" id="tasa-original">-</div>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="text-sm font-semibold text-blue-800 mb-2">Tasa Actual</div>
+                            <div class="text-xl font-bold text-blue-900" id="tasa-actual">-</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <div class="text-sm font-semibold text-yellow-800 mb-2">Cambio Porcentual</div>
+                            <div class="text-lg font-bold text-yellow-900" id="porcentaje-cambio">-</div>
+                        </div>
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <div class="text-sm font-semibold text-orange-800 mb-2">Diferencia Absoluta</div>
+                            <div class="text-lg font-bold text-orange-900" id="cambio-absoluto">-</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="btn-aceptar-cotizacion" class="btn btn-success flex-1">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Aceptar Nueva Cotización
+                        </button>
+                        <button id="btn-cancelar-cotizacion" class="btn btn-error flex-1">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Cancelar Transacción
+                        </button>
+                    </div>
+                </div>
+                <!-- Estado: Error en verificación -->
+                <div id="error-verificacion" class="hidden alert alert-error">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        <div class="font-bold">Error al verificar cotización</div>
+                        <div class="text-sm" id="error-mensaje">
+                            No se pudo verificar la cotización actual. Puedes intentar proceder con cautela.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Medios de pago/cobro -->
+        <div class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    Medios de Procesamiento
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <div class="font-semibold mb-2">Medio de Pago:</div>
+                        <div class="p-3 bg-base-200 rounded-lg">{{ nombre_metodo_pago|default:"Efectivo" }}</div>
+                    </div>
+                    <div>
+                        <div class="font-semibold mb-2">Medio de Cobro:</div>
+                        <div class="p-3 bg-base-200 rounded-lg">{{ nombre_metodo_cobro|default:"Efectivo" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Alerta sobre comisiones externas -->
+        <div class="alert alert-warning mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="stroke-current shrink-0 h-6 w-6"
+                 fill="none"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+                <div class="font-bold">Información Importante sobre Comisiones</div>
+                <div class="text-sm">
+                    El monto final a pagar o recibir puede variar debido a comisiones externas aplicadas por el proveedor del medio de pago seleccionado.
+                    Las billeteras electrónicas, tarjetas de crédito y transferencias bancarias pueden generar costos adicionales que no están incluidos en el cálculo mostrado.
+                </div>
+            </div>
+        </div>
+        <!-- Próximos pasos -->
+        <div class="card bg-base-100 shadow-lg mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                    Próximos Pasos
+                </h3>
+                <div class="alert alert-warning mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                        <div class="font-bold">Transacción Pendiente de Procesamiento</div>
+                        <div class="text-sm">
+                            Esta transacción requiere procesamiento adicional según el método de pago/cobro seleccionado.
+                        </div>
+                    </div>
+                </div>
+                <!-- Instrucciones según el método -->
+                {% if metodo_pago == 'efectivo' or metodo_cobro == 'efectivo' %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Presentarse en Sucursal</div>
+                        <div class="step">Verificación de Identidad</div>
+                        <div class="step">Procesamiento de Pago</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-info bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Instrucciones para Pago en Efectivo:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>Presentarse en cualquiera de nuestras sucursales</li>
+                            <li>Traer documento de identidad válido</li>
+                            <li>
+                                Proporcionar el ID de transacción: <code class="bg-base-300 px-2 py-1 rounded">{{ transaccion.id_transaccion }}</code>
+                            </li>
+                            <li>Realizar el pago correspondiente</li>
+                        </ul>
+                    </div>
+                {% elif 'tarjeta' in metodo_pago or 'tarjeta' in metodo_cobro %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Procesamiento Automático</div>
+                        <div class="step">Verificación del Pago</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-warning bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Procesamiento con Tarjeta:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>El procesamiento será automático</li>
+                            <li>Recibirá notificaciones por email</li>
+                            <li>Tiempo estimado: 2-5 minutos</li>
+                            <li>En caso de problemas, contacte al servicio al cliente</li>
+                        </ul>
+                    </div>
+                {% elif 'cuenta' in metodo_pago or 'cuenta' in metodo_cobro %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Verificación Bancaria</div>
+                        <div class="step">Transferencia</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-success bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Transferencia Bancaria:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>Se procesará la transferencia bancaria</li>
+                            <li>Tiempo estimado: 1-2 horas hábiles</li>
+                            <li>Recibirá confirmación por email</li>
+                            <li>Verifique los fondos disponibles en su cuenta</li>
+                        </ul>
+                    </div>
+                {% elif 'billetera' in metodo_pago or 'billetera' in metodo_cobro %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Autorización de Billetera</div>
+                        <div class="step">Procesamiento</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-accent bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Billetera Electrónica:</div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li>Revisar notificaciones en su billetera electrónica</li>
+                            <li>Autorizar la transacción si es requerido</li>
+                            <li>Tiempo estimado: 5-15 minutos</li>
+                            <li>Pueden aplicar comisiones adicionales del proveedor</li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">En Proceso</div>
+                        <div class="step">Verificación</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-base-200 rounded-lg">
+                        <div class="font-semibold mb-2">Procesamiento General:</div>
+                        <p class="text-sm">Su transacción está siendo procesada. Recibirá notificaciones sobre el estado de la misma.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <!-- Acciones -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                    </svg>
+                    ¿Qué deseas hacer ahora?
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <a href="{% url 'transacciones:lista' %}" class="btn btn-primary btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Mis Transacciones</div>
+                            <div class="text-xs opacity-60">Ver historial</div>
+                        </div>
+                    </a>
+                    <a href="{% url 'transacciones:realizar_transaccion' %}"
+                       class="btn btn-outline btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Nueva Transacción</div>
+                            <div class="text-xs opacity-60">Realizar otra</div>
+                        </div>
+                    </a>
+                    <button id="btnPagarTransaccion"
+                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
+                            class="btn btn-success btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Pagar Transacción</div>
+                            <div class="text-xs opacity-60">Procesar pago</div>
+                        </div>
+                    </button>
+                    <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
+                            class="btn btn-error btn-outline btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Cancelar</div>
+                            <div class="text-xs opacity-60">Esta transacción</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Información adicional -->
+        <div class="alert alert-info mt-6">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 class="stroke-current shrink-0 w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                </path>
+            </svg>
+            <div>
+                <div class="font-bold">Importante</div>
+                <div class="text-sm">
+                    Guarde el ID de transacción: <code class="bg-base-300 px-2 py-1 rounded">{{ transaccion.id_transaccion }}</code>
+                    para cualquier consulta o reclamo posterior.
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Token CSRF -->
+    {% csrf_token %}
+    <!-- Modal de confirmación para cancelar -->
+    <dialog id="cancelModal" class="modal">
+        <div class="modal-box w-11/12 max-w-md">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="document.getElementById('cancelModal').close()">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-red-600 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-6 w-6 inline mr-2"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                ¿Cancelar Transacción?
+            </h3>
+            <p class="mb-6 text-gray-700">
+                ¿Estás seguro que deseas cancelar la transacción
+                <span class="font-mono font-semibold bg-gray-100 px-2 py-1 rounded">{{ transaccion.id_transaccion }}</span>?
+                Esta acción no se puede deshacer y la transacción quedará marcada como cancelada.
+            </p>
+            <div class="modal-action mt-4 flex justify-end space-x-2">
+                <button id="confirmCancelBtn" class="btn btn-error">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-4 w-4 mr-1"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Sí, cancelar transacción
+                </button>
+                <button type="button"
+                        class="btn btn-ghost"
+                        onclick="document.getElementById('cancelModal').close()">No, mantener</button>
+            </div>
+        </div>
+    </dialog>
+    <!-- Popup de simulación bancaria se abre en ventana separada -->
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                showToast('ID copiado al portapapeles!', 'success');
+            }).catch(function() {
+                showToast('Error al copiar al portapapeles', 'error');
+            });
+        }
+
+        function cancelarTransaccion(transaccionId) {
+            // Mostrar modal de confirmación
+            document.getElementById('cancelModal').showModal();
+
+            // Configurar el botón de confirmación
+            document.getElementById('confirmCancelBtn').onclick = function() {
+                // Deshabilitar el botón mientras se procesa
+                const cancelBtn = document.getElementById('confirmCancelBtn');
+                const originalText = cancelBtn.innerHTML;
+                cancelBtn.disabled = true;
+                cancelBtn.innerHTML = `
+                    <span class="loading loading-spinner loading-sm"></span>
+                    Cancelando...
+                `;
+
+                // Realizar la petición de cancelación
+                fetch(`/transacciones/api/cancelar-transaccion/${transaccionId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('cancelModal').close();
+                    if (data.success) {
+                        // Mostrar mensaje de éxito y redirigir
+                        showToast('Transacción cancelada exitosamente', 'success');
+
+                        setTimeout(() => {
+                            window.location.href = '/transacciones/';
+                        }, 2000);
+                    } else {
+                        // Mostrar mensaje de error
+                        showToast(`Error: ${data.message || 'No se pudo cancelar la transacción'}`, 'error');
+
+                        // Restaurar botón
+                        cancelBtn.disabled = false;
+                        cancelBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('cancelModal').close();
+                    console.error('Error al cancelar transacción:', error);
+                    showToast(`Error de conexión: ${error.message}`, 'error');
+
+                    // Restaurar botón
+                    cancelBtn.disabled = false;
+                    cancelBtn.innerHTML = originalText;
+                });
+            };
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-top toast-end z-50';
+            const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
+            toast.innerHTML = `
+                <div class="alert ${alertClass} shadow-lg">
+                    <span>${message}</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, type === 'success' ? 3000 : 5000);
+        }
+
+        let ventanaBanco = null;
+        let transaccionActual = null;
+
+        function verificarCotizacionPrePago(transaccionId) {
+            fetch(`/transacciones/api/verificar-cotizacion/${transaccionId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.cambio_detectado) {
+                        // Se detectó cambio de cotización, cancelar pago y mostrar notificación
+                        restaurarBotonPagar();
+                        showToast('La cotización ha cambiado. Por favor, revise y acepte la nueva tasa antes de continuar.', 'warning');
+
+                        // Mostrar la sección de cambio de cotización
+                        document.getElementById('cotizacion-vigente').classList.add('hidden');
+                        mostrarResultadoVerificacion(data);
+
+                        // Scroll hacia la sección de verificación
+                        document.getElementById('cotizacion-check').scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    } else {
+                        // No hay cambio, proceder con el pago
+                        continuarConPago(transaccionId);
+                    }
+                } else {
+                    // Error en verificación, mostrar advertencia pero permitir continuar
+                    console.warn('Error al verificar cotización:', data.message);
+                    showToast('No se pudo verificar la cotización actual. Continuando con precaución.', 'warning');
+                    continuarConPago(transaccionId);
+                }
+            })
+            .catch(error => {
+                console.error('Error al verificar cotización pre-pago:', error);
+                showToast('Error de conexión al verificar cotización. Continuando con precaución.', 'warning');
+                continuarConPago(transaccionId);
+            });
+        }
+
+        function continuarConPago(transaccionId) {
+            const btnPagar = document.getElementById('btnPagarTransaccion');
+            btnPagar.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                <div class="text-left">
+                    <div class="font-semibold">Procesando...</div>
+                    <div class="text-xs opacity-60">Abriendo banco</div>
+                </div>
+            `;
+
+            // Proceder con el proceso bancario original
+            abrirVentanaBanco(transaccionId);
+        }
+
+        function abrirVentanaBanco(transaccionId) {
+            // Cerrar ventana anterior si existe
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+
+            // Configurar la ventana emergente modal
+            const ancho = 700;
+            const alto = 600;
+            const izquierda = (screen.width - ancho) / 2;
+            const arriba = (screen.height - alto) / 2;
+
+            const opciones = `
+                width=${ancho},
+                height=${alto},
+                left=${izquierda},
+                top=${arriba},
+                scrollbars=no,
+                resizable=no,
+                toolbar=no,
+                menubar=no,
+                location=no,
+                directories=no,
+                status=no,
+                modal=yes,
+                alwaysRaised=yes,
+                dependent=yes
+            `;
+
+            // Abrir ventana del banco simulado
+            const url = `/transacciones/popup-banco/${transaccionId}/`;
+            ventanaBanco = window.open(url, 'BancoSimulado', opciones);
+
+            if (ventanaBanco) {
+                // Focalizar la ventana y hacerla modal
+                ventanaBanco.focus();
+
+                // Bloquear interacción con la página padre
+                bloquearPaginaPadre();
+
+                // Verificar si la ventana se cerró manualmente
+                const verificarVentana = setInterval(() => {
+                    if (ventanaBanco.closed) {
+                        clearInterval(verificarVentana);
+                        console.log('Ventana del banco cerrada por el usuario');
+                        desbloquearPaginaPadre();
+                        restaurarBotonPagar();
+                    }
+                }, 1000);
+
+                // Mantener foco en la ventana del banco
+                const mantenerFoco = setInterval(() => {
+                    if (ventanaBanco && !ventanaBanco.closed) {
+                        ventanaBanco.focus();
+                    } else {
+                        clearInterval(mantenerFoco);
+                    }
+                }, 500);
+
+                showToast('Redirigiendo al banco para procesar el pago...', 'info');
+            } else {
+                // Error al abrir ventana (bloqueador de popups)
+                showToast('Error: No se pudo abrir la ventana del banco. Revisa el bloqueador de ventanas emergentes.', 'error');
+                restaurarBotonPagar();
+            }
+        }
+
+        function iniciarProcesoBancario(transaccionId) {
+            transaccionActual = transaccionId;
+
+            // Deshabilitar el botón
+            const btnPagar = document.getElementById('btnPagarTransaccion');
+            btnPagar.disabled = true;
+            btnPagar.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                <div class="text-left">
+                    <div class="font-semibold">Verificando Cotización...</div>
+                    <div class="text-xs opacity-60">Validando tasa actual</div>
+                </div>
+            `;
+
+            // Verificar cotización antes de proceder al pago
+            verificarCotizacionPrePago(transaccionId);
+        }
+
+        // Escuchar mensajes de la ventana emergente
+        window.addEventListener('message', function(event) {
+            // Verificar que el mensaje venga de nuestra ventana
+            if (event.source === ventanaBanco) {
+                switch(event.data.type) {
+                    case 'pagoCompletado':
+                        handlePagoCompletado(event.data);
+                        break;
+                    case 'abrirTauserRetiro':
+                        handleAbrirTauserRetiro(event.data);
+                        break;
+                    case 'errorBanco':
+                        handleErrorBanco(event.data);
+                        break;
+                    case 'reintentarPago':
+                        handleReintentarPago();
+                        break;
+                    case 'ventanaCerrada':
+                        handleVentanaCerrada(event.data);
+                        break;
+                    case 'ventanaCerradaSinCompletar':
+                        handleVentanaCerradaSinCompletar(event.data);
+                        break;
+                    case 'transaccionCompletada':
+                        handleTransaccionCompletada(event.data);
+                        break;
+                }
+            }
+        });
+
+        function handlePagoCompletado(data) {
+            console.log('Pago completado exitosamente:', data);
+
+            // Cerrar la ventana si no se cerró automáticamente
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+
+            // Desbloquear página padre
+            desbloquearPaginaPadre();
+
+            // Mostrar mensaje y redirigir instantáneamente
+            showToast('Pago procesado exitosamente!', 'success');
+            window.location.href = '/transacciones/';
+        }
+
+        function handleAbrirTauserRetiro(data) {
+            console.log('Abriendo popup TAUSER para retiro:', data);
+
+            // Cerrar la ventana del banco si aún está abierta
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+
+            // Abrir popup para código TAUSER de retiro
+            const urlTauser = `/transacciones/popup-tauser-retiro/${data.transaccionId}/`;
+            ventanaBanco = window.open(
+                urlTauser,
+                'tauserRetiro',
+                'width=600,height=700,scrollbars=yes,resizable=yes,modal=yes,dependent=yes,alwaysRaised=yes'
+            );
+
+            if (!ventanaBanco) {
+                showToast('Error: No se pudo abrir la ventana TAUSER. Revisa el bloqueador de ventanas emergentes.', 'error');
+                desbloquearPaginaPadre();
+                restaurarBotonPagar();
+            }
+        }
+
+        function handleErrorBanco(data) {
+            console.log('Error en el banco:', data);
+            showToast(`Error del banco: ${data.mensaje}`, 'error');
+
+            // Cerrar la ventana si no se cerró automáticamente
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+
+            // Desbloquear página padre y restaurar el botón
+            desbloquearPaginaPadre();
+            restaurarBotonPagar();
+        }
+
+        function handleReintentarPago() {
+            console.log('Usuario quiere reintentar el pago');
+
+            // Cerrar ventana actual
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+
+            // Desbloquear página padre temporalmente
+            desbloquearPaginaPadre();
+
+            // Reintentar después de un breve delay
+            setTimeout(() => {
+                iniciarProcesoBancario(transaccionActual);
+            }, 1000);
+        }
+
+        function handleVentanaCerrada(data) {
+            console.log('Ventana cerrada después de completar:', data);
+            // No hacer nada especial, el proceso ya se completó
+        }
+
+        function handleVentanaCerradaSinCompletar(data) {
+            console.log('Ventana cerrada sin completar el proceso:', data);
+            showToast('Proceso bancario cancelado por el usuario', 'warning');
+            desbloquearPaginaPadre();
+            restaurarBotonPagar();
+        }
+
+        function handleTransaccionCompletada(data) {
+            console.log('Transacción completada exitosamente:', data);
+
+            // Cerrar la ventana si no se cerró automáticamente
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+
+            // Desbloquear página padre
+            desbloquearPaginaPadre();
+
+            // Mostrar mensaje según el método
+            if (data.metodo === 'tauser') {
+                showToast('Código TAUSER generado exitosamente!', 'success');
+            } else {
+                showToast('Transacción completada exitosamente!', 'success');
+            }
+
+            // Redirigir a la lista de transacciones
+            window.location.href = '/transacciones/';
+        }
+
+        function restaurarBotonPagar() {
+            const btnPagar = document.getElementById('btnPagarTransaccion');
+            btnPagar.disabled = false;
+            btnPagar.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <div class="text-left">
+                    <div class="font-semibold">Pagar Transacción</div>
+                    <div class="text-xs opacity-60">Procesar pago</div>
+                </div>
+            `;
+        }
+
+        function bloquearPaginaPadre() {
+            // Crear overlay para bloquear interacción
+            const overlay = document.createElement('div');
+            overlay.id = 'modalOverlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 9998;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(2px);
+            `;
+
+            // Mensaje de ventana activa
+            const mensaje = document.createElement('div');
+            mensaje.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+                max-width: 400px;
+                margin: 20px;
+            `;
+            mensaje.innerHTML = `
+                <div style="font-size: 48px; margin-bottom: 20px; font-weight: bold; color: #3b82f6;">$</div>
+                <h3 style="margin: 0 0 15px 0; color: #1f2937; font-size: 1.5rem;">Procesando Pago</h3>
+                <p style="margin: 0; color: #6b7280; line-height: 1.5;">
+                    La ventana del banco está activa.<br>
+                    Complete el proceso de pago para continuar.
+                </p>
+            `;
+
+            overlay.appendChild(mensaje);
+            document.body.appendChild(overlay);
+
+            // Prevenir scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function desbloquearPaginaPadre() {
+            const overlay = document.getElementById('modalOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+
+            // Restaurar scroll
+            document.body.style.overflow = '';
+        }
+
+        function formatDecimal(value, maxDecimals = 8) {
+            // Formato de número decimal sin ceros a la derecha
+            if (typeof value === 'string') {
+                value = parseFloat(value);
+            }
+            if (isNaN(value)) return '0';
+
+            // Usar toFixed con maxDecimals y luego parseFloat para remover ceros trailing
+            return parseFloat(value.toFixed(maxDecimals)).toString();
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            // Si no encuentra la cookie, intenta obtenerla del input hidden
+            if (!cookieValue) {
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfInput) {
+                    cookieValue = csrfInput.value;
+                }
+            }
+            return cookieValue;
+        }
+
+        // Funcionalidad de verificación de cotización
+        const transaccionId = '{{ transaccion.id_transaccion }}';
+        let verificacionInterval;
+        let cotizacionVerificada = false;
+
+        function verificarCotizacion() {
+            if (cotizacionVerificada) return;
+
+            fetch(`/transacciones/api/verificar-cotizacion/${transaccionId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        mostrarResultadoVerificacion(data);
+                        cotizacionVerificada = true;
+                        clearInterval(verificacionInterval);
+                    } else {
+                        mostrarErrorVerificacion(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al verificar cotización:', error);
+                    mostrarErrorVerificacion('Error de conexión al verificar cotización');
+                });
+        }
+
+        function mostrarResultadoVerificacion(data) {
+            // Ocultar estado de verificando
+            document.getElementById('verificando-cotizacion').classList.add('hidden');
+
+            if (data.cambio_detectado) {
+                // Mostrar cambio de cotización
+                document.getElementById('cambio-cotizacion').classList.remove('hidden');
+
+                // Actualizar valores con mayor precisión (3 decimales)
+                document.getElementById('tasa-original').textContent = formatDecimal(data.tasa_original, 8);
+                document.getElementById('tasa-actual').textContent = formatDecimal(data.tasa_actual, 8);
+                document.getElementById('porcentaje-cambio').textContent = `${formatDecimal(data.porcentaje_cambio, 2)}%`;
+
+                // Mostrar cambio absoluto si está disponible
+                if (data.cambio_absoluto !== undefined) {
+                    const cambioAbsolutoElement = document.getElementById('cambio-absoluto');
+                    if (cambioAbsolutoElement) {
+                        cambioAbsolutoElement.textContent = formatDecimal(data.cambio_absoluto, 8);
+                    }
+                }
+
+                // Configurar botones
+                document.getElementById('btn-aceptar-cotizacion').onclick = aceptarNuevaCotizacion;
+                document.getElementById('btn-cancelar-cotizacion').onclick = cancelarPorCotizacion;
+
+                // Deshabilitar botón de pago
+                const btnPagar = document.getElementById('btnPagarTransaccion');
+                if (btnPagar) {
+                    btnPagar.disabled = true;
+                    btnPagar.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        Cotización Modificada - Requiere Acción
+                    `;
+                    btnPagar.classList.remove('btn-success');
+                    btnPagar.classList.add('btn-warning');
+                }
+
+            } else {
+                // Mostrar cotización vigente
+                document.getElementById('cotizacion-vigente').classList.remove('hidden');
+                document.getElementById('cotizacion-vigente').classList.add('flex');
+            }
+        }
+
+        function mostrarErrorVerificacion(mensaje) {
+            document.getElementById('verificando-cotizacion').classList.add('hidden');
+            document.getElementById('error-verificacion').classList.remove('hidden');
+            document.getElementById('error-mensaje').textContent = mensaje;
+        }
+
+        function aceptarNuevaCotizacion() {
+            const btnAceptar = document.getElementById('btn-aceptar-cotizacion');
+
+            // Prevenir múltiples requests concurrentes
+            if (btnAceptar.disabled) {
+                return;
+            }
+
+            btnAceptar.disabled = true;
+            btnAceptar.innerHTML = `
+                <div class="loading loading-spinner loading-sm"></div>
+                Procesando...
+            `;
+
+            fetch(`/transacciones/api/aceptar-nueva-cotizacion/${transaccionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    showToast('Nueva cotización aceptada exitosamente', 'success');
+
+                    // Detener verificación automática ya que se aceptó la nueva tasa
+                    cotizacionVerificada = true;
+                    if (verificacionInterval) {
+                        clearInterval(verificacionInterval);
+                        verificacionInterval = null;
+                    }
+
+                    // Recargar la página para actualizar el estado y los botones
+                    setTimeout(() => {
+                        // Mantener los parámetros actuales de la URL
+                        const currentUrl = new URL(window.location);
+                        window.location.href = currentUrl.href;
+                    }, 1000); // Pequeño delay para que el usuario vea el mensaje de éxito
+
+                } else {
+                    console.error('Server returned error:', data.message);
+                    showToast(`Error: ${data.message}`, 'error');
+                    btnAceptar.disabled = false;
+                    btnAceptar.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Aceptar Nueva Cotización
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al aceptar cotización:', error);
+                showToast('Error de conexión. Revise la consola para más detalles.', 'error');
+
+                // Restaurar botón en caso de error
+                btnAceptar.disabled = false;
+                btnAceptar.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Aceptar Nueva Cotización
+                `;
+            });
+        }
+
+        function cancelarPorCotizacion() {
+            const btnCancelar = document.getElementById('btn-cancelar-cotizacion');
+            btnCancelar.disabled = true;
+            btnCancelar.innerHTML = `
+                <div class="loading loading-spinner loading-sm"></div>
+                Cancelando...
+            `;
+
+            fetch(`/transacciones/api/cancelar-por-cotizacion/${transaccionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    motivo: 'Cliente decidió cancelar debido al cambio de cotización'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Transacción cancelada exitosamente', 'success');
+                    // Redirigir a la lista de transacciones
+                    setTimeout(() => {
+                        window.location.href = '/transacciones/';
+                    }, 1500);
+                } else {
+                    showToast(`Error: ${data.message}`, 'error');
+                    btnCancelar.disabled = false;
+                    btnCancelar.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancelar Transacción
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cancelar por cotización:', error);
+                showToast('Error de conexión', 'error');
+                btnCancelar.disabled = false;
+            });
+        }
+
+        // Inicializar verificación al cargar la página
+        window.addEventListener('load', function() {
+            // Solo verificar si la transacción está pendiente
+            {% if transaccion.estado == 'pendiente' %}
+                // Verificar inmediatamente
+                setTimeout(verificarCotizacion, 1000);
+
+                // Verificar cada 30 segundos hasta que se complete la verificación
+                verificacionInterval = setInterval(() => {
+                    if (!cotizacionVerificada) {
+                        verificarCotizacion();
+                    }
+                }, 30000);
+            {% else %}
+                // Si no está pendiente, ocultar la sección de verificación
+                document.getElementById('cotizacion-check').style.display = 'none';
+            {% endif %}
+        });
+    </script>
+{% endblock content %}
