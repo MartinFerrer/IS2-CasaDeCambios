@@ -1,0 +1,78 @@
+name: Test and Deploy to Heroku
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run tests (Docker Compose)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env for tests
+        run: |
+          cat > .env <<'EOF'
+          DEBUG=True
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          ALLOWED_HOSTS=localhost,127.0.0.1
+          SQL_ENGINE=django.db.backends.postgresql
+          SQL_USER=${{ secrets.SQL_USER }}
+          SQL_PASSWORD=${{ secrets.SQL_PASSWORD }}
+          SQL_DATABASE=${{ secrets.SQL_DATABASE }}
+          SQL_HOST=db
+          SQL_PORT=5432
+          DATABASE=postgres
+          DJANGO_SETTINGS_MODULE=global_exchange_django.settings
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+          EOF
+
+      - name: Run tests with docker compose
+        run: docker compose -f docker-compose.dev.yml up --build --exit-code-from test
+
+  deploy:
+    name: Deploy to Heroku (Container Registry)
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Heroku Container Registry
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          echo "$HEROKU_API_KEY" | docker login --username=_ --password-stdin registry.heroku.com
+
+      - name: Build Docker image
+        run: |
+          docker build -t registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web ./app
+
+      - name: Push Docker image to Heroku
+        run: |
+          docker push registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web
+
+      - name: Release on Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          curl -n -X POST https://api.heroku.com/apps/${{ secrets.HEROKU_APP_NAME }}/formation \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/vnd.heroku+json; version=3" \
+            -H "Authorization: Bearer $HEROKU_API_KEY" \
+            -d '{"updates":[{"type":"web","docker_image":"registry.heroku.com/'"${{ secrets.HEROKU_APP_NAME }}"'/web"}]}' || true
+          curl -n -X POST https://api.heroku.com/apps/${{ secrets.HEROKU_APP_NAME }}/releases \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/vnd.heroku+json; version=3" \
+            -H "Authorization: Bearer $HEROKU_API_KEY" \
+            -d '{"description":"Deploy from GitHub Actions"}'
+
+      - name: Notify
+        run: |
+          echo "Deployed to Heroku app: ${{ secrets.HEROKU_APP_NAME }}"

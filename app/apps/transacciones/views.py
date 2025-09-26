@@ -8,29 +8,152 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Cliente
-
-from .models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
+from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 
 
-def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
+def obtener_nombre_medio(medio_id, cliente):
+    """Obtiene el nombre legible de un medio de pago/cobro con su alias real.
+
+    :param medio_id: ID del medio de pago/cobro (ej: 'tarjeta_1', 'cuenta_2', 'efectivo')
+    :param cliente: Instancia del cliente para buscar el medio
+    :return: Nombre legible del medio con alias (ej: 'TC - Visa *1234')
+    """
+    if medio_id == "efectivo":
+        return "Efectivo"
+
+    try:
+        if medio_id.startswith("tarjeta_"):
+            medio_pk = medio_id.replace("tarjeta_", "")
+            tarjeta = TarjetaCredito.objects.get(pk=medio_pk, cliente=cliente)
+            return "TC - " + tarjeta.alias
+        elif medio_id.startswith("cuenta_"):
+            medio_pk = medio_id.replace("cuenta_", "")
+            cuenta = CuentaBancaria.objects.get(pk=medio_pk, cliente=cliente)
+            return "Cuenta - " + cuenta.alias
+        elif medio_id.startswith("billetera_"):
+            medio_pk = medio_id.replace("billetera_", "")
+            billetera = BilleteraElectronica.objects.get(pk=medio_pk, cliente=cliente)
+            return "Billetera - " + billetera.alias
+    except Exception:
+        # Si no se encuentra el medio, mostrar nombre genérico
+        if medio_id.startswith("tarjeta_"):
+            return "Tarjeta de Crédito"
+        elif medio_id.startswith("cuenta_"):
+            return "Cuenta Bancaria"
+        elif medio_id.startswith("billetera_"):
+            return "Billetera Electrónica"
+
+    return "Método desconocido"
+
+
+def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
+    """Calcula la comisión del medio de pago."""
+    if metodo_pago.startswith("tarjeta_") and cliente:
+        try:
+            tarjeta_id = int(metodo_pago.split("_")[1])
+            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
+            if tarjeta.entidad:
+                return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
+            return Decimal("5.0")
+        except (ValueError, TarjetaCredito.DoesNotExist):
+            return Decimal("5.0")
+    elif metodo_pago.startswith("cuenta_") and cliente:
+        try:
+            cuenta_id = int(metodo_pago.split("_")[1])
+            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
+            if cuenta.entidad:
+                return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
+            return Decimal("0.0")
+        except (ValueError, CuentaBancaria.DoesNotExist):
+            return Decimal("0.0")
+    elif metodo_pago.startswith("billetera_") and cliente:
+        try:
+            billetera_id = int(metodo_pago.split("_")[1])
+            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
+            if billetera.entidad:
+                return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
+            return Decimal("3.0")
+        except (ValueError, BilleteraElectronica.DoesNotExist):
+            return Decimal("3.0")
+    else:
+        comisiones_medios = {
+            "efectivo": Decimal("0.0"),
+            "cuenta": Decimal("0.0"),
+            "tarjeta": Decimal("5.0"),
+            "billetera": Decimal("3.0"),
+        }
+        if metodo_pago.startswith("tarjeta"):
+            return comisiones_medios["tarjeta"]
+        elif metodo_pago.startswith("cuenta"):
+            return comisiones_medios["cuenta"]
+        elif metodo_pago.startswith("billetera"):
+            return comisiones_medios["billetera"]
+        return comisiones_medios["efectivo"]
+
+
+def _get_collection_commission(metodo_cobro: str, cliente, tipo: str) -> Decimal:
+    """Calcula la comisión del medio de cobro."""
+    if metodo_cobro.startswith("tarjeta_") and cliente:
+        try:
+            tarjeta_id = int(metodo_cobro.split("_")[1])
+            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
+            if tarjeta.entidad:
+                return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
+            return Decimal("5.0")
+        except (ValueError, TarjetaCredito.DoesNotExist):
+            return Decimal("5.0")
+    elif metodo_cobro.startswith("cuenta_") and cliente:
+        try:
+            cuenta_id = int(metodo_cobro.split("_")[1])
+            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
+            if cuenta.entidad:
+                return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
+            return Decimal("0.0")
+        except (ValueError, CuentaBancaria.DoesNotExist):
+            return Decimal("0.0")
+    elif metodo_cobro.startswith("billetera_") and cliente:
+        try:
+            billetera_id = int(metodo_cobro.split("_")[1])
+            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
+            if billetera.entidad:
+                return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
+            return Decimal("3.0")
+        except (ValueError, BilleteraElectronica.DoesNotExist):
+            return Decimal("3.0")
+    else:
+        comisiones_medios = {
+            "efectivo": Decimal("0.0"),
+            "cuenta": Decimal("0.0"),
+            "tarjeta": Decimal("5.0"),
+            "billetera": Decimal("3.0"),
+        }
+        if metodo_cobro.startswith("tarjeta"):
+            return comisiones_medios["tarjeta"]
+        elif metodo_cobro.startswith("cuenta"):
+            return comisiones_medios["cuenta"]
+        elif metodo_cobro.startswith("billetera"):
+            return comisiones_medios["billetera"]
+        return comisiones_medios["efectivo"]
+
+
+def _compute_simulation(params: Dict, request) -> Dict:
     """Cálculo centralizado de la simulación.
 
     params: dict con keys: monto (float), divisa_seleccionada, tipo_operacion,
     metodo_pago, metodo_cobro
-    user: request.user (puede ser AnonymousUser)
-    cliente_id: ID del cliente seleccionado para la simulación
+    request: HttpRequest que incluye el cliente en request.cliente (del middleware)
 
     Todas las transacciones son desde/hacia PYG:
-    - Compra: cliente da PYG y recibe divisa seleccionada
+    - Compra: cliente especifica monto de divisa extranjera que desea y se calcula el precio en PYG
     - Venta: cliente da divisa seleccionada y recibe PYG
     """
     monto = float(params.get("monto") or 0)
@@ -39,21 +162,12 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     metodo_pago = params.get("metodo_pago") or "efectivo"
     metodo_cobro = params.get("metodo_cobro") or "efectivo"
 
-    # Obtener cliente seleccionado para descuentos
-    cliente = None
-    if cliente_id:
-        try:
-            cliente = Cliente.objects.get(pk=cliente_id)
-        except Cliente.DoesNotExist:
-            pass
+    # Obtener cliente del middleware para descuentos
+    cliente = getattr(request, "cliente", None)
 
     # Determinar monedas origen y destino según tipo de operación
-    if tipo == "compra":
-        moneda_origen = "PYG"
-        moneda_destino = divisa_seleccionada
-    else:  # venta
-        moneda_origen = divisa_seleccionada
-        moneda_destino = "PYG"
+    moneda_origen = divisa_seleccionada
+    moneda_destino = "PYG"
 
     # Buscar tasa de cambio activa (siempre con PYG como origen en la BD)
     tasa_cambio = None
@@ -66,13 +180,12 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
 
     # Si no hay tasa de cambio, usar valores por defecto
     if not tasa_cambio:
-        # Tasas de ejemplo relativas a PYG
         rates_to_pyg = {"USD": 7000.0, "EUR": 7600.0, "BRL": 1300.0}
         pb_dolar = Decimal(str(rates_to_pyg.get(divisa_seleccionada, 7000.0)))
-        comision_com = Decimal("50.0")  # Comisión de compra por defecto
-        comision_vta = Decimal("75.0")  # Comisión de venta por defecto
+        comision_com = Decimal("50.0")
+        comision_vta = Decimal("75.0")
     else:
-        pb_dolar = tasa_cambio.valor
+        pb_dolar = tasa_cambio.precio_base
         comision_com = tasa_cambio.comision_compra
         comision_vta = tasa_cambio.comision_venta
 
@@ -81,16 +194,40 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     if cliente and cliente.tipo_cliente:
         pordes = cliente.tipo_cliente.descuento_sobre_comision
 
-    # Definir comisiones por tipo de medio de pago
-    comisiones_medios = {
-        "efectivo": Decimal("0.0"),  # 0%
-        "cuenta": Decimal("0.0"),  # 0%
-        "tarjeta": Decimal("5.0"),  # 5%
-        "billetera": Decimal("3.0"),  # 3%
-    }
+    # Obtener comisiones de medios
+    comision_medio_pago_valor = _get_payment_commission(metodo_pago, cliente, tipo)
+    comision_medio_cobro_valor = _get_collection_commission(metodo_cobro, cliente, tipo)
 
-    # Determinar tipo de medio de pago para comisión
-    tipo_medio_pago = "efectivo"  # Por defecto
+    # Calcular según las fórmulas corregidas
+    if tipo == "compra":
+        # Para compra: el usuario especifica cuánta divisa extranjera desea
+        # y calculamos cuántos guaraníes necesita
+        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
+        tc_efectiva = pb_dolar + comision_efectiva
+
+        # monto = cantidad de divisa extranjera deseada
+        # converted = cantidad de guaraníes necesarios (sin comisión de medio)
+        converted = monto * float(tc_efectiva)
+        comision_medio_pago = Decimal(str(converted)) * comision_medio_pago_valor / Decimal("100")
+        total = converted + float(comision_medio_pago)  # Total en guaraníes a pagar
+
+        comision_final = float(comision_efectiva)
+        total_antes_comision_medio = converted
+        tasa_display = float(tc_efectiva)
+        comision_medio_cobro = Decimal("0.0")
+    else:  # venta
+        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
+        tc_efectiva = pb_dolar - comision_efectiva
+        converted = monto * float(tc_efectiva)
+        comision_final = float(comision_efectiva)
+        total_antes_comision_medio = converted
+        comision_medio_pago = Decimal("0.0")
+        comision_medio_cobro = Decimal(str(total_antes_comision_medio)) * comision_medio_cobro_valor / Decimal("100")
+        total = total_antes_comision_medio - float(comision_medio_cobro)
+        tasa_display = float(tc_efectiva)
+
+    # Determinar tipos de medios para display
+    tipo_medio_pago = "efectivo"
     if metodo_pago.startswith("tarjeta"):
         tipo_medio_pago = "tarjeta"
     elif metodo_pago.startswith("cuenta"):
@@ -98,38 +235,13 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
     elif metodo_pago.startswith("billetera"):
         tipo_medio_pago = "billetera"
 
-    # Calcular según las fórmulas corregidas
-    if tipo == "compra":
-        # Cliente da PYG y recibe divisa
-        # Precio final compra = precio base + (comisión compra - (comisión compra * descuento por segmento))
-        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
-        tc_efectiva = pb_dolar + comision_efectiva
-
-        # Aplicar comisión del medio de pago al monto que se paga en PYG
-        comision_medio_pago = Decimal(str(monto)) * comisiones_medios[tipo_medio_pago] / Decimal("100")
-        monto_efectivo_para_cambio = monto - float(comision_medio_pago)
-
-        # Calcular divisa que se recibe con el monto efectivo (después de comisión del medio)
-        converted = monto_efectivo_para_cambio / float(tc_efectiva)  # Monto en divisa destino
-        comision_final = float(comision_efectiva)
-        total_antes_comision_medio = monto / float(tc_efectiva)  # Para mostrar diferencia
-        total = converted
-        tasa_display = float(tc_efectiva)
-    else:  # venta
-        # Cliente da divisa y recibe PYG
-        # Precio final venta = precio base - (comisión venta - (comisión venta * descuento por segmento))
-        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
-        tc_efectiva = pb_dolar - comision_efectiva
-        converted = monto * float(tc_efectiva)  # Monto en PYG antes de comisión medio
-        comision_final = float(comision_efectiva)
-        total_antes_comision_medio = converted
-
-        # Aplicar comisión del medio de pago al recibir PYG
-        comision_medio_pago = (
-            Decimal(str(total_antes_comision_medio)) * comisiones_medios[tipo_medio_pago] / Decimal("100")
-        )
-        total = total_antes_comision_medio - float(comision_medio_pago)
-        tasa_display = float(tc_efectiva)
+    tipo_medio_cobro = "efectivo"
+    if metodo_cobro.startswith("tarjeta"):
+        tipo_medio_cobro = "tarjeta"
+    elif metodo_cobro.startswith("cuenta"):
+        tipo_medio_cobro = "cuenta"
+    elif metodo_cobro.startswith("billetera"):
+        tipo_medio_cobro = "billetera"
 
     return {
         "monto_original": round(monto, 6),
@@ -141,8 +253,11 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
         "descuento": round(float(pordes), 2),
         "comision_final": round(comision_final, 6),
         "comision_medio_pago_tipo": tipo_medio_pago,
-        "comision_medio_pago_porcentaje": float(comisiones_medios[tipo_medio_pago]),
+        "comision_medio_pago_porcentaje": float(comision_medio_pago_valor),
         "comision_medio_pago_monto": round(float(comision_medio_pago), 6),
+        "comision_medio_cobro_tipo": tipo_medio_cobro,
+        "comision_medio_cobro_porcentaje": float(comision_medio_cobro_valor),
+        "comision_medio_cobro_monto": round(float(comision_medio_cobro), 6),
         "total_antes_comision_medio": round(total_antes_comision_medio, 6),
         "total": round(total, 6),
         "tipo_operacion": tipo,
@@ -152,37 +267,59 @@ def _compute_simulation(params: Dict, user, cliente_id=None) -> Dict:
 
 
 def simular_cambio_view(request: HttpRequest) -> HttpResponse:
-    """Página de simulación de cambio."""
-    # Obtener clientes disponibles para el usuario autenticado
-    clientes = []
-    if request.user.is_authenticated:
-        clientes = Cliente.objects.filter(usuarios=request.user)
+    """Página para simular operaciones de cambio.
 
-    # Obtener divisas disponibles (excluyendo PYG que siempre es origen/destino)
+    Presenta una página donde el usuario puede simular una operación de compra/venta
+    de divisas. El cliente se obtiene automáticamente del middleware.
+
+    :param request: Objeto HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "simular_cambio.html" y el contexto que
+        incluye las divisas disponibles y el cliente asociado (si existe).
+    :rtype: django.http.HttpResponse
+    """
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
 
     context = {
-        "clientes": clientes,
         "divisas": divisas,
+        # El cliente se obtiene automáticamente del middleware en request.cliente
     }
     return render(request, "simular_cambio.html", context)
 
 
 @require_GET
 def api_simular_cambio(request: HttpRequest) -> JsonResponse:
-    """Return JSON with a live simulation using querystring params.
+    """Devuelva una simulación en JSON basada en parámetros GET.
 
-    Example: /api/simular?monto=100&moneda_origen=PYG&moneda_destino=USD&tipo_operacion=compra
+    Parámetros esperados en la querystring (GET):
+    - monto: cantidad numérica a convertir.
+    - divisa_seleccionada: código de la divisa destino (ej. "USD").
+    - tipo_operacion: "compra" o "venta".
+    - metodo_pago: identificador del medio de pago (ej. "efectivo", "tarjeta_1").
+    - metodo_cobro: identificador del medio de cobro.
+
+    :param request: HttpRequest con la querystring de simulación.
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con los detalles de la simulación (tasas, comisiones, totales).
+    :rtype: django.http.JsonResponse
     """
     params = request.GET.dict()
-    cliente_id = params.get("cliente_id")
-    result = _compute_simulation(params, request.user, cliente_id)
+    result = _compute_simulation(params, request)
     return JsonResponse(result)
 
 
 @require_GET
 def api_clientes_usuario(request: HttpRequest) -> JsonResponse:
-    """Retorna los clientes asociados al usuario autenticado."""
+    """Devuelve en JSON la lista de clientes asociados al usuario autenticado.
+
+    Si el usuario no está autenticado retorna una lista vacía.
+
+    :param request: HttpRequest del usuario que solicita la lista.
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con clave "clientes" conteniendo una lista de objetos
+        con campos: id, nombre, ruc.
+    :rtype: django.http.JsonResponse
+    """
     if not request.user.is_authenticated:
         return JsonResponse({"clientes": []})
 
@@ -192,11 +329,17 @@ def api_clientes_usuario(request: HttpRequest) -> JsonResponse:
 
 @require_GET
 def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonResponse:
-    """Retorna los medios de pago asociados a un cliente.
+    """Retorna en JSON los medios de pago y cobro habilitados para un cliente.
 
-    Filtra las opciones según el tipo de operación:
-    - Compra: todos los medios de pago disponibles, solo efectivo para cobro
-    - Venta: solo efectivo para pago y cobro
+    El endpoint valida que el cliente exista y que el usuario tenga acceso. También
+    adapta la respuesta según el parámetro GET ``tipo`` ("compra" o "venta").
+
+    :param request: HttpRequest que puede contener el parámetro GET "tipo".
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente cuyos medios se consultan.
+    :type cliente_id: int
+    :return: JsonResponse con estructura {"medios_pago": [...], "medios_cobro": [...]}.
+    :rtype: django.http.JsonResponse
     """
     try:
         cliente = Cliente.objects.get(pk=cliente_id)
@@ -213,7 +356,7 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
 
         # Configurar medios de pago según tipo de operación
         if tipo_operacion == "venta":
-            # Para venta: SOLO efectivo tanto para pago como para cobro
+            # Para venta: SOLO efectivo para pago
             medios_pago.append(
                 {
                     "id": "efectivo",
@@ -236,43 +379,75 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 }
             )
 
-            # Agregar tarjetas de crédito para pago
-            for tarjeta in TarjetaCredito.objects.filter(cliente=cliente):
+            # Agregar tarjetas de crédito habilitadas para pago
+            for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_pago=True):
+                # Obtener comisión de la entidad si existe
+                comision = 5  # Comisión por defecto para tarjetas
+                if tarjeta.entidad:
+                    if tipo_operacion == "compra":
+                        comision = float(tarjeta.entidad.comision_compra)
+                    else:
+                        comision = float(tarjeta.entidad.comision_venta)
+
                 medios_pago.append(
                     {
                         "id": f"tarjeta_{tarjeta.id}",
                         "tipo": "tarjeta",
-                        "nombre": tarjeta.generar_alias(),
+                        "nombre": f"TC - {tarjeta.generar_alias()}",
                         "descripcion": f"Tarjeta terminada en {tarjeta.numero_tarjeta[-4:]}",
-                        "comision": 5,  # 5%
+                        "comision": comision,
+                        "entidad": tarjeta.entidad.nombre if tarjeta.entidad else "Sin entidad",
                     }
                 )
 
-            # Agregar cuentas bancarias para pago
-            for cuenta in CuentaBancaria.objects.filter(cliente=cliente):
+            # Agregar cuentas bancarias habilitadas para pago
+            for cuenta in CuentaBancaria.objects.filter(cliente=cliente, habilitado_para_pago=True):
+                # Obtener comisión de la entidad si existe
+                comision = 0  # Comisión por defecto para cuentas
+                if cuenta.entidad:
+                    if tipo_operacion == "compra":
+                        comision = float(cuenta.entidad.comision_compra)
+                    else:
+                        comision = float(cuenta.entidad.comision_venta)
+
+                entidad_nombre = cuenta.entidad.nombre if cuenta.entidad else "Sin banco"
+
                 medios_pago.append(
                     {
                         "id": f"cuenta_{cuenta.id}",
                         "tipo": "cuenta",
-                        "nombre": cuenta.generar_alias(),
-                        "descripcion": f"Cuenta {cuenta.banco} terminada en {cuenta.numero_cuenta[-4:]}",
-                        "comision": 0,  # 0%
+                        "nombre": f"Cuenta - {cuenta.generar_alias()}",
+                        "descripcion": f"Cuenta {entidad_nombre} terminada en {cuenta.numero_cuenta[-4:]}",
+                        "comision": comision,
+                        "entidad": cuenta.entidad.nombre if cuenta.entidad else "Sin entidad",
                     }
                 )
 
-            # Agregar billeteras electrónicas para pago
-            for billetera in BilleteraElectronica.objects.filter(cliente=cliente):
+            # Agregar billeteras electrónicas habilitadas para pago
+            for billetera in BilleteraElectronica.objects.filter(cliente=cliente, habilitado_para_pago=True):
+                # Obtener comisión de la entidad si existe
+                comision = 3  # Comisión por defecto para billeteras
+                if billetera.entidad:
+                    if tipo_operacion == "compra":
+                        comision = float(billetera.entidad.comision_compra)
+                    else:
+                        comision = float(billetera.entidad.comision_venta)
+
+                entidad_nombre = billetera.entidad.nombre if billetera.entidad else "Sin proveedor"
+
                 medios_pago.append(
                     {
                         "id": f"billetera_{billetera.id}",
                         "tipo": "billetera",
-                        "nombre": billetera.generar_alias(),
-                        "descripcion": f"Billetera {billetera.get_proveedor_display()}",
-                        "comision": 3,  # 3%
+                        "nombre": f"Billetera - {billetera.generar_alias()}",
+                        "descripcion": f"Billetera {entidad_nombre}",
+                        "comision": comision,
+                        "entidad": billetera.entidad.nombre if billetera.entidad else "Sin entidad",
                     }
                 )
 
-        # Para cualquier operación, solo efectivo para cobro
+        # Configurar medios de cobro según tipo de operación
+        # Agregar efectivo por defecto para cobro
         medios_cobro.append(
             {
                 "id": "efectivo",
@@ -283,6 +458,64 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
             }
         )
 
+        # Para compra: solo efectivo para cobro
+        # Para venta: agregar todos los medios habilitados para cobro
+        if tipo_operacion == "venta":
+            # Agregar tarjetas de crédito habilitadas para cobro
+            for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_cobro=True):
+                comision = 5  # Comisión por defecto para tarjetas
+                if tarjeta.entidad:
+                    comision = float(tarjeta.entidad.comision_venta)
+
+                medios_cobro.append(
+                    {
+                        "id": f"tarjeta_{tarjeta.id}",
+                        "tipo": "tarjeta",
+                        "nombre": f"TC - {tarjeta.generar_alias()}",
+                        "descripcion": f"Tarjeta terminada en {tarjeta.numero_tarjeta[-4:]}",
+                        "comision": comision,
+                        "entidad": tarjeta.entidad.nombre if tarjeta.entidad else "Sin entidad",
+                    }
+                )
+
+            # Agregar cuentas bancarias habilitadas para cobro
+            for cuenta in CuentaBancaria.objects.filter(cliente=cliente, habilitado_para_cobro=True):
+                comision = 0  # Comisión por defecto para cuentas
+                if cuenta.entidad:
+                    comision = float(cuenta.entidad.comision_venta)
+
+                entidad_nombre = cuenta.entidad.nombre if cuenta.entidad else "Sin banco"
+
+                medios_cobro.append(
+                    {
+                        "id": f"cuenta_{cuenta.id}",
+                        "tipo": "cuenta",
+                        "nombre": f"Cuenta - {cuenta.generar_alias()}",
+                        "descripcion": f"Cuenta {entidad_nombre} terminada en {cuenta.numero_cuenta[-4:]}",
+                        "comision": comision,
+                        "entidad": cuenta.entidad.nombre if cuenta.entidad else "Sin entidad",
+                    }
+                )
+
+            # Agregar billeteras electrónicas habilitadas para cobro
+            for billetera in BilleteraElectronica.objects.filter(cliente=cliente, habilitado_para_cobro=True):
+                comision = 3  # Comisión por defecto para billeteras
+                if billetera.entidad:
+                    comision = float(billetera.entidad.comision_venta)
+
+                entidad_nombre = billetera.entidad.nombre if billetera.entidad else "Sin proveedor"
+
+                medios_cobro.append(
+                    {
+                        "id": f"billetera_{billetera.id}",
+                        "tipo": "billetera",
+                        "nombre": f"Billetera - {billetera.generar_alias()}",
+                        "descripcion": f"Billetera {entidad_nombre}",
+                        "comision": comision,
+                        "entidad": billetera.entidad.nombre if billetera.entidad else "Sin entidad",
+                    }
+                )
+
         return JsonResponse({"medios_pago": medios_pago, "medios_cobro": medios_cobro})
 
     except Cliente.DoesNotExist:
@@ -291,9 +524,16 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
 
 @require_GET
 def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
-    """Retorna las divisas disponibles basadas en las tasas de cambio activas.
+    """Devuelve las divisas destino disponibles según tasas activas.
 
-    Solo retorna divisas_destino ya que todas las transacciones son desde/hacia PYG.
+    El servicio busca tasas de cambio activas con PYG como divisa origen y devuelve
+    las divisas destino (excluye PYG) con su código, nombre y símbolo.
+
+    :param request: HttpRequest (no requiere parámetros adicionales).
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con clave "divisas" que contiene una lista de objetos
+        {"codigo", "nombre", "simbolo"}.
+    :rtype: django.http.JsonResponse
     """
     # Obtener todas las divisas destino que tienen tasas de cambio activas con PYG como origen
     divisas_destino = set()
@@ -310,47 +550,83 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"divisas": destino_list})
 
 
-def comprar_divisa_view(request: HttpRequest) -> HttpResponse:
-    """Página para comprar divisas."""
-    return render(request, "comprar_divisa.html")
+def comprar_divisa_view(request):
+    """Página para iniciar una operación de compra de divisas.
+
+    Muestra las divisas disponibles (excluyendo PYG) y renderiza el template
+    para que el usuario inicie la compra. El cliente asociado puede ser provisto
+    por middleware (request.cliente) o por sesión.
+
+    :param request: HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "comprar_divisa.html" y contexto.
+    :rtype: django.http.HttpResponse
+    """
+    # Obtener divisas disponibles (excluyendo PYG)
+    divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
+
+    context = {
+        "divisas": divisas,
+        # request.cliente ya lo añade el middleware
+    }
+    return render(request, "comprar_divisa.html", context)
 
 
 def vender_divisa_view(request: HttpRequest) -> HttpResponse:
-    """Página para vender divisas."""
-    return render(request, "vender_divisa.html")
+    """Página para iniciar una operación de venta de divisas.
+
+    Intenta obtener el cliente asociado desde la sesión o desde los clientes
+    del usuario autenticado y renderiza el template de venta.
+
+    :param request: HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "vender_divisa.html" y el cliente asociado
+        en el contexto (si existe).
+    :rtype: django.http.HttpResponse
+    """
+    cliente_asociado = None
+    if request.user.is_authenticated:
+        cliente_id = request.session.get("cliente_id")
+        if cliente_id:
+            cliente_asociado = Cliente.objects.filter(id=cliente_id, usuarios=request.user).first()
+        else:
+            cliente_asociado = Cliente.objects.filter(usuarios=request.user).first()
+
+    context = {"cliente_asociado": cliente_asociado}
+    return render(request, "vender_divisa.html", context)
 
 
 @login_required
-def configuracion_medios_pago(request: HttpRequest) -> HttpResponse:
-    """Muestra lista de clientes asociados al usuario en sesión.
+def configuracion_medios_pago(request):
+    """Redirige a la configuración de medios de pago del cliente activo en sesión.
 
-    Args:
-        request: HttpRequest object.
+    Si `request.cliente` está definido (ej. por middleware) redirige a la vista de
+    configuración para ese cliente; si no, redirige a la lista de clientes/transacciones.
 
-    Returns:
-        HttpResponse: Rendered lista_clientes.html template.
-
+    :param request: HttpRequest del usuario.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse redirigiendo a la página de configuración o lista.
+    :rtype: django.http.HttpResponse
     """
-    # Obtener clientes asociados al usuario actual
-    clientes = request.user.clientes.all()
-
-    contexto = {
-        "clientes": clientes,
-    }
-    return render(request, "transacciones/configuracion/lista_clientes.html", contexto)
+    if request.cliente:
+        return redirect("transacciones:medios_pago_cliente", cliente_id=request.cliente.id)
+    else:
+        return redirect("transacciones:lista")
 
 
 @login_required
 def medios_pago_cliente(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Muestra todos los medios de pago registrados (tarjetas, cuentas, billeteras).
+    """Muestra los medios de pago de un cliente concreto.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente a mostrar.
+    Recupera tarjetas, cuentas y billeteras del cliente y renderiza la plantilla
+    de configuración de medios de pago.
 
-    Returns:
-        HttpResponse: Rendered medios_pago_cliente.html template.
-
+    :param request: HttpRequest del usuario autenticado.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente a mostrar.
+    :type cliente_id: int
+    :return: HttpResponse con la plantilla "transacciones/configuracion/medios_pago_cliente.html".
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
@@ -369,26 +645,35 @@ def medios_pago_cliente(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
 @login_required
 def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Procesa el formulario para agregar una nueva tarjeta de crédito a un cliente.
+    """Crear una nueva tarjeta de crédito para un cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente al que se agregará la tarjeta.
+    Procesa el formulario POST para crear y asociar una tarjeta al cliente. Maneja
+    validaciones y muestra mensajes al usuario en caso de error o éxito.
 
-    Returns:
-        HttpResponse: Rendered crear_tarjeta.html template o redirect.
-
+    :param request: HttpRequest que puede contener un POST con los datos de la tarjeta.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente al que se agregará la tarjeta.
+    :type cliente_id: int
+    :return: HttpResponse renderizando el formulario o redirigiendo a la lista de medios.
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
     if request.method == "POST":
         try:
+            # Obtener la entidad seleccionada
+            entidad_id = request.POST.get("entidad")
+            entidad = None
+            if entidad_id:
+                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="emisor_tarjeta", activo=True)
+
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
                 numero_tarjeta=request.POST.get("numero_tarjeta"),
                 nombre_titular=request.POST.get("nombre_titular"),
                 fecha_expiracion=request.POST.get("fecha_expiracion"),
                 cvv=request.POST.get("cvv"),
+                entidad=entidad,
                 alias=request.POST.get("alias", ""),
             )
             if not tarjeta.alias:
@@ -409,33 +694,49 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
         except Exception as e:
             messages.error(request, f"Error al crear tarjeta: {e!s}")
 
-    contexto = {"cliente": cliente}
+    # Obtener entidades emisoras de tarjetas activas
+    entidades_tarjeta = EntidadFinanciera.objects.filter(tipo="emisor_tarjeta", activo=True).order_by("nombre")
+
+    contexto = {
+        "cliente": cliente,
+        "entidades_tarjeta": entidades_tarjeta,
+    }
     return render(request, "transacciones/configuracion/crear_tarjeta.html", contexto)
 
 
 @login_required
 def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Procesa el formulario para agregar una nueva cuenta bancaria a un cliente.
+    """Agregar una cuenta bancaria a un cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente al que se agregará la cuenta.
+    Procesa el formulario para crear una nueva cuenta bancaria, asigna alias si
+    es necesario y maneja errores de validación mostrando mensajes.
 
-    Returns:
-        HttpResponse: Rendered crear_cuenta_bancaria.html template o redirect.
-
+    :param request: HttpRequest con datos del formulario (POST) o GET para mostrar el form.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente destino.
+    :type cliente_id: int
+    :return: HttpResponse con el formulario o redirección tras creación.
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
     if request.method == "POST":
         try:
+            # Obtener la entidad bancaria seleccionada
+            entidad_id = request.POST.get("entidad")
+            entidad = None
+            if entidad_id:
+                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="banco", activo=True)
+
             cuenta = CuentaBancaria.objects.create(
                 cliente=cliente,
                 numero_cuenta=request.POST.get("numero_cuenta"),
-                banco=request.POST.get("banco"),
+                entidad=entidad,
                 titular_cuenta=request.POST.get("titular_cuenta"),
                 documento_titular=request.POST.get("documento_titular", ""),
                 alias=request.POST.get("alias", ""),
+                habilitado_para_pago=request.POST.get("habilitado_para_pago") == "on",
+                habilitado_para_cobro=request.POST.get("habilitado_para_cobro") == "on",
             )
             if not cuenta.alias:
                 cuenta.alias = cuenta.generar_alias()
@@ -455,33 +756,49 @@ def crear_cuenta_bancaria(request: HttpRequest, cliente_id: int) -> HttpResponse
         except Exception as e:
             messages.error(request, f"Error al crear cuenta bancaria: {e!s}")
 
-    contexto = {"cliente": cliente}
+    # Obtener entidades bancarias activas
+    entidades_bancarias = EntidadFinanciera.objects.filter(tipo="banco", activo=True).order_by("nombre")
+
+    contexto = {
+        "cliente": cliente,
+        "entidades_bancarias": entidades_bancarias,
+    }
     return render(request, "transacciones/configuracion/crear_cuenta_bancaria.html", contexto)
 
 
 @login_required
 def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
-    """Procesa el formulario para agregar una nueva billetera electrónica a un cliente.
+    """Crear una billetera electrónica para un cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente al que se agregará la billetera.
+    Procesa el POST del formulario para crear la billetera, manejar alias y
+    habilitaciones para pago/cobro. Muestra mensajes de éxito o error.
 
-    Returns:
-        HttpResponse: Rendered crear_billetera.html template o redirect.
-
+    :param request: HttpRequest con datos del formulario.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente al que se asociará la billetera.
+    :type cliente_id: int
+    :return: HttpResponse renderizando el formulario o redirigiendo a la vista de medios.
+    :rtype: django.http.HttpResponse
     """
     cliente = get_object_or_404(Cliente, id=cliente_id, usuarios=request.user)
 
     if request.method == "POST":
         try:
+            # Obtener la entidad de billetera seleccionada
+            entidad_id = request.POST.get("entidad")
+            entidad = None
+            if entidad_id:
+                entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="proveedor_billetera", activo=True)
+
             billetera = BilleteraElectronica.objects.create(
                 cliente=cliente,
-                proveedor=request.POST.get("proveedor"),
+                entidad=entidad,
                 identificador=request.POST.get("identificador"),
                 numero_telefono=request.POST.get("numero_telefono", ""),
                 email_asociado=request.POST.get("email_asociado", ""),
                 alias=request.POST.get("alias", ""),
+                habilitado_para_pago=request.POST.get("habilitado_para_pago") == "on",
+                habilitado_para_cobro=request.POST.get("habilitado_para_cobro") == "on",
             )
             if not billetera.alias:
                 billetera.alias = billetera.generar_alias()
@@ -492,25 +809,31 @@ def crear_billetera(request: HttpRequest, cliente_id: int) -> HttpResponse:
         except Exception as e:
             messages.error(request, f"Error al crear billetera: {e!s}")
 
+    # Obtener entidades de billeteras activas
+    entidades_billeteras = EntidadFinanciera.objects.filter(tipo="proveedor_billetera", activo=True).order_by("nombre")
+
     contexto = {
         "cliente": cliente,
-        "proveedores": BilleteraElectronica.PROVEEDORES,
+        "entidades_billeteras": entidades_billeteras,
     }
     return render(request, "transacciones/configuracion/crear_billetera.html", contexto)
 
 
 @login_required
 def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> HttpResponse:
-    """Edita una tarjeta de crédito existente.
+    """Editar una tarjeta de crédito existente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario de la tarjeta.
-        medio_id: ID de la tarjeta a editar.
+    Actualiza los campos de la tarjeta según el POST recibido y guarda los
+    cambios. Maneja validaciones y muestra mensajes al usuario.
 
-    Returns:
-        HttpResponse: Rendered editar_tarjeta.html template o redirect.
-
+    :param request: HttpRequest con datos para actualizar la tarjeta.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario (usado para validar pertenencia).
+    :type cliente_id: int
+    :param medio_id: ID de la tarjeta a editar.
+    :type medio_id: int
+    :return: HttpResponse renderizando el formulario de edición o redirigiendo.
+    :rtype: django.http.HttpResponse
     """
     tarjeta = get_object_or_404(TarjetaCredito, id=medio_id, cliente__usuarios=request.user)
 
@@ -520,6 +843,13 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
             tarjeta.numero_tarjeta = request.POST.get("numero_tarjeta", "").replace(" ", "")
             tarjeta.nombre_titular = request.POST.get("nombre_titular", "")
             tarjeta.cvv = request.POST.get("cvv", "")
+
+            # Actualizar entidad
+            entidad_id = request.POST.get("entidad")
+            if entidad_id:
+                tarjeta.entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="emisor_tarjeta", activo=True)
+            else:
+                tarjeta.entidad = None
 
             # Solo actualizar fecha si se proporciona
             fecha_expiracion = request.POST.get("fecha_expiracion")
@@ -545,22 +875,32 @@ def editar_tarjeta(request: HttpRequest, cliente_id: int, medio_id: int) -> Http
         except (ValueError, TypeError) as e:
             messages.error(request, f"Error al editar tarjeta: {e!s}")
 
-    contexto = {"tarjeta": tarjeta, "cliente": tarjeta.cliente}
+    # Obtener entidades emisoras de tarjetas activas
+    entidades_tarjeta = EntidadFinanciera.objects.filter(tipo="emisor_tarjeta", activo=True).order_by("nombre")
+
+    contexto = {
+        "tarjeta": tarjeta,
+        "cliente": tarjeta.cliente,
+        "entidades_tarjeta": entidades_tarjeta,
+    }
     return render(request, "transacciones/configuracion/editar_tarjeta.html", contexto)
 
 
 @login_required
 def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int) -> HttpResponse:
-    """Edita una cuenta bancaria existente.
+    """Editar una cuenta bancaria existente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario de la cuenta.
-        medio_id: ID de la cuenta a editar.
+    Actualiza los datos de la cuenta y maneja la persistencia y errores de
+    validación mostrando mensajes informativos.
 
-    Returns:
-        HttpResponse: Rendered editar_cuenta_bancaria.html template o redirect.
-
+    :param request: HttpRequest con datos de actualización.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario.
+    :type cliente_id: int
+    :param medio_id: ID de la cuenta a editar.
+    :type medio_id: int
+    :return: HttpResponse con el formulario o redirección tras guardar.
+    :rtype: django.http.HttpResponse
     """
     cuenta = get_object_or_404(CuentaBancaria, id=medio_id, cliente__usuarios=request.user)
 
@@ -568,10 +908,20 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
         try:
             # Actualizar directamente el objeto existente
             cuenta.numero_cuenta = request.POST.get("numero_cuenta", "")
-            cuenta.banco = request.POST.get("banco", "")
+
+            # Actualizar entidad bancaria
+            entidad_id = request.POST.get("entidad")
+            if entidad_id:
+                cuenta.entidad = EntidadFinanciera.objects.get(id=entidad_id, tipo="banco", activo=True)
+            else:
+                cuenta.entidad = None
+
             cuenta.titular_cuenta = request.POST.get("titular_cuenta", "")
             cuenta.documento_titular = request.POST.get("documento_titular", "")
             cuenta.alias = request.POST.get("alias", "")
+
+            cuenta.habilitado_para_pago = request.POST.get("habilitado_para_pago") == "on"
+            cuenta.habilitado_para_cobro = request.POST.get("habilitado_para_cobro") == "on"
 
             if not cuenta.alias:
                 cuenta.alias = cuenta.generar_alias()
@@ -590,33 +940,55 @@ def editar_cuenta_bancaria(request: HttpRequest, cliente_id: int, medio_id: int)
         except (ValueError, TypeError) as e:
             messages.error(request, f"Error al editar cuenta bancaria: {e!s}")
 
-    contexto = {"cuenta": cuenta, "cliente": cuenta.cliente}
+    # Obtener entidades bancarias activas
+    entidades_bancarias = EntidadFinanciera.objects.filter(tipo="banco", activo=True).order_by("nombre")
+
+    contexto = {
+        "cuenta": cuenta,
+        "cliente": cuenta.cliente,
+        "entidades_bancarias": entidades_bancarias,
+    }
     return render(request, "transacciones/configuracion/editar_cuenta_bancaria.html", contexto)
 
 
 @login_required
 def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> HttpResponse:
-    """Edita una billetera electrónica existente.
+    """Editar una billetera electrónica existente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario de la billetera.
-        medio_id: ID de la billetera a editar.
+    Actualiza los campos de la billetera (identificador, contacto, alias y
+    habilitaciones) y muestra mensajes de éxito o error.
 
-    Returns:
-        HttpResponse: Rendered editar_billetera.html template o redirect.
-
+    :param request: HttpRequest con los datos de la billetera.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario.
+    :type cliente_id: int
+    :param medio_id: ID de la billetera a editar.
+    :type medio_id: int
+    :return: HttpResponse renderizando el formulario o redirigiendo tras guardado.
+    :rtype: django.http.HttpResponse
     """
     billetera = get_object_or_404(BilleteraElectronica, id=medio_id, cliente__usuarios=request.user)
 
     if request.method == "POST":
         try:
             # Actualizar directamente el objeto existente
-            billetera.proveedor = request.POST.get("proveedor", "")
+            # Actualizar entidad de billetera
+            entidad_id = request.POST.get("entidad")
+            if entidad_id:
+                billetera.entidad = EntidadFinanciera.objects.get(
+                    id=entidad_id, tipo="proveedor_billetera", activo=True
+                )
+            else:
+                billetera.entidad = None
+
             billetera.identificador = request.POST.get("identificador", "")
             billetera.numero_telefono = request.POST.get("numero_telefono", "")
             billetera.email_asociado = request.POST.get("email_asociado", "")
             billetera.alias = request.POST.get("alias", "")
+
+            # Actualizar campos de habilitación
+            billetera.habilitado_para_pago = request.POST.get("habilitado_para_pago") == "on"
+            billetera.habilitado_para_cobro = request.POST.get("habilitado_para_cobro") == "on"
 
             if not billetera.alias:
                 billetera.alias = billetera.generar_alias()
@@ -635,27 +1007,34 @@ def editar_billetera(request: HttpRequest, cliente_id: int, medio_id: int) -> Ht
         except (ValueError, TypeError) as e:
             messages.error(request, f"Error al editar billetera: {e!s}")
 
+    # Obtener entidades de billeteras activas
+    entidades_billeteras = EntidadFinanciera.objects.filter(tipo="proveedor_billetera", activo=True).order_by("nombre")
+
     contexto = {
         "billetera": billetera,
         "cliente": billetera.cliente,
-        "proveedores": BilleteraElectronica.PROVEEDORES,
+        "entidades_billeteras": entidades_billeteras,
     }
     return render(request, "transacciones/configuracion/editar_billetera.html", contexto)
 
 
 @login_required
 def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_id: int) -> HttpResponse:
-    """Elimina un medio de pago específico.
+    """Eliminar un medio de pago del cliente.
 
-    Args:
-        request: HttpRequest object.
-        cliente_id: ID del cliente propietario del medio de pago.
-        tipo: Tipo de medio de pago ('tarjeta', 'cuenta', 'billetera').
-        medio_id: ID del medio de pago a eliminar.
+    Elimina físicamente la entidad correspondiente (tarjeta, cuenta o billetera)
+    después de validar la pertenencia al usuario. Redirige a la lista de medios.
 
-    Returns:
-        HttpResponse: Rendered confirmar_eliminar.html template o redirect.
-
+    :param request: HttpRequest del usuario que solicita la eliminación.
+    :type request: django.http.HttpRequest
+    :param cliente_id: ID del cliente propietario (informativo en la URL).
+    :type cliente_id: int
+    :param tipo: Tipo de medio: 'tarjeta', 'cuenta' o 'billetera'.
+    :type tipo: str
+    :param medio_id: ID del medio a eliminar.
+    :type medio_id: int
+    :return: HttpResponse redirigiendo a la vista de medios del cliente.
+    :rtype: django.http.HttpResponse
     """
     if tipo == "tarjeta":
         medio = get_object_or_404(TarjetaCredito, id=medio_id, cliente__usuarios=request.user)
@@ -672,3 +1051,848 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
     medio.delete()  # Eliminación física
     messages.success(request, f"{tipo.title()} eliminada exitosamente.")
     return redirect("transacciones:medios_pago_cliente", cliente_id=cliente_id)
+
+
+def vista_transacciones(request):
+    """Lista las transacciones del cliente activo si existe.
+
+    Muestra las transacciones asociadas al cliente activo desde el middleware.
+    Si no hay cliente activo, muestra una lista vacía.
+
+    :param request: HttpRequest que puede contener un cliente activo.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "transacciones/lista_transacciones.html" y el contexto
+        que incluye las transacciones y el cliente.
+    :rtype: django.http.HttpResponse
+    """
+    # Obtener cliente activo del middleware
+    cliente = getattr(request, "cliente", None)
+    transacciones = []
+
+    if cliente:
+        # Obtener transacciones del cliente activo
+        transacciones_raw = cliente.transacciones.all()
+
+        # Procesar cada transacción para agregar nombres legibles de medios
+        transacciones = []
+        for transaccion in transacciones_raw:
+            # Crear una copia de la transacción con campos adicionales para nombres legibles
+            transaccion.nombre_medio_pago = obtener_nombre_medio(transaccion.medio_pago or "efectivo", cliente)
+            transaccion.nombre_medio_cobro = obtener_nombre_medio(transaccion.medio_cobro or "efectivo", cliente)
+            transacciones.append(transaccion)
+
+    return render(
+        request, "transacciones/lista_transacciones.html", {"transacciones": transacciones, "cliente": cliente}
+    )
+
+
+def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
+    """Página para realizar una transacción real de cambio de divisas.
+
+    Presenta una interfaz similar a la simulación pero con capacidad de procesar
+    la transacción real. El cliente se obtiene automáticamente del middleware.
+
+    :param request: Objeto HttpRequest.
+    :type request: django.http.HttpRequest
+    :return: HttpResponse con el template "realizar_transaccion.html" y el contexto que
+        incluye las divisas disponibles y el cliente asociado (si existe).
+    :rtype: django.http.HttpResponse
+    """
+    divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
+
+    context = {
+        "divisas": divisas,
+        # El cliente se obtiene automáticamente del middleware en request.cliente
+    }
+    return render(request, "realizar_transaccion.html", context)
+
+
+def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
+    """Verifica si una transacción excede los límites diarios y mensuales configurados.
+
+    Args:
+        cliente: Instancia del cliente
+        monto_pyg: Monto de la transacción en guaraníes (PYG)
+        fecha_transaccion: Fecha de la transacción (usa datetime.date.today() si es None)
+
+    Returns:
+        dict: {'valid': bool, 'error_message': str, 'limits_info': dict}
+
+    """
+    from datetime import date
+
+    from .models import LimiteTransacciones
+
+    try:
+        # Obtener límites actuales
+        limite_config = LimiteTransacciones.get_limite_actual()
+
+        # Si no hay límites configurados, permitir la transacción
+        if not limite_config:
+            return {"valid": True, "error_message": None, "limits_info": None}
+
+        # Usar fecha actual si no se especifica
+        if fecha_transaccion is None:
+            fecha_transaccion = date.today()
+
+        # Calcular inicio del mes
+        inicio_mes = date(fecha_transaccion.year, fecha_transaccion.month, 1)
+
+        # Obtener transacciones existentes del cliente (pendientes y completadas)
+        transacciones_existentes = Transaccion.objects.filter(cliente=cliente, estado__in=["pendiente", "completada"])
+
+        # Calcular montos acumulados del día (convertir a PYG)
+        transacciones_dia = transacciones_existentes.filter(fecha_creacion__date=fecha_transaccion)
+
+        monto_dia_pyg = Decimal("0")
+        for trans in transacciones_dia:
+            # Convertir monto a PYG según el tipo de operación
+            if trans.tipo_operacion == "compra":
+                # En compra, el cliente paga en PYG
+                # Lo que cuenta para el límite es lo que paga en PYG
+                monto_dia_pyg += trans.monto_origen
+            else:  # venta
+                # En venta, el cliente recibe PYG (monto_destino)
+                # Lo que cuenta para el límite es lo que recibe en PYG
+                monto_dia_pyg += trans.monto_destino
+
+        # Calcular montos acumulados del mes
+        transacciones_mes = transacciones_existentes.filter(
+            fecha_creacion__date__gte=inicio_mes, fecha_creacion__date__lte=fecha_transaccion
+        )
+
+        monto_mes_pyg = Decimal("0")
+        for trans in transacciones_mes:
+            if trans.tipo_operacion == "compra":
+                monto_mes_pyg += trans.monto_origen
+            else:  # venta
+                monto_mes_pyg += trans.monto_destino
+
+        # Verificar límite diario
+        nuevo_monto_dia = monto_dia_pyg + Decimal(str(monto_pyg))
+        if nuevo_monto_dia > limite_config.limite_diario:
+            return {
+                "valid": False,
+                "error_message": f"Límite diario excedido. "
+                f"Límite: ₲{limite_config.limite_diario:,.0f}, "
+                f"Usado hoy: ₲{monto_dia_pyg:,.0f}, "
+                f"Nuevo total sería: ₲{nuevo_monto_dia:,.0f}",
+                "limits_info": {
+                    "limite_diario": float(limite_config.limite_diario),
+                    "usado_dia": float(monto_dia_pyg),
+                    "nuevo_total_dia": float(nuevo_monto_dia),
+                },
+            }
+
+        # Verificar límite mensual
+        nuevo_monto_mes = monto_mes_pyg + Decimal(str(monto_pyg))
+        if nuevo_monto_mes > limite_config.limite_mensual:
+            return {
+                "valid": False,
+                "error_message": f"Límite mensual excedido. "
+                f"Límite: ₲{limite_config.limite_mensual:,.0f}, "
+                f"Usado este mes: ₲{monto_mes_pyg:,.0f}, "
+                f"Nuevo total sería: ₲{nuevo_monto_mes:,.0f}",
+                "limits_info": {
+                    "limite_mensual": float(limite_config.limite_mensual),
+                    "usado_mes": float(monto_mes_pyg),
+                    "nuevo_total_mes": float(nuevo_monto_mes),
+                },
+            }
+
+        return {
+            "valid": True,
+            "error_message": None,
+            "limits_info": {
+                "limite_diario": float(limite_config.limite_diario),
+                "limite_mensual": float(limite_config.limite_mensual),
+                "usado_dia": float(monto_dia_pyg),
+                "usado_mes": float(monto_mes_pyg),
+                "disponible_dia": float(limite_config.limite_diario - monto_dia_pyg),
+                "disponible_mes": float(limite_config.limite_mensual - monto_mes_pyg),
+            },
+        }
+
+    except Exception as e:
+        # En caso de error, registrar pero permitir la transacción para no bloquear el sistema
+        print(f"Error verificando límites de transacción: {e}")
+        return {"valid": True, "error_message": None, "limits_info": None}
+
+
+@require_GET
+def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
+    """Crea una nueva transacción basada en parámetros de simulación.
+
+    Parámetros esperados en la querystring (GET):
+    - monto: cantidad numérica a convertir.
+    - divisa_seleccionada: código de la divisa destino (ej. "USD").
+    - tipo_operacion: "compra" o "venta".
+    - metodo_pago: identificador del medio de pago (ej. "efectivo", "tarjeta_1").
+    - metodo_cobro: identificador del medio de cobro.
+
+    :param request: HttpRequest con la querystring de la transacción.
+    :type request: django.http.HttpRequest
+    :return: JsonResponse con los detalles de la nueva transacción creada.
+    :rtype: django.http.JsonResponse
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Usuario no autenticado"}, status=401)
+
+    cliente = getattr(request, "cliente", None)
+    if not cliente:
+        return JsonResponse({"error": "No hay cliente asociado"}, status=400)
+
+    try:
+        params = request.GET.dict()
+
+        # Realizar la simulación para obtener los datos calculados
+        simulation_data = _compute_simulation(params, request)
+
+        # Validar datos requeridos
+        monto_str = params.get("monto")
+        if not monto_str:
+            return JsonResponse({"error": "Monto es requerido"}, status=400)
+
+        # Manejar tanto string como lista de strings (querystring puede devolver ambos)
+        if isinstance(monto_str, list):
+            monto_str = monto_str[0] if monto_str else ""
+
+        try:
+            monto = float(monto_str)
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Monto debe ser un número válido"}, status=400)
+
+        divisa_seleccionada = params.get("divisa_seleccionada") or "USD"
+        tipo_operacion = params.get("tipo_operacion") or "compra"
+
+        if monto <= 0:
+            return JsonResponse({"error": "Monto debe ser mayor a 0"}, status=400)
+
+        # Obtener las divisas
+        try:
+            if tipo_operacion == "compra":
+                divisa_origen = Divisa.objects.get(codigo="PYG")
+                divisa_destino = Divisa.objects.get(codigo=divisa_seleccionada)
+            else:  # venta
+                divisa_origen = Divisa.objects.get(codigo=divisa_seleccionada)
+                divisa_destino = Divisa.objects.get(codigo="PYG")
+        except Divisa.DoesNotExist:
+            return JsonResponse({"error": "Divisa no válida"}, status=400)
+
+        # Crear la transacción
+        from .models import Transaccion
+
+        # Para compra: monto_origen es en PYG, monto_destino es en divisa extranjera
+        # Para venta: monto_origen es en divisa extranjera, monto_destino es en PYG
+        if tipo_operacion == "compra":
+            monto_origen = Decimal(str(simulation_data["total"]))  # Total en PYG a pagar
+            monto_destino = Decimal(str(simulation_data["monto_original"]))  # Divisa a recibir
+        else:  # venta
+            monto_origen = Decimal(str(simulation_data["monto_original"]))  # Divisa a entregar
+            monto_destino = Decimal(str(simulation_data["total"]))  # PYG a recibir
+
+        # Obtener y validar los medios de pago/cobro
+        metodo_pago = params.get("metodo_pago", "efectivo")
+        metodo_cobro = params.get("metodo_cobro", "efectivo")
+
+        # Verificar límites de transacción antes de crear
+        # Calcular el monto en PYG según el tipo de operación
+        if tipo_operacion == "compra":
+            monto_pyg_transaccion = monto_origen
+        else:  # venta
+            # En venta, el cliente recibe PYG (monto_destino)
+            monto_pyg_transaccion = monto_destino
+
+        # Validar límites
+        limite_result = _verificar_limites_transaccion(cliente, monto_pyg_transaccion)
+        if not limite_result["valid"]:
+            return JsonResponse(
+                {
+                    "error": limite_result["error_message"],
+                    "tipo_error": "limite_excedido",
+                    "limits_info": limite_result["limits_info"],
+                },
+                status=400,
+            )
+
+        # Obtener la tasa de cambio actual para almacenar como tasa original
+        tasa_actual = Decimal(str(simulation_data["tasa_cambio"]))
+
+        transaccion = Transaccion.objects.create(
+            cliente=cliente,
+            usuario=request.user,
+            tipo_operacion=tipo_operacion,
+            estado="pendiente",
+            divisa_origen=divisa_origen,
+            divisa_destino=divisa_destino,
+            tasa_aplicada=tasa_actual,
+            tasa_original=tasa_actual,  # Almacenar la tasa original para verificar cambios posteriores
+            monto_origen=monto_origen,
+            monto_destino=monto_destino,
+            medio_pago=metodo_pago,
+            medio_cobro=metodo_cobro,
+        )
+        print(f"Transacción creada: {transaccion}")
+        return JsonResponse(
+            {
+                "success": True,
+                "transaccion_id": str(transaccion.id_transaccion),
+                "redirect_url": f"/transacciones/procesar/{transaccion.id_transaccion}/",
+                "resumen": {
+                    "id_transaccion": str(transaccion.id_transaccion),
+                    "tipo_operacion": dict(transaccion.TIPOS_OPERACION).get(
+                        transaccion.tipo_operacion, transaccion.tipo_operacion
+                    ),
+                    "cliente": transaccion.cliente.nombre,
+                    "fecha_creacion": transaccion.fecha_creacion.strftime("%d/%m/%Y %H:%M"),
+                    "divisa_origen": transaccion.divisa_origen.codigo,
+                    "divisa_destino": transaccion.divisa_destino.codigo,
+                    "monto_origen": float(transaccion.monto_origen),
+                    "monto_destino": float(transaccion.monto_destino),
+                    "tasa_aplicada": float(transaccion.tasa_aplicada),
+                    "estado": dict(transaccion.ESTADOS_TRANSACCION).get(transaccion.estado, transaccion.estado),
+                    "metodo_pago": params.get("metodo_pago", "efectivo"),
+                    "metodo_cobro": params.get("metodo_cobro", "efectivo"),
+                },
+            }
+        )
+
+    except Exception as e:
+        import traceback
+
+        print(f"Error en api_crear_transaccion: {e}")
+        print(traceback.format_exc())
+        return JsonResponse({"error": f"Error al crear transacción: {e!s}"}, status=500)
+
+
+def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para procesar una transacción específica según su tipo y método de pago.
+
+    Esta vista maneja tanto GET (mostrar detalles) como POST (confirmar transacción).
+
+    :param request: HttpRequest del usuario.
+    :type request: django.http.HttpRequest
+    :param transaccion_id: UUID de la transacción a procesar.
+    :type transaccion_id: str
+    :return: HttpResponse con el template de procesamiento correspondiente.
+    :rtype: django.http.HttpResponse
+    """
+    from .models import Transaccion
+
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        # Si es POST, procesar la confirmación de la transacción
+        if request.method == "POST":
+            try:
+                # Actualizar estado de la transacción
+                transaccion.estado = "completada"
+                transaccion.save()
+
+                messages.success(request, "¡Transacción procesada exitosamente!")
+                return redirect("transacciones:vista_transacciones")
+
+            except Exception as e:
+                messages.error(request, f"Error al confirmar transacción: {e!s}")
+                return redirect("transacciones:procesar_transaccion", transaccion_id=transaccion_id)
+
+        # GET: mostrar detalles de la transacción
+        # Usar los medios guardados en la transacción, con fallback a parámetros GET para compatibilidad
+        metodo_pago = transaccion.medio_pago or request.GET.get("metodo_pago", "efectivo")
+        metodo_cobro = transaccion.medio_cobro or request.GET.get("metodo_cobro", "efectivo")
+
+        nombre_metodo_pago = obtener_nombre_medio(metodo_pago, transaccion.cliente)
+        nombre_metodo_cobro = obtener_nombre_medio(metodo_cobro, transaccion.cliente)
+
+        context = {
+            "transaccion": transaccion,
+            "metodo_pago": metodo_pago,
+            "metodo_cobro": metodo_cobro,
+            "nombre_metodo_pago": nombre_metodo_pago,
+            "nombre_metodo_cobro": nombre_metodo_cobro,
+        }
+
+        return render(request, "procesar_transaccion.html", context)
+
+    except Exception as e:
+        messages.error(request, f"Error al procesar transacción: {e!s}")
+        return redirect("transacciones:realizar_transaccion")
+
+
+@login_required
+def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """Cancel an existing transaction.
+
+    Args:
+        request: HttpRequest object
+        transaccion_id: UUID de la transacción a cancelar
+
+    Returns:
+        JsonResponse con el resultado de la operación
+
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "message": "Método no permitido"}, status=405)
+
+    try:
+        # Obtener la transacción
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Verificar que el usuario tiene un cliente activo
+        if not request.cliente:
+            return JsonResponse({"success": False, "message": "No tienes un cliente asociado"}, status=403)
+
+        # Verificar que la transacción pertenece al cliente actual
+        if transaccion.cliente != request.cliente:
+            return JsonResponse(
+                {"success": False, "message": "No tienes permisos para cancelar esta transacción"}, status=403
+            )
+
+        # Verificar que la transacción puede ser cancelada
+        if transaccion.estado == "cancelada":
+            return JsonResponse({"success": False, "message": "La transacción ya está cancelada"}, status=400)
+
+        if transaccion.estado == "completada":
+            return JsonResponse(
+                {"success": False, "message": "No se puede cancelar una transacción completada"}, status=400
+            )
+
+        # Cancelar la transacción
+        transaccion.estado = "cancelada"
+        transaccion.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Transacción cancelada exitosamente",
+                "transaccion_id": str(transaccion.id_transaccion),
+            }
+        )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al cancelar transacción: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
+    """Procesa la respuesta del componente bancario simulado.
+
+    Recibe la respuesta del gateway de pagos externo simulado y actualiza
+    el estado de la transacción según el resultado (éxito o error).
+
+    Args:
+        request: HttpRequest con datos JSON del resultado del pago
+
+    Returns:
+        JsonResponse con el resultado del procesamiento
+
+    """
+    import json
+    from datetime import datetime
+
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "message": "Usuario no autenticado"}, status=401)
+
+    try:
+        # Parsear datos JSON
+        data = json.loads(request.body)
+        transaccion_id = data.get("transaccion_id")
+        exito = data.get("exito", False)
+        codigo_autorizacion = data.get("codigo_autorizacion")
+        mensaje_error = data.get("mensaje_error")
+
+        if not transaccion_id:
+            return JsonResponse({"success": False, "message": "ID de transacción requerido"}, status=400)
+
+        # Obtener la transacción
+        cliente = getattr(request, "cliente", None)
+        if not cliente:
+            return JsonResponse({"success": False, "message": "No hay cliente asociado"}, status=400)
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
+
+        # Verificar que la transacción esté en estado pendiente
+        if transaccion.estado != "pendiente":
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": f"La transacción está en estado '{transaccion.estado}' y no puede ser procesada",
+                },
+                status=400,
+            )
+
+        # Procesar según el resultado del banco
+        if exito:
+            # Pago exitoso
+            transaccion.estado = "completada"
+            transaccion.fecha_pago = datetime.now()
+
+            # Agregar información del código de autorización si está disponible
+            if codigo_autorizacion:
+                # Aquí podrías agregar un campo para el código de autorización si lo tienes en el modelo
+                pass
+
+            mensaje_log = f"Pago procesado exitosamente. Código: {codigo_autorizacion}"
+
+        else:
+            # Pago fallido
+            transaccion.estado = "pendiente"
+            mensaje_log = f"Pago rechazado por el banco. Error: {mensaje_error}"
+
+        # Guardar cambios
+        transaccion.save()
+
+        # Log del resultado
+        print(f"Transacción {transaccion_id}: {mensaje_log}")
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Resultado del pago procesado correctamente",
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "fecha_pago": transaccion.fecha_pago.isoformat() if transaccion.fecha_pago else None,
+                },
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "message": "Datos JSON inválidos"}, status=400)
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al procesar pago bancario: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@login_required
+def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para la ventana emergente del banco simulado.
+
+    Renderiza la interfaz de simulación bancaria en una ventana emergente
+    separada para procesar el pago de una transacción.
+
+    Args:
+        request: HttpRequest de la solicitud
+        transaccion_id: ID único de la transacción a procesar
+
+    Returns:
+        HttpResponse con la página de simulación bancaria
+
+    """
+    try:
+        # Obtener cliente asociado al usuario
+        cliente = getattr(request, "cliente", None)
+        if not cliente:
+            # Crear una transacción dummy para mostrar error
+            context = {
+                "error": "No hay cliente asociado al usuario",
+                "transaccion": None,
+                "cliente": None,
+            }
+            return render(request, "popup_banco_simulado.html", context)
+
+        # Obtener la transacción
+        try:
+            transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
+        except Transaccion.DoesNotExist:
+            context = {
+                "error": "Transacción no encontrada",
+                "transaccion": None,
+                "cliente": cliente,
+            }
+            return render(request, "popup_banco_simulado.html", context)
+
+        # Verificar que la transacción esté en estado pendiente
+        if transaccion.estado != "pendiente":
+            context = {
+                "error": f"La transacción está en estado '{transaccion.estado}' y no puede ser procesada",
+                "transaccion": transaccion,
+                "cliente": cliente,
+            }
+            return render(request, "popup_banco_simulado.html", context)
+
+        # Determinar el tipo de procesamiento según el medio de pago
+        medio_pago = transaccion.medio_pago or ""
+        medio_cobro = transaccion.medio_cobro or ""
+
+        # Si es efectivo, generar código TAUSER para PAGAR
+        if medio_pago.lower() == "efectivo":
+            # Generar código único para TAUSER
+            import random
+            import string
+
+            codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+            context = {
+                "transaccion": transaccion,
+                "cliente": cliente,
+                "es_efectivo": True,
+                "codigo_tauser": codigo_tauser,
+                "tipo_operacion": "pagar",  # Para pagar dinero
+            }
+
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Para tarjetas y cuentas bancarias, usar el popup bancario primero
+        context = {
+            "transaccion": transaccion,
+            "cliente": cliente,
+            "es_efectivo": False,
+        }
+
+        return render(request, "popup_banco_simulado.html", context)
+
+    except Exception as e:
+        print(f"Error en popup banco simulado: {e}")
+        context = {
+            "error": "Error interno del servidor",
+            "transaccion": None,
+            "cliente": None,
+        }
+        return render(request, "popup_banco_simulado.html", context)
+
+
+@login_required
+def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para generar código TAUSER de retiro después del pago bancario.
+
+    Esta función se llama después de que se complete exitosamente un pago
+    por tarjeta o cuenta bancaria, para generar el código que permite
+    retirar el dinero en efectivo en un TAUSER.
+
+    Args:
+        request: HttpRequest de la solicitud
+        transaccion_id: ID único de la transacción ya pagada
+
+    Returns:
+        HttpResponse con la página del código TAUSER para retiro
+
+    """
+    try:
+        # Obtener cliente asociado al usuario
+        cliente = getattr(request, "cliente", None)
+        if not cliente:
+            context = {
+                "error": "No hay cliente asociado al usuario",
+                "transaccion": None,
+                "cliente": None,
+            }
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Obtener la transacción
+        try:
+            transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
+        except Transaccion.DoesNotExist:
+            context = {
+                "error": "Transacción no encontrada",
+                "transaccion": None,
+                "cliente": cliente,
+            }
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Verificar que la transacción esté completada
+        if transaccion.estado != "completada":
+            context = {
+                "error": "La transacción debe estar completada para generar código de retiro",
+                "transaccion": transaccion,
+                "cliente": cliente,
+            }
+            return render(request, "popup_codigo_tauser.html", context)
+
+        # Generar código único para TAUSER (retiro)
+        import random
+        import string
+
+        codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+        context = {
+            "transaccion": transaccion,
+            "cliente": cliente,
+            "es_efectivo": False,
+            "codigo_tauser": codigo_tauser,
+            "tipo_operacion": "retirar",  # Para retirar dinero
+        }
+
+        return render(request, "popup_codigo_tauser.html", context)
+
+    except Exception as e:
+        print(f"Error en popup código TAUSER retiro: {e}")
+        context = {
+            "error": "Error interno del servidor",
+            "transaccion": None,
+            "cliente": None,
+        }
+        return render(request, "popup_codigo_tauser.html", context)
+
+
+@require_GET
+def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para verificar si la cotización de una transacción ha cambiado significativamente.
+
+    Args:
+        request: HttpRequest object
+        transaccion_id: UUID de la transacción a verificar
+
+    Returns:
+        JsonResponse con información del cambio de cotización
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Solo verificar transacciones pendientes
+        if transaccion.estado != "pendiente":
+            return JsonResponse({"success": False, "message": "La transacción no está en estado pendiente"}, status=400)
+
+        # Verificar cambio de cotización
+        resultado = transaccion.verificar_cambio_cotizacion()
+
+        if "error" in resultado:
+            return JsonResponse(
+                {"success": False, "message": f"Error al verificar cotización: {resultado['error']}"}, status=500
+            )
+
+        # Si hay cambio significativo, actualizar el campo de notificación
+        if resultado.get("cambio_detectado"):
+            transaccion.cambio_cotizacion_notificado = True
+            transaccion.save(update_fields=["tasa_actual", "cambio_cotizacion_notificado"])
+
+        return JsonResponse(
+            {
+                "success": True,
+                "cambio_detectado": resultado.get("cambio_detectado", False),
+                "tasa_original": float(resultado.get("tasa_original", 0)),
+                "tasa_actual": float(resultado.get("tasa_actual", 0)),
+                "porcentaje_cambio": float(resultado.get("porcentaje_cambio", 0)),
+                "cambio_absoluto": float(resultado.get("cambio_absoluto", 0)),
+                "umbral_superado": resultado.get("umbral_superado", False),
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "monto_origen": float(transaccion.monto_origen),
+                    "monto_destino": float(transaccion.monto_destino),
+                    "divisa_origen": transaccion.divisa_origen.codigo,
+                    "divisa_destino": transaccion.divisa_destino.codigo,
+                },
+            }
+        )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al verificar cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para cancelar una transacción por cambio de cotización.
+
+    Args:
+        request: HttpRequest object
+        transaccion_id: UUID de la transacción a cancelar
+
+    Returns:
+        JsonResponse confirmando la cancelación
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Solo cancelar transacciones pendientes
+        if transaccion.estado != "pendiente":
+            return JsonResponse(
+                {"success": False, "message": "Solo se pueden cancelar transacciones pendientes"}, status=400
+            )
+
+        # Obtener motivo opcional del request
+        import json
+
+        try:
+            data = json.loads(request.body)
+            motivo_custom = data.get("motivo", "")
+        except (json.JSONDecodeError, AttributeError):
+            motivo_custom = ""
+
+        # Cancelar la transacción
+        motivo = motivo_custom or "Cancelada por el cliente debido a cambio de cotización"
+        transaccion.cancelar_por_cotizacion(motivo)
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Transacción cancelada exitosamente",
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "motivo_cancelacion": transaccion.motivo_cancelacion,
+                },
+            }
+        )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al cancelar por cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para aceptar la nueva cotización y continuar con la transacción.
+
+    Args:
+        request: HttpRequest object
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        JsonResponse confirmando la aceptación
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Solo procesar transacciones pendientes
+        if transaccion.estado != "pendiente":
+            return JsonResponse(
+                {"success": False, "message": "Solo se pueden actualizar transacciones pendientes"}, status=400
+            )
+
+        # Verificar que hay una nueva cotización disponible
+        if not transaccion.tasa_actual:
+            resultado = transaccion.verificar_cambio_cotizacion()
+            if "error" in resultado:
+                return JsonResponse(
+                    {"success": False, "message": f"Error al obtener nueva cotización: {resultado['error']}"},
+                    status=500,
+                )
+
+        # Aceptar la nueva cotización
+        transaccion.aceptar_nueva_cotizacion()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Nueva cotización aceptada exitosamente",
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "tasa_aplicada": float(transaccion.tasa_aplicada),
+                    "monto_origen": float(transaccion.monto_origen),
+                    "monto_destino": float(transaccion.monto_destino),
+                    "divisa_origen": transaccion.divisa_origen.codigo,
+                    "divisa_destino": transaccion.divisa_destino.codigo,
+                },
+            }
+        )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al aceptar nueva cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)

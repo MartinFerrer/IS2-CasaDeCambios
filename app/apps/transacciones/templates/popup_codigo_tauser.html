@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Código TAUSER - Pago en Efectivo</title>
+        <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css"
+              rel="stylesheet"
+              type="text/css" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .tauser-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .tauser-header {
+            background: linear-gradient(135deg, #10b981, #047857);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .tauser-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .codigo-display {
+            background: #f8fafc;
+            border: 3px solid #10b981;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .codigo-texto {
+            font-size: 2.5rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #047857;
+            letter-spacing: 8px;
+            margin: 10px 0;
+        }
+        .instrucciones {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .action-buttons {
+            padding: 20px 30px;
+            background: #f8fafc;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #047857; }
+        .btn-ghost { background: #e5e7eb; color: #374151; }
+        .btn-ghost:hover { background: #d1d5db; }
+        
+        .step-icon {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="tauser-container">
+            <!-- Header -->
+            <div class="tauser-header">
+                <div class="tauser-logo">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-10 w-10"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                {% if tipo_operacion == "pagar" %}
+                    <h1 class="text-2xl font-bold mb-2">Realizar Pago</h1>
+                    <p class="opacity-90">Pagar en Efectivo - TAUSER</p>
+                {% else %}
+                    <h1 class="text-2xl font-bold mb-2">Retirar Moneda</h1>
+                    <p class="opacity-90">Retirar en Efectivo - TAUSER</p>
+                {% endif %}
+            </div>
+            <!-- Contenido principal -->
+            <div class="p-6">
+                <!-- Información de la transacción -->
+                {% if transaccion %}
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-semibold text-gray-800 mb-3">Detalles de la Transacción</h3>
+                        <div class="grid grid-cols-1 gap-3 text-sm">
+                            <div>
+                                <span class="font-medium">ID:</span> <span class="font-mono">{{ transaccion.id_transaccion }}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium">Cliente:</span> {{ transaccion.cliente.nombre }}
+                            </div>
+                            <div>
+                                <span class="font-medium">Tipo:</span> {{ transaccion.tipo_operacion|capfirst }}
+                            </div>
+                            <div>
+                                <span class="font-medium">Monto:</span> {{ transaccion.monto_destino|floatformat:0 }} {{ transaccion.divisa_destino.codigo }}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- Código TAUSER -->
+                <div class="codigo-display">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Código para TAUSER</h3>
+                    <div class="codigo-texto">{{ codigo_tauser }}</div>
+                    <p class="text-sm text-gray-600 mt-2">Presenta este código en cualquier TAUSER</p>
+                </div>
+                <!-- Instrucciones -->
+                <div class="instrucciones">
+                    <h4 class="font-semibold text-green-800 mb-3">Instrucciones:</h4>
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <span class="step-icon">1</span>
+                            <span>Dirígete a cualquier punto TAUSER más cercano</span>
+                        </div>
+                        <div>
+                            <span class="step-icon">2</span>
+                            <span>Presenta el código <strong>{{ codigo_tauser }}</strong> al cajero</span>
+                        </div>
+                        {% if tipo_operacion == "pagar" %}
+                            <div>
+                                <span class="step-icon">3</span>
+                                <span>Realiza el pago en efectivo por el monto indicado</span>
+                            </div>
+                            <div>
+                                <span class="step-icon">4</span>
+                                <span>Guarda el comprobante que te entreguen</span>
+                            </div>
+                        {% else %}
+                            <div>
+                                <span class="step-icon">3</span>
+                                <span>Recibe el dinero en efectivo del cajero</span>
+                            </div>
+                            <div>
+                                <span class="step-icon">4</span>
+                                <span>Guarda el comprobante de retiro</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Información adicional -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                    <h4 class="font-semibold text-yellow-800 mb-2">Importante:</h4>
+                    <ul class="text-sm text-yellow-700 space-y-1">
+                        <li>• El código es válido por 24 horas</li>
+                        {% if tipo_operacion == "pagar" %}
+                            <li>• Lleva exactamente el monto indicado</li>
+                            <li>• Guarda este código hasta completar el pago</li>
+                        {% else %}
+                            <li>• Lleva tu identificación personal</li>
+                            <li>• Guarda este código hasta retirar el dinero</li>
+                        {% endif %}
+                        <li>• El código solo se puede usar una vez</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Botones de acción -->
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="imprimirCodigo()">Imprimir Código</button>
+                <button class="btn btn-ghost" onclick="cerrarVentana()">Cerrar</button>
+            </div>
+        </div>
+        <script>
+        function imprimirCodigo() {
+            // Crear contenido para imprimir
+            const contenidoImprimir = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
+                    <h2 style="color: #047857;">Casa de Cambios</h2>
+                    <h3>Código TAUSER</h3>
+                    <div style="border: 2px solid #10b981; padding: 20px; margin: 20px 0; border-radius: 10px;">
+                        <div style="font-size: 2.5em; font-family: 'Courier New', monospace; font-weight: bold; color: #047857; letter-spacing: 5px;">
+                            {{ codigo_tauser }}
+                        </div>
+                    </div>
+                    <div style="text-align: left; margin: 20px 0;">
+                        <p><strong>Transacción:</strong> {{ transaccion.id_transaccion }}</p>
+                        <p><strong>Cliente:</strong> {{ transaccion.cliente.nombre }}</p>
+                        <p><strong>Monto:</strong> {{ transaccion.monto_destino|floatformat:0 }} {{ transaccion.divisa_destino.codigo }}</p>
+                        <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-ES')}</p>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 20px;">
+                        <p>Válido por 24 horas - Uso único</p>
+                        <p>Presenta este código en cualquier punto TAUSER</p>
+                    </div>
+                </div>
+            `;
+            
+            // Abrir ventana de impresión
+            const ventanaImpresion = window.open('', '_blank');
+            ventanaImpresion.document.write(contenidoImprimir);
+            ventanaImpresion.document.close();
+            ventanaImpresion.print();
+        }
+        
+        function cerrarVentana() {
+            // Notificar a la ventana padre que se completó la transacción
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'transaccionCompletada',
+                    transaccionId: '{{ transaccion.id_transaccion }}',
+                    metodo: 'tauser'
+                }, '*');
+            }
+            window.close();
+        }
+        </script>
+    </body>
+</html>
