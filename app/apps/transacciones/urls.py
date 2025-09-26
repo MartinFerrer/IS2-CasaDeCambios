@@ -52,5 +52,17 @@ urlpatterns = [
         views.eliminar_medio_pago,
         name="eliminar_medio_pago",
     ),
+    # URLs para realizar transacciones reales
+    path("realizar-transaccion/", views.realizar_transaccion_view, name="realizar_transaccion"),
+    path("api/crear-transaccion", views.api_crear_transaccion, name="api_crear_transaccion"),
+    path(
+        "api/cancelar-transaccion/<str:transaccion_id>/",
+        views.api_cancelar_transaccion,
+        name="api_cancelar_transaccion",
+    ),
+    path("api/procesar-pago-bancario/", views.api_procesar_pago_bancario, name="api_procesar_pago_bancario"),
+    path("popup-banco/<str:transaccion_id>/", views.popup_banco_simulado, name="popup_banco_simulado"),
+    path("popup-tauser-retiro/<str:transaccion_id>/", views.popup_codigo_tauser_retiro, name="popup_codigo_tauser_retiro"),
+    path("procesar/<str:transaccion_id>/", views.procesar_transaccion_view, name="procesar_transaccion"),
     path("", views.vista_transacciones, name="lista"),
 ]

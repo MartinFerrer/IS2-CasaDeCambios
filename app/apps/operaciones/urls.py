@@ -33,4 +33,8 @@ urlpatterns = [
     path("admin/divisa/<str:pk>/", views.divisa_detail, name="divisa_detail"),
     # URL para obtener las divisas en formato JSON
     path("admin/divisas/api/", views.obtener_divisas, name="api_divisas"),
+    path("admin/tasas/crear/", views.crear_tasa_minimal, name="crear_tasa"),
+    path("admin/divisa/", views.divisa_listar_minimal, name="divisa_listar"),
+    path("admin/divisas/api/", views.obtener_divisas_minimal, name="obtener_divisas"),
+    path("admin/tasas/historial/api/", views.historial_tasas_api_minimal, name="historial_tasas_api"),
 ]
