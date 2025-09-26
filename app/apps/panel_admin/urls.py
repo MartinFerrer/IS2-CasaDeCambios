@@ -38,4 +38,12 @@ urlpatterns = [
     path("divisa/<str:pk>/", views.divisa_detail, name="divisa_detail"),
     # URL para obtener las divisas en formato JSON
     path("divisas/api/", views.obtener_divisas, name="api_divisas"),
+    # URLs para el CRUD de Tasas de Cambio
+    path("tasas/", views.tasa_cambio_listar, name="tasa_cambio_listar"),
+    path("tasas/crear/", views.tasa_cambio_crear, name="tasa_cambio_crear"),
+    path("tasas/<str:pk>/editar/", views.tasa_cambio_editar, name="tasa_cambio_editar"),
+    path("tasas/<str:pk>/desactivar/", views.tasa_cambio_desactivar, name="tasa_cambio_desactivar"),
+    path("tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
+    # API endpoint para obtener tasas de cambio actuales
+    path("tasas/api/", views.tasas_cambio_api, name="tasas_cambio_api"),
 ]
