@@ -6,6 +6,9 @@ así como la lógica de asociación entre Cliente y Usuario.
 
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from apps.seguridad.decorators import admin_required, group_required
+from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
+from apps.usuarios.models import Cliente, TipoCliente, Usuario
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -14,12 +17,10 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
-from apps.usuarios.models import Cliente, TipoCliente, Usuario
-
 from .forms import ClienteForm, UsuarioForm
 
 
+@admin_required
 def panel_inicio(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de inicio del panel de administración.
 
@@ -33,6 +34,7 @@ def panel_inicio(request: HttpRequest) -> HttpResponse:
     return render(request, "panel_inicio.html")
 
 
+@group_required("Administrador")
 def configuracion(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de configuracion de opciones.
 
@@ -49,19 +51,24 @@ def configuracion(request: HttpRequest) -> HttpResponse:
 
     """
     tipos_clientes = TipoCliente.objects.all()
-    entidades = EntidadFinanciera.objects.all().order_by('tipo', 'nombre')
+    entidades = EntidadFinanciera.objects.all().order_by("tipo", "nombre")
     limite_actual = LimiteTransacciones.get_limite_actual()
-    historial_limites = LimiteTransacciones.objects.all().order_by('-fecha_modificacion')
+    historial_limites = LimiteTransacciones.objects.all().order_by("-fecha_modificacion")
 
-    return render(request, "configuracion.html", {
-        "tipos_clientes": tipos_clientes,
-        "entidades": entidades,
-        "limite_actual": limite_actual,
-        "historial_limites": historial_limites,
-    })
+    return render(
+        request,
+        "configuracion.html",
+        {
+            "tipos_clientes": tipos_clientes,
+            "entidades": entidades,
+            "limite_actual": limite_actual,
+            "historial_limites": historial_limites,
+        },
+    )
 
 
 @require_POST
+@group_required("Administrador")
 def guardar_comisiones(request: HttpRequest) -> HttpResponse:
     """Guarda los descuentos de comisión enviados por el formulario.
 
@@ -118,6 +125,7 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
+@group_required("Administrador")
 def guardar_limites(request: HttpRequest) -> HttpResponse:
     """Guarda los límites de transacciones enviados por el formulario.
 
@@ -128,8 +136,8 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
         HttpResponse: Redirige a 'configuracion' con mensaje de éxito o error.
 
     """
-    limite_diario_str = request.POST.get('limite_diario')
-    limite_mensual_str = request.POST.get('limite_mensual')
+    limite_diario_str = request.POST.get("limite_diario")
+    limite_mensual_str = request.POST.get("limite_mensual")
 
     if not limite_diario_str or not limite_mensual_str:
         messages.error(request, "Faltan valores en el formulario de límites.")
@@ -144,16 +152,16 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
 
     try:
         with transaction.atomic():
-            limite = LimiteTransacciones(
-                limite_diario=limite_diario,
-                limite_mensual=limite_mensual
-            )
+            limite = LimiteTransacciones(limite_diario=limite_diario, limite_mensual=limite_mensual)
             limite.full_clean()  # Usa las validaciones del modelo
             limite.save()
 
-        messages.success(request, f"Límites actualizados exitosamente. "
-                       f"Diario: ₲{limite.limite_diario:,.0f}, "
-                       f"Mensual: ₲{limite.limite_mensual:,.0f}")
+        messages.success(
+            request,
+            f"Límites actualizados exitosamente. "
+            f"Diario: ₲{limite.limite_diario:,.0f}, "
+            f"Mensual: ₲{limite.limite_mensual:,.0f}",
+        )
     except ValidationError as e:
         for error in e.messages:
             messages.error(request, error)
@@ -164,6 +172,7 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
 
 
 # CRUD de Usuarios
+@group_required("Administrador")
 def usuario_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de usuarios y roles en el panel de administración.
 
@@ -179,6 +188,7 @@ def usuario_list(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos})
 
 
+@group_required("Administrador")
 def usuario_create(request: HttpRequest) -> HttpResponse:
     """Crea un nuevo usuario en el panel de administración.
 
@@ -196,7 +206,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
             usuario.save()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -210,6 +220,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
+@group_required("Administrador")
 def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita un usuario existente en el panel de administración.
 
@@ -234,7 +245,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
             tenia_usuario_asociado = usuario_asociado_grupo and usuario_asociado_grupo in usuario.groups.all()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -252,6 +263,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
+@group_required("Administrador")
 def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina un usuario existente en el panel de administración.
 
@@ -273,6 +285,7 @@ def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 # CRUD de Roles
+@group_required("Administrador")
 def rol_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de roles (grupos) y sus permisos asociados.
 
@@ -288,6 +301,7 @@ def rol_list(request: HttpRequest) -> HttpResponse:
 
 
 # CRUD de Clientes
+@group_required("Administrador")
 def cliente_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de clientes, tipos de cliente y usuarios en el panel de administración.
 
@@ -308,6 +322,7 @@ def cliente_list(request: HttpRequest) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def cliente_create(request: HttpRequest) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -335,6 +350,7 @@ def cliente_create(request: HttpRequest) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -364,6 +380,7 @@ def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina al cliente y renderiza la lista de clientes actualizada.
 
@@ -389,6 +406,7 @@ def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     """Muestra el formulario para asociar un cliente a un usuario.
 
@@ -412,6 +430,7 @@ def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     return render(request, "asociar_cliente_usuario.html", {"clientes": clientes, "usuarios": usuarios})
 
 
+@group_required("Administrador")
 def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Asocia un cliente a un usuario.
 
@@ -440,6 +459,7 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpR
     return redirect("asociar_cliente_usuario_form")
 
 
+@group_required("Administrador")
 def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Desasocia un cliente a un usuario.
 
@@ -473,6 +493,7 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
 
 
 # CRUD de Entidades de Medios financiero
+@group_required("Administrador")
 def entidad_create(request: HttpRequest) -> HttpResponse:
     """Crea una nueva entidad de medio financiero.
 
@@ -501,11 +522,7 @@ def entidad_create(request: HttpRequest) -> HttpResponse:
                 return redirect("configuracion")
 
             EntidadFinanciera.objects.create(
-                nombre=nombre,
-                tipo=tipo,
-                comision_compra=comision_compra,
-                comision_venta=comision_venta,
-                activo=activo
+                nombre=nombre, tipo=tipo, comision_compra=comision_compra, comision_venta=comision_venta, activo=activo
             )
             messages.success(request, f"Entidad '{nombre}' creada exitosamente.")
 
@@ -517,6 +534,7 @@ def entidad_create(request: HttpRequest) -> HttpResponse:
     return redirect("configuracion")
 
 
+@group_required("Administrador")
 def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita una entidad financiera existente.
 
@@ -564,6 +582,7 @@ def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("configuracion")
 
 
+@group_required("Administrador")
 def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina una entidad de medio financiero.
 
@@ -583,15 +602,15 @@ def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
             from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
 
             en_uso = (
-                TarjetaCredito.objects.filter(entidad=entidad).exists() or
-                CuentaBancaria.objects.filter(entidad=entidad).exists() or
-                BilleteraElectronica.objects.filter(entidad=entidad).exists()
+                TarjetaCredito.objects.filter(entidad=entidad).exists()
+                or CuentaBancaria.objects.filter(entidad=entidad).exists()
+                or BilleteraElectronica.objects.filter(entidad=entidad).exists()
             )
 
             if en_uso:
                 messages.error(
                     request,
-                    f"No se puede eliminar la entidad '{entidad.nombre}' porque está siendo utilizada por medios financiero existentes."
+                    f"No se puede eliminar la entidad '{entidad.nombre}' porque está siendo utilizada por medios financiero existentes.",
                 )
             else:
                 nombre = entidad.nombre

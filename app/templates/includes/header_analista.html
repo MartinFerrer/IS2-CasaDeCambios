@@ -1,8 +1,8 @@
-{# templates/includes/header_admin.html #}
+{# templates/includes/header_analista.html #}
 <header class="bg-blue-700 text-white shadow-lg p-4">
     <div class="container mx-auto flex flex-wrap justify-between items-center">
         <div class="flex items-center">
-            <a href="{% url 'panel_inicio' %}" class="text-2xl font-bold">Global Exchange - Admin</a>
+            <a href="{% url 'panel_inicio' %}" class="text-2xl font-bold">Global Exchange - Analista</a>
         </div>
         <div class="lg:hidden">
             <button class="btn btn-ghost"
@@ -16,24 +16,14 @@
                 </svg>
             </button>
         </div>
-        {# Desktop navigation with all admin options #}
+        {# Desktop navigation with limited analyst options #}
         <div class="hidden lg:flex lg:items-center lg:space-x-4">
-            <a href="{% url 'usuario_listar' %}"
-               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Usuarios</a>
-            <a href="{% url 'rol_listar' %}"
-               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Roles</a>
-            <a href="{% url 'cliente_listar' %}"
-               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Clientes</a>
-            <a href="{% url 'asociar_cliente_usuario_form' %}"
-               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Asociar Cliente</a>
             <a href="{% url 'operaciones:divisa_list' %}"
                class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Divisas</a>
             <a href="{% url 'operaciones:tasa_cambio_listar' %}"
                class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Tasas de Cambio</a>
             <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
                class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Historial</a>
-            <a href="{% url 'configuracion' %}"
-               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Configuración</a>
         </div>
         {# Menú de usuario desplegable #}
         <div class="flex-none hidden lg:flex">
@@ -84,22 +74,12 @@
         <nav class="menu p-4">
             <a href="{% url 'panel_inicio' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Inicio</a>
-            <a href="{% url 'usuario_listar' %}"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Usuarios</a>
-            <a href="{% url 'rol_listar' %}"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Roles</a>
-            <a href="{% url 'cliente_listar' %}"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Clientes</a>
-            <a href="{% url 'asociar_cliente_usuario_form' %}"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Asociar Cliente a Usuario</a>
             <a href="{% url 'operaciones:divisa_list' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Divisas</a>
             <a href="{% url 'operaciones:tasa_cambio_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Tasas de Cambio</a>
             <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Historial de Tasas de Cambio</a>
-            <a href="{% url 'configuracion' %}"
-               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Configuración</a>
             <div class="border-t border-neutral-content my-3"></div>
             <div class="mb-3 flex items-center space-x-2">
                 <div class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white">

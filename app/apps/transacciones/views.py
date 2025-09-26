@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Dict
 
 from apps.operaciones.models import Divisa, TasaCambio
+from apps.seguridad.decorators import client_required
 from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -1053,6 +1054,7 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
     return redirect("transacciones:medios_pago_cliente", cliente_id=cliente_id)
 
 
+@client_required
 def vista_transacciones(request):
     """Lista las transacciones del cliente activo si existe.
 
@@ -1086,6 +1088,7 @@ def vista_transacciones(request):
     )
 
 
+@client_required
 def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
     """Página para realizar una transacción real de cambio de divisas.
 
@@ -1220,6 +1223,7 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
 
 
 @require_GET
+@client_required
 def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
     """Crea una nueva transacción basada en parámetros de simulación.
 
