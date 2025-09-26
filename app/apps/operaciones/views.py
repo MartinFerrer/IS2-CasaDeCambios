@@ -25,21 +25,33 @@ def historial_tasas_api(request: HttpRequest) -> JsonResponse:
         # Determinar qué divisa mostrar
         if tasa.divisa_origen.codigo == "PYG":
             divisa = tasa.divisa_destino.codigo
-            precio_compra = float(tasa.precio_base) + float(tasa.comision_compra)
-            precio_venta = float(tasa.precio_base) - float(tasa.comision_venta)
         else:
             divisa = tasa.divisa_origen.codigo
-            precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)
-            precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)
 
-        # Inicializar estructura si no existe
-        if divisa not in historial:
-            historial[divisa] = {"fechas": [], "compra": [], "venta": []}
+        # Obtener historial de esta tasa
+        registros_historial = (
+            TasaCambioHistorial.objects.filter(tasa_cambio_original=tasa)
+            .order_by("fecha_registro")
+            .values("fecha_registro", "precio_base", "comision_compra", "comision_venta")
+        )
 
-        # Agregar datos
-        historial[divisa]["fechas"].append(tasa.fecha_actualizacion.isoformat())
-        historial[divisa]["compra"].append(precio_compra)
-        historial[divisa]["venta"].append(precio_venta)
+        if registros_historial.exists():
+            # Inicializar estructura si no existe
+            if divisa not in historial:
+                historial[divisa] = {"fechas": [], "compra": [], "venta": []}
+
+            # Procesar cada registro del historial
+            for registro in registros_historial:
+                if tasa.divisa_origen.codigo == "PYG":
+                    precio_compra = float(registro["precio_base"]) - float(registro["comision_compra"])
+                    precio_venta = float(registro["precio_base"]) + float(registro["comision_venta"])
+                else:
+                    precio_compra = float(registro["precio_base"]) - float(registro["comision_compra"])
+                    precio_venta = float(registro["precio_base"]) + float(registro["comision_venta"])
+
+                historial[divisa]["fechas"].append(registro["fecha_registro"].isoformat())
+                historial[divisa]["compra"].append(precio_compra)
+                historial[divisa]["venta"].append(precio_venta)
 
     return JsonResponse({"historial": historial})
 
@@ -56,7 +68,7 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
     """
     from datetime import datetime
 
-    historial = TasaCambioHistorial.objects.all()
+    historial = TasaCambioHistorial.objects.all().order_by("-fecha_registro")
 
     # Filtros
     fecha_inicio = request.GET.get("fecha_inicio")

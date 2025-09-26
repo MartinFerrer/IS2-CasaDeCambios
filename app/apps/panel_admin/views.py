@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 from forex_python.converter import CurrencyCodes
 
@@ -756,7 +757,7 @@ def tasa_cambio_listar(request: HttpRequest) -> object:
     return render(request, "tasa_cambio_list.html", {"tasas_de_cambio": tasas})
 
 
-def tasa_cambio_crear(request: HttpRequest) -> object:
+def tasa_cambio_crear(request: HttpRequest):
     """Crea una nueva tasa de cambio.
 
     Argumento:
@@ -770,7 +771,7 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
         form = TasaCambioForm(request.POST)
         if form.is_valid():
             nueva_tasa = form.save()
-            # Guardar en el historial
+            # Guardar registro inicial en el historial
             TasaCambioHistorial.objects.create(
                 tasa_cambio_original=nueva_tasa,
                 divisa_origen=nueva_tasa.divisa_origen,
@@ -780,6 +781,7 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
                 comision_venta=nueva_tasa.comision_venta,
                 activo=nueva_tasa.activo,
                 motivo="Creación de Tasa",
+                fecha_registro=timezone.now(),
             )
             return redirect("operaciones:tasa_cambio_listar")
     else:
@@ -788,7 +790,7 @@ def tasa_cambio_crear(request: HttpRequest) -> object:
 
 
 def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
-    """Edita una tasa de cambio existente.
+    """Edita una tasa de cambio existente y guarda los cambios en el historial.
 
     Argumento:
         request: Objeto HttpRequest.
@@ -799,22 +801,52 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
 
     """
     tasa = get_object_or_404(TasaCambio, pk=pk)
+
+    # Guardar valores originales para comparar
+    valores_originales = {
+        "precio_base": tasa.precio_base,
+        "comision_compra": tasa.comision_compra,
+        "comision_venta": tasa.comision_venta,
+        "activo": tasa.activo,
+    }
+
     if request.method == "POST":
         form = TasaCambioForm(request.POST, instance=tasa)
         if form.is_valid():
-            tasa_editada = form.save()
-            # Guardar en el historial
-            TasaCambioHistorial.objects.create(
-                tasa_cambio_original=tasa_editada,
-                divisa_origen=tasa_editada.divisa_origen,
-                divisa_destino=tasa_editada.divisa_destino,
-                precio_base=tasa_editada.precio_base,
-                comision_compra=tasa_editada.comision_compra,
-                comision_venta=tasa_editada.comision_venta,
-                activo=tasa_editada.activo,
-                motivo="Edición de Tasa",
-            )
-            return redirect("operaciones:tasa_cambio_listar")
+            # Verificar si hubo cambios reales
+            cambios = []
+            if tasa.precio_base != valores_originales["precio_base"]:
+                cambios.append(f"Precio base: {valores_originales['precio_base']} → {tasa.precio_base}")
+            if tasa.comision_compra != valores_originales["comision_compra"]:
+                cambios.append(f"Comisión compra: {valores_originales['comision_compra']} → {tasa.comision_compra}")
+            if tasa.comision_venta != valores_originales["comision_venta"]:
+                cambios.append(f"Comisión venta: {valores_originales['comision_venta']} → {tasa.comision_venta}")
+            if tasa.activo != valores_originales["activo"]:
+                cambios.append(
+                    f"Estado: {'Activo' if valores_originales['activo'] else 'Inactivo'} → {'Activo' if tasa.activo else 'Inactivo'}"
+                )
+
+            # Solo guardar en historial si hubo cambios
+            if cambios:
+                tasa_editada = form.save()
+                # Actualizar fecha de modificación
+                tasa_editada.fecha_actualizacion = timezone.now()
+                tasa_editada.save()
+
+                # Guardar en el historial con detalles de los cambios
+                motivo_detallado = f"Edición de Tasa - Cambios: {'; '.join(cambios)}"
+                TasaCambioHistorial.objects.create(
+                    tasa_cambio_original=tasa_editada,
+                    divisa_origen=tasa_editada.divisa_origen,
+                    divisa_destino=tasa_editada.divisa_destino,
+                    precio_base=tasa_editada.precio_base,
+                    comision_compra=tasa_editada.comision_compra,
+                    comision_venta=tasa_editada.comision_venta,
+                    activo=tasa_editada.activo,
+                    motivo=motivo_detallado,
+                    fecha_registro=timezone.now(),
+                )
+            return redirect("tasa_cambio_listar")
     else:
         form = TasaCambioForm(instance=tasa)
     return render(request, "tasa_cambio_form.html", {"form": form})
@@ -832,8 +864,9 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
 
     """
     tasa = get_object_or_404(TasaCambio, pk=pk)
-    if request.method == "POST":
+    if request.method == "POST" and tasa.activo:  # Solo desactivar si está activa
         tasa.activo = False
+        tasa.fecha_actualizacion = timezone.now()
         tasa.save()
         # Guardar en el historial
         TasaCambioHistorial.objects.create(
@@ -845,9 +878,9 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
             comision_venta=tasa.comision_venta,
             activo=tasa.activo,
             motivo="Desactivación de Tasa",
+            fecha_registro=timezone.now(),
         )
-        return redirect("operaciones:tasa_cambio_listar")
-    return redirect("operaciones:tasa_cambio_listar")
+    return redirect("tasa_cambio_listar")
 
 
 def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
@@ -862,8 +895,9 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
 
     """
     tasa = get_object_or_404(TasaCambio, pk=pk)
-    if request.method == "POST":
+    if request.method == "POST" and not tasa.activo:  # Solo activar si está inactiva:
         tasa.activo = True
+        tasa.fecha_actualizacion = timezone.now()
         tasa.save()
         # Guardar en el historial
         TasaCambioHistorial.objects.create(
@@ -875,9 +909,9 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
             comision_venta=tasa.comision_venta,
             activo=tasa.activo,
             motivo="Activación de Tasa",
+            fecha_registro=timezone.now(),
         )
-        return redirect("operaciones:tasa_cambio_listar")
-    return redirect("operaciones:tasa_cambio_listar")
+    return redirect("tasa_cambio_listar")
 
 
 @require_GET
@@ -911,7 +945,35 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
             precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)
             precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)
             divisa_mostrar = tasa.divisa_origen
+        # Obtener historial completo ordenado por fecha
+        historial_queryset = (
+            TasaCambioHistorial.objects.filter(tasa_cambio_original=tasa)
+            .order_by("fecha_registro")  # Ordenar cronológicamente
+            .values("fecha_registro", "precio_base", "comision_compra", "comision_venta", "motivo")
+        )
 
+        # Convertir el historial a lista y calcular precios
+        historial_procesado = []
+        for registro in historial_queryset:
+            # Calcular precios de compra y venta para cada registro histórico
+            if tasa.divisa_origen.codigo == "PYG":
+                hist_compra = float(registro["precio_base"]) - float(registro["comision_compra"])
+                hist_venta = float(registro["precio_base"]) + float(registro["comision_venta"])
+            else:
+                hist_compra = float(registro["precio_base"]) - float(registro["comision_compra"])
+                hist_venta = float(registro["precio_base"]) + float(registro["comision_venta"])
+
+            historial_procesado.append(
+                {
+                    "fecha_registro": registro["fecha_registro"],
+                    "precio_base": registro["precio_base"],
+                    "comision_compra": registro["comision_compra"],
+                    "comision_venta": registro["comision_venta"],
+                    "precio_compra_calculado": hist_compra,
+                    "precio_venta_calculado": hist_venta,
+                    "motivo": registro["motivo"],
+                }
+            )
         tasas_data.append(
             {
                 "divisa": {
@@ -923,6 +985,7 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
                 "precio_compra": precio_compra,
                 "precio_venta": precio_venta,
                 "fecha_actualizacion": tasa.fecha_actualizacion.isoformat(),
+                "historial": historial_procesado,  # Historial procesado con precios calculados
             }
         )
 
