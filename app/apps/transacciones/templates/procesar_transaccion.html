@@ -3,6 +3,9 @@
 {% block title %}
     Transacción Procesada
 {% endblock title %}
+{% block extra_head %}
+    <script src="https://js.stripe.com/v3/"></script>
+{% endblock extra_head %}
 {% block content %}
     <div class="container mx-auto p-8">
         <div class="flex items-center justify-center mb-8">
@@ -254,6 +257,47 @@
                             <li>Pueden aplicar comisiones adicionales del proveedor</li>
                         </ul>
                     </div>
+                {% elif metodo_pago == 'stripe' or transaccion.medio_pago == 'stripe' or 'Stripe' in nombre_metodo_pago %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step">Pago con Stripe</div>
+                        <div class="step">Verificación</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-secondary bg-opacity-20 rounded-lg">
+                        <div class="font-semibold mb-2">Pago Internacional con Stripe:</div>
+                        <div class="alert alert-info mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="stroke-current shrink-0 h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                            <div>
+                                <div class="font-bold">Aviso Importante</div>
+                                <div class="text-sm">
+                                    Stripe puede aplicar comisiones adicionales al pago que no están incluidas en el total mostrado.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-success">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="stroke-current shrink-0 h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                            <div>
+                                <div class="font-bold">Pago Internacional Configurado</div>
+                                <div class="text-sm">Use el botón "Pagar con Stripe" abajo para procesar el pago internacional.</div>
+                            </div>
+                        </div>
+                        <div id="stripe-payment-element" class="mt-4 hidden">
+                            <!-- Stripe Elements will be inserted here -->
+                        </div>
+                    </div>
                 {% else %}
                     <div class="steps steps-vertical lg:steps-horizontal w-full">
                         <div class="step step-primary">Transacción Creada</div>
@@ -309,21 +353,39 @@
                             <div class="text-xs opacity-60">Realizar otra</div>
                         </div>
                     </a>
-                    <button id="btnPagarTransaccion"
-                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
-                            class="btn btn-success btn-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <div class="text-left">
-                            <div class="font-semibold">Pagar Transacción</div>
-                            <div class="text-xs opacity-60">Procesar pago</div>
-                        </div>
-                    </button>
+                    {% if metodo_pago == 'stripe' or transaccion.medio_pago == 'stripe' or 'Stripe' in nombre_metodo_pago %}
+                        <button id="btnPagarTransaccion"
+                                onclick="iniciarPagoStripe('{{ transaccion.id_transaccion }}')"
+                                class="btn btn-success btn-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Pagar con Stripe</div>
+                                <div class="text-xs opacity-60">Tarjeta internacional</div>
+                            </div>
+                        </button>
+                    {% else %}
+                        <button id="btnPagarTransaccion"
+                                onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
+                                class="btn btn-success btn-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Pagar Transacción</div>
+                                <div class="text-xs opacity-60">Procesar pago</div>
+                            </div>
+                        </button>
+                    {% endif %}
                     <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
                             class="btn btn-error btn-outline btn-lg">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -402,8 +464,7 @@
         </div>
     </dialog>
     <!-- Popup de simulación bancaria se abre en ventana separada -->
-</dialog>
-<script>
+    <script>
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(function() {
                 showToast('ID copiado al portapapeles!', 'success');
@@ -415,7 +476,7 @@
         function cancelarTransaccion(transaccionId) {
             // Mostrar modal de confirmación
             document.getElementById('cancelModal').showModal();
-            
+
             // Configurar el botón de confirmación
             document.getElementById('confirmCancelBtn').onclick = function() {
                 // Deshabilitar el botón mientras se procesa
@@ -426,7 +487,7 @@
                     <span class="loading loading-spinner loading-sm"></span>
                     Cancelando...
                 `;
-                
+
                 // Realizar la petición de cancelación
                 fetch(`/transacciones/api/cancelar-transaccion/${transaccionId}/`, {
                     method: 'POST',
@@ -446,14 +507,14 @@
                     if (data.success) {
                         // Mostrar mensaje de éxito y redirigir
                         showToast('Transacción cancelada exitosamente', 'success');
-                        
+
                         setTimeout(() => {
                             window.location.href = '/transacciones/';
                         }, 2000);
                     } else {
                         // Mostrar mensaje de error
                         showToast(`Error: ${data.message || 'No se pudo cancelar la transacción'}`, 'error');
-                        
+
                         // Restaurar botón
                         cancelBtn.disabled = false;
                         cancelBtn.innerHTML = originalText;
@@ -463,7 +524,7 @@
                     document.getElementById('cancelModal').close();
                     console.error('Error al cancelar transacción:', error);
                     showToast(`Error de conexión: ${error.message}`, 'error');
-                    
+
                     // Restaurar botón
                     cancelBtn.disabled = false;
                     cancelBtn.innerHTML = originalText;
@@ -481,7 +542,7 @@
                 </div>
             `;
             document.body.appendChild(toast);
-            
+
             setTimeout(() => {
                 if (document.body.contains(toast)) {
                     document.body.removeChild(toast);
@@ -494,7 +555,7 @@
 
         function iniciarProcesoBancario(transaccionId) {
             transaccionActual = transaccionId;
-            
+
             // Deshabilitar el botón
             const btnPagar = document.getElementById('btnPagarTransaccion');
             btnPagar.disabled = true;
@@ -505,18 +566,18 @@
                     <div class="text-xs opacity-60">Abriendo banco</div>
                 </div>
             `;
-            
+
             // Cerrar ventana anterior si existe
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
-            
+
             // Configurar la ventana emergente modal
             const ancho = 700;
             const alto = 600;
             const izquierda = (screen.width - ancho) / 2;
             const arriba = (screen.height - alto) / 2;
-            
+
             const opciones = `
                 width=${ancho},
                 height=${alto},
@@ -533,18 +594,18 @@
                 alwaysRaised=yes,
                 dependent=yes
             `;
-            
+
             // Abrir ventana del banco simulado
             const url = `/transacciones/popup-banco/${transaccionId}/`;
             ventanaBanco = window.open(url, 'BancoSimulado', opciones);
-            
+
             if (ventanaBanco) {
                 // Focalizar la ventana y hacerla modal
                 ventanaBanco.focus();
-                
+
                 // Bloquear interacción con la página padre
                 bloquearPaginaPadre();
-                
+
                 // Verificar si la ventana se cerró manualmente
                 const verificarVentana = setInterval(() => {
                     if (ventanaBanco.closed) {
@@ -554,7 +615,7 @@
                         restaurarBotonPagar();
                     }
                 }, 1000);
-                
+
                 // Mantener foco en la ventana del banco
                 const mantenerFoco = setInterval(() => {
                     if (ventanaBanco && !ventanaBanco.closed) {
@@ -563,7 +624,7 @@
                         clearInterval(mantenerFoco);
                     }
                 }, 500);
-                
+
                 showToast('Redirigiendo al banco para procesar el pago...', 'info');
             } else {
                 // Error al abrir ventana (bloqueador de popups)
@@ -604,15 +665,15 @@
 
         function handlePagoCompletado(data) {
             console.log('Pago completado exitosamente:', data);
-            
+
             // Cerrar la ventana si no se cerró automáticamente
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
-            
+
             // Desbloquear página padre
             desbloquearPaginaPadre();
-            
+
             // Mostrar mensaje y redirigir instantáneamente
             showToast('Pago procesado exitosamente!', 'success');
             window.location.href = '/transacciones/';
@@ -620,20 +681,20 @@
 
         function handleAbrirTauserRetiro(data) {
             console.log('Abriendo popup TAUSER para retiro:', data);
-            
+
             // Cerrar la ventana del banco si aún está abierta
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
-            
+
             // Abrir popup para código TAUSER de retiro
             const urlTauser = `/transacciones/popup-tauser-retiro/${data.transaccionId}/`;
             ventanaBanco = window.open(
-                urlTauser, 
-                'tauserRetiro', 
+                urlTauser,
+                'tauserRetiro',
                 'width=600,height=700,scrollbars=yes,resizable=yes,modal=yes,dependent=yes,alwaysRaised=yes'
             );
-            
+
             if (!ventanaBanco) {
                 showToast('Error: No se pudo abrir la ventana TAUSER. Revisa el bloqueador de ventanas emergentes.', 'error');
                 desbloquearPaginaPadre();
@@ -644,12 +705,12 @@
         function handleErrorBanco(data) {
             console.log('Error en el banco:', data);
             showToast(`Error del banco: ${data.mensaje}`, 'error');
-            
+
             // Cerrar la ventana si no se cerró automáticamente
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
-            
+
             // Desbloquear página padre y restaurar el botón
             desbloquearPaginaPadre();
             restaurarBotonPagar();
@@ -657,15 +718,15 @@
 
         function handleReintentarPago() {
             console.log('Usuario quiere reintentar el pago');
-            
+
             // Cerrar ventana actual
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
-            
+
             // Desbloquear página padre temporalmente
             desbloquearPaginaPadre();
-            
+
             // Reintentar después de un breve delay
             setTimeout(() => {
                 iniciarProcesoBancario(transaccionActual);
@@ -686,22 +747,22 @@
 
         function handleTransaccionCompletada(data) {
             console.log('Transacción completada exitosamente:', data);
-            
+
             // Cerrar la ventana si no se cerró automáticamente
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
-            
+
             // Desbloquear página padre
             desbloquearPaginaPadre();
-            
+
             // Mostrar mensaje según el método
             if (data.metodo === 'tauser') {
                 showToast('Código TAUSER generado exitosamente!', 'success');
             } else {
                 showToast('Transacción completada exitosamente!', 'success');
             }
-            
+
             // Redirigir a la lista de transacciones
             window.location.href = '/transacciones/';
         }
@@ -737,7 +798,7 @@
                 justify-content: center;
                 backdrop-filter: blur(2px);
             `;
-            
+
             // Mensaje de ventana activa
             const mensaje = document.createElement('div');
             mensaje.style.cssText = `
@@ -757,10 +818,10 @@
                     Complete el proceso de pago para continuar.
                 </p>
             `;
-            
+
             overlay.appendChild(mensaje);
             document.body.appendChild(overlay);
-            
+
             // Prevenir scroll
             document.body.style.overflow = 'hidden';
         }
@@ -770,7 +831,7 @@
             if (overlay) {
                 overlay.remove();
             }
-            
+
             // Restaurar scroll
             document.body.style.overflow = '';
         }
@@ -796,5 +857,199 @@
             }
             return cookieValue;
         }
-</script>
+
+        // Funciones para integración de Stripe
+        const stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
+        let elements, paymentElement;
+
+        async function iniciarPagoStripe(transaccionId) {
+            try {
+                // Deshabilitar el botón de pago
+                const btnPago = document.getElementById('btnPagarTransaccion');
+                btnPago.disabled = true;
+                btnPago.innerHTML = `
+                    <span class="loading loading-spinner loading-sm"></span>
+                    <div class="text-left">
+                        <div class="font-semibold">Iniciando Stripe...</div>
+                        <div class="text-xs opacity-60">Conectando con servidor</div>
+                    </div>
+                `;
+
+                // Crear payment intent
+                const response = await fetch('/transacciones/stripe/create-payment-intent/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        transaction_id: transaccionId,
+                        currency: 'usd'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error al inicializar el pago');
+                }
+
+                // Configurar Stripe Elements
+                elements = stripe.elements({
+                    clientSecret: data.client_secret
+                });
+
+                paymentElement = elements.create('payment');
+                paymentElement.mount('#stripe-payment-element');
+
+                // Mostrar formulario de pago
+                document.getElementById('stripe-payment-element').classList.remove('hidden');
+
+                // Cambiar texto del botón
+                btnPago.disabled = false;
+                btnPago.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-semibold">Confirmar Pago Stripe</div>
+                        <div class="text-xs opacity-60">Procesar tarjeta</div>
+                    </div>
+                `;
+                btnPago.setAttribute('onclick', 'confirmarPagoStripe()');
+
+            } catch (error) {
+                // Restaurar botón en caso de error
+                const btnPago = document.getElementById('btnPagarTransaccion');
+                btnPago.disabled = false;
+                btnPago.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-semibold">Pagar con Stripe</div>
+                        <div class="text-xs opacity-60">Tarjeta internacional</div>
+                    </div>
+                `;
+                btnPago.setAttribute('onclick', 'iniciarPagoStripe("{{ transaccion.id_transaccion }}")');
+
+                console.error('Error al inicializar pago Stripe:', error);
+                showToast(`Error al inicializar el pago: ${error.message}`, 'error');
+            }
+        }
+
+        async function confirmarPagoStripe() {
+            if (!stripe || !elements) {
+                showToast('Stripe no está inicializado correctamente', 'error');
+                return;
+            }
+
+            // Deshabilitar botón durante procesamiento
+            const btnPago = document.getElementById('btnPagarTransaccion');
+            btnPago.disabled = true;
+            btnPago.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                <div class="text-left">
+                    <div class="font-semibold">Procesando...</div>
+                    <div class="text-xs opacity-60">Validando pago</div>
+                </div>
+            `;
+
+            try {
+                const {error, paymentIntent} = await stripe.confirmPayment({
+                    elements,
+                    confirmParams: {
+                        return_url: window.location.origin + '/transacciones/stripe/payment-success/'
+                    },
+                    redirect: 'if_required'
+                });
+
+                if (error) {
+                    // Restaurar botón
+                    btnPago.disabled = false;
+                    btnPago.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Confirmar Pago Stripe</div>
+                            <div class="text-xs opacity-60">Procesar tarjeta</div>
+                        </div>
+                    `;
+
+                    let errorMessage = 'Error en el pago';
+                    if (error.type === 'card_error' || error.type === 'validation_error') {
+                        errorMessage = error.message;
+                    }
+
+                    showToast(errorMessage, 'error');
+                    return;
+                }
+
+                if (paymentIntent.status === 'succeeded') {
+                    // Pago exitoso
+                    btnPago.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Pago Completado</div>
+                            <div class="text-xs opacity-60">Exitoso</div>
+                        </div>
+                    `;
+                    showToast('Pago procesado exitosamente', 'success');
+
+                    // Verificar estado del pago en el servidor
+                    await verificarEstadoPago(paymentIntent.id);
+                } else {
+                    showToast('El pago requiere acciones adicionales', 'warning');
+                }
+
+            } catch (error) {
+                // Restaurar botón
+                btnPago.disabled = false;
+                btnPago.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-semibold">Confirmar Pago Stripe</div>
+                        <div class="text-xs opacity-60">Procesar tarjeta</div>
+                    </div>
+                `;
+                console.error('Error al confirmar pago:', error);
+                showToast('Error al procesar el pago', 'error');
+            }
+        }
+
+        async function verificarEstadoPago(paymentIntentId) {
+            try {
+                const response = await fetch(`/transacciones/stripe/payment-status/${paymentIntentId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'succeeded') {
+                    // Redirigir a página de éxito o actualizar UI
+                    setTimeout(() => {
+                        window.location.reload(); // Reload to show updated transaction status
+                    }, 2000);
+                } else if (data.status === 'requires_action') {
+                    showToast('El pago requiere autenticación adicional', 'warning');
+                } else {
+                    showToast('Error en el procesamiento del pago', 'error');
+                }
+
+            } catch (error) {
+                console.error('Error al verificar estado del pago:', error);
+                showToast('Error al verificar el estado del pago', 'error');
+            }
+        }
+
+        // Event listeners para Stripe - No needed as we use onclick directly on the unified button
+    </script>
 {% endblock content %}

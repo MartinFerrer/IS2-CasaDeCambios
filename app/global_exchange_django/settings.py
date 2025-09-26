@@ -75,6 +75,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "global_exchange_django.context_processors.stripe_context",
             ],
         },
     },
@@ -135,3 +136,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env.str("EMAIL_USER", default="NO_CONFIGURADO")
 EMAIL_HOST_PASSWORD = env.str("EMAIL_PASSWORD", default="NO_CONFIGURADO")
 DEFAULT_FROM_EMAIL = env.str("EMAIL_USER", default="NO_CONFIGURADO")
+
+# Stripe Configuration
+STRIPE_PUBLISHABLE_KEY = env.str("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET", default="")

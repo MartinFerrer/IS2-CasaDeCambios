@@ -11,7 +11,6 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
-
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -510,6 +509,89 @@ class BilleteraElectronica(MedioFinanciero):
         unique_together = ["cliente", "entidad", "identificador"]
 
 
+class StripePayment(models.Model):
+    """Modelo para pagos con Stripe (tarjetas internacionales).
+
+    Attributes:
+        cliente (ForeignKey): Referencia al cliente que realiza el pago.
+        stripe_payment_intent_id (CharField): ID del PaymentIntent de Stripe.
+        stripe_customer_id (CharField): ID del customer en Stripe (opcional).
+        amount (DecimalField): Monto del pago en centavos.
+        currency (CharField): Moneda del pago (USD, EUR, etc.).
+        status (CharField): Estado del pago en Stripe.
+        payment_method_id (CharField): ID del método de pago en Stripe.
+        created_at (DateTimeField): Fecha de creación del pago.
+        updated_at (DateTimeField): Fecha de última actualización.
+        metadata (TextField): Metadatos adicionales del pago (JSON).
+
+    """
+
+    STRIPE_STATUS_CHOICES = [
+        ("requires_payment_method", "Requiere método de pago"),
+        ("requires_confirmation", "Requiere confirmación"),
+        ("requires_action", "Requiere acción"),
+        ("processing", "Procesando"),
+        ("requires_capture", "Requiere captura"),
+        ("canceled", "Cancelado"),
+        ("succeeded", "Exitoso"),
+    ]
+
+    cliente = models.ForeignKey(
+        "usuarios.Cliente",
+        on_delete=models.CASCADE,
+        related_name="stripe_payments",
+        help_text="Cliente que realiza el pago",
+    )
+    stripe_payment_intent_id = models.CharField(max_length=100, unique=True, help_text="ID del PaymentIntent de Stripe")
+    stripe_customer_id = models.CharField(max_length=100, blank=True, null=True, help_text="ID del customer en Stripe")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Monto del pago en la moneda especificada")
+    currency = models.CharField(max_length=3, default="USD", help_text="Moneda del pago (USD, EUR, etc.)")
+    status = models.CharField(
+        max_length=30,
+        choices=STRIPE_STATUS_CHOICES,
+        default="requires_payment_method",
+        help_text="Estado del pago en Stripe",
+    )
+    payment_method_id = models.CharField(
+        max_length=100, blank=True, null=True, help_text="ID del método de pago en Stripe"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Fecha de creación del pago")
+    updated_at = models.DateTimeField(auto_now=True, help_text="Fecha de última actualización")
+    metadata = models.TextField(blank=True, null=True, help_text="Metadatos adicionales del pago (JSON)")
+
+    class Meta:
+        """Configuración para el modelo StripePayment.
+
+        Attributes:
+            verbose_name (str): Nombre singular legible para el modelo.
+            verbose_name_plural (str): Nombre plural legible para el modelo.
+            ordering (list): Orden predeterminado por fecha de creación descendente.
+
+        """
+
+        verbose_name = "Pago Stripe"
+        verbose_name_plural = "Pagos Stripe"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        """Representación en string del pago Stripe.
+
+        Returns:
+            str: String con formato "Stripe {amount} {currency} - {status}"
+
+        """
+        return f"Stripe {self.amount} {self.currency} - {self.get_status_display()}"
+
+    def is_successful(self) -> bool:
+        """Verifica si el pago fue exitoso.
+
+        Returns:
+            bool: True si el pago fue exitoso, False en caso contrario.
+
+        """
+        return self.status == "succeeded"
+
+
 class Transaccion(models.Model):
     """Modelo para representar transacciones de cambio de divisas.
 
@@ -540,6 +622,8 @@ class Transaccion(models.Model):
         ("completada", "Completada"),
         ("cancelada", "Cancelada"),
         ("anulada", "Anulada"),
+        ("disputada", "Disputada"),
+        ("reembolsada", "Reembolsada"),
     ]
 
     id_transaccion = models.UUIDField(
@@ -587,13 +671,24 @@ class Transaccion(models.Model):
         max_length=100,
         blank=True,
         null=True,
-        help_text="Identificador del medio de pago utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+        help_text="Identificador del medio de pago utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)",
     )
     medio_cobro = models.CharField(
         max_length=100,
         blank=True,
         null=True,
-        help_text="Identificador del medio de cobro utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+        help_text="Identificador del medio de cobro utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)",
+    )
+    stripe_payment = models.ForeignKey(
+        StripePayment,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        help_text="Pago Stripe asociado a la transacción (solo para pagos internacionales)",
+    )
+    cambio_cotizacion_notificado = models.BooleanField(
+        default=False,
+        help_text="Indica si se ha notificado al cliente sobre cambios en la cotización",
     )
 
     class Meta:

@@ -6,7 +6,7 @@ Define plantillas de URL para transacciones y configuración de medios de pago.
 
 from django.urls import path
 
-from . import views
+from . import stripe_views, views
 
 app_name = "transacciones"
 
@@ -62,7 +62,21 @@ urlpatterns = [
     ),
     path("api/procesar-pago-bancario/", views.api_procesar_pago_bancario, name="api_procesar_pago_bancario"),
     path("popup-banco/<str:transaccion_id>/", views.popup_banco_simulado, name="popup_banco_simulado"),
-    path("popup-tauser-retiro/<str:transaccion_id>/", views.popup_codigo_tauser_retiro, name="popup_codigo_tauser_retiro"),
+    path(
+        "popup-tauser-retiro/<str:transaccion_id>/", views.popup_codigo_tauser_retiro, name="popup_codigo_tauser_retiro"
+    ),
     path("procesar/<str:transaccion_id>/", views.procesar_transaccion_view, name="procesar_transaccion"),
+    # URLs para Stripe
+    path(
+        "api/stripe/create-payment-intent/",
+        stripe_views.create_stripe_payment_intent,
+        name="stripe_create_payment_intent",
+    ),
+    path(
+        "api/stripe/payment-status/<str:payment_intent_id>/",
+        stripe_views.stripe_payment_status,
+        name="stripe_payment_status",
+    ),
+    path("stripe/webhook/", stripe_views.stripe_webhook, name="stripe_webhook"),
     path("", views.vista_transacciones, name="lista"),
 ]
