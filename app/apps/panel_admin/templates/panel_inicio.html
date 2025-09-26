@@ -6,9 +6,9 @@
 {% block body_class %}
     bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
 {% endblock body_class %}
-{# Usamos header específico para admin #}
+{# Header condicional basado en el rol del usuario #}
 {% block header %}
-    {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin_conditional.html" %}
 {% endblock %}
 {% block content %}
     <main class="flex flex-col items-center justify-center mt-12">
@@ -19,18 +19,22 @@
                         <details open>
                             <summary class="card-title text-blue-700">Gestionar</summary>
                             <ul>
-                                <li>
-                                    <a href="{% url 'usuario_listar' %}"
-                                       class="btn btn-outline btn-primary w-full my-2">Usuarios</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'rol_listar' %}"
-                                       class="btn btn-outline btn-secondary w-full my-2">Roles</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'cliente_listar' %}"
-                                       class="btn btn-outline btn-accent w-full my-2">Clientes</a>
-                                </li>
+                                {% if "Administrador" in user_groups %}
+                                    {# Options only for Administrador #}
+                                    <li>
+                                        <a href="{% url 'usuario_listar' %}"
+                                           class="btn btn-outline btn-primary w-full my-2">Usuarios</a>
+                                    </li>
+                                    <li>
+                                        <a href="{% url 'rol_listar' %}"
+                                           class="btn btn-outline btn-secondary w-full my-2">Roles</a>
+                                    </li>
+                                    <li>
+                                        <a href="{% url 'cliente_listar' %}"
+                                           class="btn btn-outline btn-accent w-full my-2">Clientes</a>
+                                    </li>
+                                {% endif %}
+                                {# Options available to both Administrador and Analista Cambiario #}
                                 <li>
                                     <a href="{% url 'operaciones:divisa_list' %}"
                                        class="btn btn-outline btn-info w-full my-2">Divisas</a>
@@ -46,17 +50,20 @@
                             </ul>
                         </details>
                     </li>
-                    <li>
-                        <details open>
-                            <summary class="card-title text-blue-700">Configurar</summary>
-                            <ul>
-                                <li>
-                                    <a href="{% url 'configuracion' %}#comisiones"
-                                       class="btn btn-outline btn-primary w-full my-2">Comisiones</a>
-                                </li>
-                            </ul>
-                        </details>
-                    </li>
+                    {% if "Administrador" in user_groups %}
+                        {# Configuration section only for Administrador #}
+                        <li>
+                            <details open>
+                                <summary class="card-title text-blue-700">Configurar</summary>
+                                <ul>
+                                    <li>
+                                        <a href="{% url 'configuracion' %}#comisiones"
+                                           class="btn btn-outline btn-primary w-full my-2">Comisiones</a>
+                                    </li>
+                                </ul>
+                            </details>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

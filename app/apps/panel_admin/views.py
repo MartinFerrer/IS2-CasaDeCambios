@@ -6,7 +6,7 @@ así como la lógica de asociación entre Cliente y Usuario.
 
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
-from apps.seguridad.decorators import admin_required
+from apps.seguridad.decorators import admin_required, group_required
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 from django.contrib import messages
@@ -34,6 +34,7 @@ def panel_inicio(request: HttpRequest) -> HttpResponse:
     return render(request, "panel_inicio.html")
 
 
+@group_required("Administrador")
 def configuracion(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de configuracion de opciones.
 
@@ -67,6 +68,7 @@ def configuracion(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
+@group_required("Administrador")
 def guardar_comisiones(request: HttpRequest) -> HttpResponse:
     """Guarda los descuentos de comisión enviados por el formulario.
 
@@ -123,6 +125,7 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
+@group_required("Administrador")
 def guardar_limites(request: HttpRequest) -> HttpResponse:
     """Guarda los límites de transacciones enviados por el formulario.
 
@@ -169,6 +172,7 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
 
 
 # CRUD de Usuarios
+@group_required("Administrador")
 def usuario_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de usuarios y roles en el panel de administración.
 
@@ -184,6 +188,7 @@ def usuario_list(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos})
 
 
+@group_required("Administrador")
 def usuario_create(request: HttpRequest) -> HttpResponse:
     """Crea un nuevo usuario en el panel de administración.
 
@@ -215,6 +220,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
+@group_required("Administrador")
 def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita un usuario existente en el panel de administración.
 
@@ -257,6 +263,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
+@group_required("Administrador")
 def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina un usuario existente en el panel de administración.
 
@@ -278,6 +285,7 @@ def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 # CRUD de Roles
+@group_required("Administrador")
 def rol_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de roles (grupos) y sus permisos asociados.
 
@@ -293,6 +301,7 @@ def rol_list(request: HttpRequest) -> HttpResponse:
 
 
 # CRUD de Clientes
+@group_required("Administrador")
 def cliente_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de clientes, tipos de cliente y usuarios en el panel de administración.
 
@@ -313,6 +322,7 @@ def cliente_list(request: HttpRequest) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def cliente_create(request: HttpRequest) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -340,6 +350,7 @@ def cliente_create(request: HttpRequest) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -369,6 +380,7 @@ def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina al cliente y renderiza la lista de clientes actualizada.
 
@@ -394,6 +406,7 @@ def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@group_required("Administrador")
 def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     """Muestra el formulario para asociar un cliente a un usuario.
 
@@ -417,6 +430,7 @@ def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     return render(request, "asociar_cliente_usuario.html", {"clientes": clientes, "usuarios": usuarios})
 
 
+@group_required("Administrador")
 def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Asocia un cliente a un usuario.
 
@@ -445,6 +459,7 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpR
     return redirect("asociar_cliente_usuario_form")
 
 
+@group_required("Administrador")
 def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Desasocia un cliente a un usuario.
 
@@ -478,6 +493,7 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
 
 
 # CRUD de Entidades de Medios financiero
+@group_required("Administrador")
 def entidad_create(request: HttpRequest) -> HttpResponse:
     """Crea una nueva entidad de medio financiero.
 
@@ -518,6 +534,7 @@ def entidad_create(request: HttpRequest) -> HttpResponse:
     return redirect("configuracion")
 
 
+@group_required("Administrador")
 def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita una entidad financiera existente.
 
@@ -565,6 +582,7 @@ def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("configuracion")
 
 
+@group_required("Administrador")
 def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina una entidad de medio financiero.
 
