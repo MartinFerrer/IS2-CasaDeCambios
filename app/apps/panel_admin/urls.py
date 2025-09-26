@@ -44,6 +44,4 @@ urlpatterns = [
     path("tasas/<str:pk>/editar/", views.tasa_cambio_editar, name="tasa_cambio_editar"),
     path("tasas/<str:pk>/desactivar/", views.tasa_cambio_desactivar, name="tasa_cambio_desactivar"),
     path("tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
-    # API endpoint para obtener tasas de cambio actuales
-    path("tasas/api/", views.tasas_cambio_api, name="tasas_cambio_api"),
 ]

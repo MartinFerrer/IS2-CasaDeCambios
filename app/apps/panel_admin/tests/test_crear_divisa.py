@@ -10,20 +10,20 @@ from apps.operaciones.models import Divisa
 class TestDivisaViews(TestCase):
     def setUp(self):
         self.client = Client()
-        self.url_crear_divisa = reverse("operaciones:crear_divisa")
-        self.url_divisa_list = reverse("operaciones:divisa_list")
+        self.url_crear_divisa = reverse("crear_divisa")
+        self.url_divisa_list = reverse("divisa_list")
         self.divisa = Divisa.objects.create(codigo="USD", nombre="Dólar Estadounidense", simbolo="$")
 
     def test_crear_divisa_get(self):
         try:
-            response = self.client.get(reverse("operaciones:crear_divisa"))
+            response = self.client.get(reverse("crear_divisa"))
             self.assertIn(response.status_code, [200, 302])
         except TemplateDoesNotExist:
             pass
 
     def test_crear_divisa_post_valid(self):
         data = {"codigo": "EUR", "nombre": "Euro", "simbolo": "€", "estado": "activa"}
-        response = self.client.post(reverse("operaciones:crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        response = self.client.post(reverse("crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
         self.assertEqual(response.status_code, 201)
         response_data = response.json()
@@ -33,7 +33,7 @@ class TestDivisaViews(TestCase):
 
     def test_crear_divisa_post_invalid(self):
         data = {"codigo": ""}
-        response = self.client.post(reverse("operaciones:crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        response = self.client.post(reverse("crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
         self.assertEqual(response.status_code, 400)
         response_data = response.json()
