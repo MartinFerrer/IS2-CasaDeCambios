@@ -27,7 +27,6 @@
                                     <th class="py-2 px-4 text-left">Divisa</th>
                                     <th class="py-2 px-4 text-center">Compra (₲)</th>
                                     <th class="py-2 px-4 text-center">Venta (₲)</th>
-                                    <th class="py-2 px-4 text-center">Tendencia</th>
                                 </tr>
                             </thead>
                             <tbody id="tasas-tbody">
@@ -277,10 +276,11 @@ class TasasManager {
                 : 'bg-gray-50 border-b border-gray-200 hover:bg-gray-100';
 
             const historial = this.historialDivisas[tasa.divisa.codigo];
-            console.log(`🔍 Calculando tendencia para ${tasa.divisa.codigo}:`, historial);
+            console.log(`🔍 Calculando tendencias para ${tasa.divisa.codigo}:`, historial);
 
-            // Calcular tendencia mejorada
-            let trendIcon = this.getTrendIcon('neutral', 'Sin datos suficientes');
+            // Calcular tendencias separadas para compra y venta
+            let trendIconCompra = this.getTrendIcon('neutral', 'Sin datos suficientes');
+            let trendIconVenta = this.getTrendIcon('neutral', 'Sin datos suficientes');
 
             if (historial && historial.length > 1) {
                 // Ordenar por fecha para asegurar comparación correcta
@@ -288,17 +288,30 @@ class TasasManager {
                 const actual = historialOrdenado[historialOrdenado.length - 1];
                 const anterior = historialOrdenado[historialOrdenado.length - 2];
 
-                console.log(`📊 ${tasa.divisa.codigo} - Anterior: ${anterior.precio_compra}, Actual: ${actual.precio_compra}`);
+                console.log(`📊 ${tasa.divisa.codigo} - Compra: ${anterior.precio_compra} → ${actual.precio_compra}, Venta: ${anterior.precio_venta} → ${actual.precio_venta}`);
 
-                const diferencia = actual.precio_compra - anterior.precio_compra;
-                const porcentaje = ((diferencia / anterior.precio_compra) * 100).toFixed(2);
+                // Calcular tendencia de compra
+                const diferenciaCompra = actual.precio_compra - anterior.precio_compra;
+                const porcentajeCompra = ((diferenciaCompra / anterior.precio_compra) * 100).toFixed(2);
 
-                if (Math.abs(diferencia) < 0.01) { // Threshold para considerar "sin cambio"
-                    trendIcon = this.getTrendIcon('neutral', `Sin cambio significativo`);
-                } else if (diferencia > 0) {
-                    trendIcon = this.getTrendIcon('up', `Subió ${porcentaje}% (₲${diferencia.toFixed(0)})`);
+                if (Math.abs(diferenciaCompra) < 0.01) {
+                    trendIconCompra = this.getTrendIcon('neutral', `Sin cambio significativo en compra`);
+                } else if (diferenciaCompra > 0) {
+                    trendIconCompra = this.getTrendIcon('up', `Compra subió ${porcentajeCompra}% (₷${diferenciaCompra.toFixed(0)})`);
                 } else {
-                    trendIcon = this.getTrendIcon('down', `Bajó ${Math.abs(porcentaje)}% (₲${Math.abs(diferencia).toFixed(0)})`);
+                    trendIconCompra = this.getTrendIcon('down', `Compra bajó ${Math.abs(porcentajeCompra)}% (₷${Math.abs(diferenciaCompra).toFixed(0)})`);
+                }
+
+                // Calcular tendencia de venta
+                const diferenciaVenta = actual.precio_venta - anterior.precio_venta;
+                const porcentajeVenta = ((diferenciaVenta / anterior.precio_venta) * 100).toFixed(2);
+
+                if (Math.abs(diferenciaVenta) < 0.01) {
+                    trendIconVenta = this.getTrendIcon('neutral', `Sin cambio significativo en venta`);
+                } else if (diferenciaVenta > 0) {
+                    trendIconVenta = this.getTrendIcon('up', `Venta subió ${porcentajeVenta}% (₷${diferenciaVenta.toFixed(0)})`);
+                } else {
+                    trendIconVenta = this.getTrendIcon('down', `Venta bajó ${Math.abs(porcentajeVenta)}% (₷${Math.abs(diferenciaVenta).toFixed(0)})`);
                 }
             }
 
@@ -310,9 +323,18 @@ class TasasManager {
                         <span class="text-sm text-gray-500">${tasa.divisa.nombre}</span>
                     </div>
                 </td>
-                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-green-600">${this.formatNumber(tasa.precio_compra, 3)}</td>
-                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-red-600">${this.formatNumber(tasa.precio_venta, 3)}</td>
-                <td class="py-3 px-4 text-center text-lg">${trendIcon}</td>
+                <td class="py-3 px-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="font-mono text-lg font-semibold text-gray-700">${this.formatNumber(tasa.precio_compra, 3)}</span>
+                        ${trendIconCompra}
+                    </div>
+                </td>
+                <td class="py-3 px-4 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="font-mono text-lg font-semibold text-gray-700">${this.formatNumber(tasa.precio_venta, 3)}</span>
+                        ${trendIconVenta}
+                    </div>
+                </td>
             `;
             fragment.appendChild(row);
         });
@@ -322,34 +344,29 @@ class TasasManager {
     }
 
     getTrendIcon(direction, tooltip) {
-        const iconClasses = "h-6 w-6 inline-block";
+        const iconClasses = "h-4 w-4 inline-block";
 
         switch(direction) {
             case 'up':
                 return `
-                    <span class="text-green-500 flex items-center gap-1" title="${tooltip}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <span class="flex items-center justify-center" title="${tooltip}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses} text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                         </svg>
-                        <span class="text-xs hidden sm:inline">↑</span>
                     </span>
                 `;
             case 'down':
                 return `
-                    <span class="text-red-500 flex items-center gap-1" title="${tooltip}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <span class="flex items-center justify-center" title="${tooltip}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses} text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                         </svg>
-                        <span class="text-xs hidden sm:inline">↓</span>
                     </span>
                 `;
             default:
                 return `
-                    <span class="text-gray-400 flex items-center gap-1" title="${tooltip}">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="${iconClasses}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span class="text-xs hidden sm:inline">—</span>
+                    <span class="flex items-center justify-center text-gray-400 font-bold text-sm" title="${tooltip}">
+                        =
                     </span>
                 `;
         }
