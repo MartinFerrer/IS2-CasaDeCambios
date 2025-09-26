@@ -212,10 +212,10 @@ class TasasManager {
         this.emptyElement.classList.remove('hidden');
     }
 
-    formatNumber(number, decimals = 0) {
+    formatNumber(number, maxDecimals = 0) {
         return new Intl.NumberFormat('es-PY', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
+            minimumFractionDigits: 0,
+            maximumFractionDigits: maxDecimals
         }).format(number);
     }
 
@@ -310,8 +310,8 @@ class TasasManager {
                         <span class="text-sm text-gray-500">${tasa.divisa.nombre}</span>
                     </div>
                 </td>
-                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-green-600">${this.formatNumber(tasa.precio_compra)}</td>
-                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-red-600">${this.formatNumber(tasa.precio_venta)}</td>
+                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-green-600">${this.formatNumber(tasa.precio_compra, 3)}</td>
+                <td class="py-3 px-4 text-center font-mono text-lg font-semibold text-red-600">${this.formatNumber(tasa.precio_venta, 3)}</td>
                 <td class="py-3 px-4 text-center text-lg">${trendIcon}</td>
             `;
             fragment.appendChild(row);
