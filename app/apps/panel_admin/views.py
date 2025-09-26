@@ -6,6 +6,9 @@ así como la lógica de asociación entre Cliente y Usuario.
 
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from apps.seguridad.decorators import admin_required
+from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
+from apps.usuarios.models import Cliente, TipoCliente, Usuario
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -14,12 +17,10 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
-from apps.usuarios.models import Cliente, TipoCliente, Usuario
-
 from .forms import ClienteForm, UsuarioForm
 
 
+@admin_required
 def panel_inicio(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de inicio del panel de administración.
 
@@ -49,16 +50,20 @@ def configuracion(request: HttpRequest) -> HttpResponse:
 
     """
     tipos_clientes = TipoCliente.objects.all()
-    entidades = EntidadFinanciera.objects.all().order_by('tipo', 'nombre')
+    entidades = EntidadFinanciera.objects.all().order_by("tipo", "nombre")
     limite_actual = LimiteTransacciones.get_limite_actual()
-    historial_limites = LimiteTransacciones.objects.all().order_by('-fecha_modificacion')
+    historial_limites = LimiteTransacciones.objects.all().order_by("-fecha_modificacion")
 
-    return render(request, "configuracion.html", {
-        "tipos_clientes": tipos_clientes,
-        "entidades": entidades,
-        "limite_actual": limite_actual,
-        "historial_limites": historial_limites,
-    })
+    return render(
+        request,
+        "configuracion.html",
+        {
+            "tipos_clientes": tipos_clientes,
+            "entidades": entidades,
+            "limite_actual": limite_actual,
+            "historial_limites": historial_limites,
+        },
+    )
 
 
 @require_POST
@@ -128,8 +133,8 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
         HttpResponse: Redirige a 'configuracion' con mensaje de éxito o error.
 
     """
-    limite_diario_str = request.POST.get('limite_diario')
-    limite_mensual_str = request.POST.get('limite_mensual')
+    limite_diario_str = request.POST.get("limite_diario")
+    limite_mensual_str = request.POST.get("limite_mensual")
 
     if not limite_diario_str or not limite_mensual_str:
         messages.error(request, "Faltan valores en el formulario de límites.")
@@ -144,16 +149,16 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
 
     try:
         with transaction.atomic():
-            limite = LimiteTransacciones(
-                limite_diario=limite_diario,
-                limite_mensual=limite_mensual
-            )
+            limite = LimiteTransacciones(limite_diario=limite_diario, limite_mensual=limite_mensual)
             limite.full_clean()  # Usa las validaciones del modelo
             limite.save()
 
-        messages.success(request, f"Límites actualizados exitosamente. "
-                       f"Diario: ₲{limite.limite_diario:,.0f}, "
-                       f"Mensual: ₲{limite.limite_mensual:,.0f}")
+        messages.success(
+            request,
+            f"Límites actualizados exitosamente. "
+            f"Diario: ₲{limite.limite_diario:,.0f}, "
+            f"Mensual: ₲{limite.limite_mensual:,.0f}",
+        )
     except ValidationError as e:
         for error in e.messages:
             messages.error(request, error)
@@ -196,7 +201,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
             usuario.save()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -234,7 +239,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
             tenia_usuario_asociado = usuario_asociado_grupo and usuario_asociado_grupo in usuario.groups.all()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -501,11 +506,7 @@ def entidad_create(request: HttpRequest) -> HttpResponse:
                 return redirect("configuracion")
 
             EntidadFinanciera.objects.create(
-                nombre=nombre,
-                tipo=tipo,
-                comision_compra=comision_compra,
-                comision_venta=comision_venta,
-                activo=activo
+                nombre=nombre, tipo=tipo, comision_compra=comision_compra, comision_venta=comision_venta, activo=activo
             )
             messages.success(request, f"Entidad '{nombre}' creada exitosamente.")
 
@@ -583,15 +584,15 @@ def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
             from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
 
             en_uso = (
-                TarjetaCredito.objects.filter(entidad=entidad).exists() or
-                CuentaBancaria.objects.filter(entidad=entidad).exists() or
-                BilleteraElectronica.objects.filter(entidad=entidad).exists()
+                TarjetaCredito.objects.filter(entidad=entidad).exists()
+                or CuentaBancaria.objects.filter(entidad=entidad).exists()
+                or BilleteraElectronica.objects.filter(entidad=entidad).exists()
             )
 
             if en_uso:
                 messages.error(
                     request,
-                    f"No se puede eliminar la entidad '{entidad.nombre}' porque está siendo utilizada por medios financiero existentes."
+                    f"No se puede eliminar la entidad '{entidad.nombre}' porque está siendo utilizada por medios financiero existentes.",
                 )
             else:
                 nombre = entidad.nombre
