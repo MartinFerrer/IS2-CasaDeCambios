@@ -11,7 +11,6 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
-
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -539,6 +538,8 @@ class Transaccion(models.Model):
         ("pendiente", "Pendiente"),
         ("completada", "Completada"),
         ("cancelada", "Cancelada"),
+        ("cancelada_cotizacion", "Cancelada por cambio de cotización"),
+        ("vencida", "Vencida por cambio de cotización"),
         ("anulada", "Anulada"),
     ]
 
@@ -587,13 +588,36 @@ class Transaccion(models.Model):
         max_length=100,
         blank=True,
         null=True,
-        help_text="Identificador del medio de pago utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+        help_text="Identificador del medio de pago utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)",
     )
     medio_cobro = models.CharField(
         max_length=100,
         blank=True,
         null=True,
-        help_text="Identificador del medio de cobro utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+        help_text="Identificador del medio de cobro utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)",
+    )
+    tasa_original = models.DecimalField(
+        max_digits=15,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Tasa de cambio original al momento de crear la transacción",
+    )
+    tasa_actual = models.DecimalField(
+        max_digits=15,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Tasa de cambio actual (se actualiza al verificar cotización)",
+    )
+    cambio_cotizacion_notificado = models.BooleanField(
+        default=False, help_text="Indica si se notificó al cliente sobre el cambio de cotización"
+    )
+    fecha_vencimiento_cotizacion = models.DateTimeField(
+        null=True, blank=True, help_text="Fecha límite para usar la cotización original"
+    )
+    motivo_cancelacion = models.TextField(
+        blank=True, null=True, help_text="Motivo detallado de la cancelación de la transacción"
     )
 
     class Meta:
@@ -647,6 +671,133 @@ class Transaccion(models.Model):
         # Validar que las divisas sean diferentes
         if self.divisa_origen and self.divisa_destino and self.divisa_origen == self.divisa_destino:
             raise ValidationError("Las divisas de origen y destino deben ser diferentes.")
+
+    def verificar_cambio_cotizacion(self):
+        """Verifica si la cotización actual difiere de la original.
+
+        Returns:
+            dict: Diccionario con información del cambio de cotización:
+                - cambio_detectado (bool): True si hay cambio significativo
+                - tasa_original (Decimal): Tasa original de la transacción
+                - tasa_actual (Decimal): Tasa actual del mercado (incluyendo comisiones)
+                - porcentaje_cambio (Decimal): Porcentaje de cambio
+                - umbral_superado (bool): True si supera el umbral de notificación
+
+        """
+        from decimal import Decimal
+
+        from apps.operaciones.models import TasaCambio
+
+        # Obtener la tasa actual del mercado
+        try:
+            # Determinar la divisa extranjera (no PYG)
+            # Las tasas de cambio en la BD siempre son con PYG como origen
+            if self.divisa_origen.codigo == "PYG":
+                divisa_extranjera = self.divisa_destino
+            else:
+                divisa_extranjera = self.divisa_origen
+
+            # Buscar tasa de cambio activa (siempre con PYG como origen en la BD)
+            tasa_cambio_actual = TasaCambio.objects.filter(
+                divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
+            ).first()
+
+            if not tasa_cambio_actual:
+                return {
+                    "cambio_detectado": False,
+                    "error": f"No se encontró tasa de cambio activa para {divisa_extranjera.codigo}",
+                }
+
+            # Calcular la tasa efectiva incluyendo comisiones según el tipo de operación
+            precio_base = tasa_cambio_actual.precio_base
+
+            # Obtener descuento del cliente si existe
+            porcentaje_descuento = Decimal("0.0")
+            if self.cliente and self.cliente.tipo_cliente:
+                porcentaje_descuento = self.cliente.tipo_cliente.descuento_sobre_comision
+
+            if self.tipo_operacion == "compra":
+                # Para compra: precio_base + comisión_compra (menos descuento)
+                comision_compra = tasa_cambio_actual.comision_compra
+                comision_efectiva = comision_compra - (comision_compra * porcentaje_descuento / Decimal("100"))
+                tasa_actual = precio_base + comision_efectiva
+            else:  # venta
+                # Para venta: precio_base - comisión_venta (menos descuento)
+                comision_venta = tasa_cambio_actual.comision_venta
+                comision_efectiva = comision_venta - (comision_venta * porcentaje_descuento / Decimal("100"))
+                tasa_actual = precio_base - comision_efectiva
+
+            tasa_original = self.tasa_original or self.tasa_aplicada
+
+            # Actualizar la tasa actual en el modelo
+            self.tasa_actual = tasa_actual
+
+            # Calcular el porcentaje de cambio y diferencia absoluta
+            if tasa_original and tasa_actual:
+                # Redondear ambas tasas a 3 decimales para comparación precisa
+                tasa_original_redondeada = tasa_original.quantize(Decimal("0.001"))
+                tasa_actual_redondeada = tasa_actual.quantize(Decimal("0.001"))
+
+                cambio_absoluto = abs(tasa_actual_redondeada - tasa_original_redondeada)
+                if tasa_original_redondeada != 0:
+                    porcentaje_cambio = (cambio_absoluto / tasa_original_redondeada) * 100
+                else:
+                    porcentaje_cambio = Decimal("0")
+
+                # Detectar cambio si:
+                # 1. Hay diferencia en los 3 decimales (cualquier cambio detectable)
+                # 2. O si supera el umbral del 1% (para cambios muy pequeños en tasas altas)
+                umbral_absoluto = Decimal("0.001")  # Diferencia mínima de 0.001
+                umbral_porcentual = Decimal("1.0")  # 1% de cambio porcentual
+
+                cambio_significativo = (cambio_absoluto >= umbral_absoluto) or (porcentaje_cambio >= umbral_porcentual)
+
+                return {
+                    "cambio_detectado": cambio_significativo,
+                    "tasa_original": tasa_original_redondeada,
+                    "tasa_actual": tasa_actual_redondeada,
+                    "porcentaje_cambio": porcentaje_cambio,
+                    "cambio_absoluto": cambio_absoluto,
+                    "umbral_superado": cambio_significativo,
+                }
+
+            return {"cambio_detectado": False}
+
+        except Exception as e:
+            return {"cambio_detectado": False, "error": str(e)}
+
+    def cancelar_por_cotizacion(self, motivo=None):
+        """Cancela la transacción por cambio de cotización.
+
+        Args:
+            motivo (str, optional): Motivo específico de la cancelación
+
+        """
+        self.estado = "cancelada_cotizacion"
+        self.motivo_cancelacion = motivo or "Transacción cancelada por cambio significativo en la cotización"
+        self.save()
+
+    def marcar_como_vencida(self):
+        """Marca la transacción como vencida por no aceptar nueva cotización."""
+        self.estado = "vencida"
+        self.motivo_cancelacion = "Transacción vencida - cotización ya no vigente"
+        self.save()
+
+    def aceptar_nueva_cotizacion(self):
+        """Acepta la nueva cotización y actualiza la transacción.
+
+        Nota: Los montos originales se mantienen ya que fueron calculados
+        con todos los factores (comisiones de medios, descuentos, etc.).
+        Solo se actualiza la tasa aplicada para reflejar el cambio aceptado.
+        La nueva tasa también se establece como tasa original para futuras comparaciones.
+        """
+        if self.tasa_actual:
+            self.tasa_aplicada = self.tasa_actual
+            self.tasa_original = self.tasa_actual  # Nueva tasa como base para futuras comparaciones
+            self.cambio_cotizacion_notificado = False  # Reset notification flag
+            # Los montos se mantienen como fueron calculados originalmente
+            # ya que incluyen comisiones de medios de pago/cobro y otros factores
+            self.save()
 
     def save(self, *args, **kwargs):
         """Guarda la instancia realizando validaciones completas.

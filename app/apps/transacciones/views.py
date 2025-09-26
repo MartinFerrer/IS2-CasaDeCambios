@@ -8,6 +8,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -15,15 +17,12 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Cliente
-
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 
 
 def obtener_nombre_medio(medio_id, cliente):
     """Obtiene el nombre legible de un medio de pago/cobro con su alias real.
-    
+
     :param medio_id: ID del medio de pago/cobro (ej: 'tarjeta_1', 'cuenta_2', 'efectivo')
     :param cliente: Instancia del cliente para buscar el medio
     :return: Nombre legible del medio con alias (ej: 'TC - Visa *1234')
@@ -1110,12 +1109,12 @@ def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
 
 def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
     """Verifica si una transacción excede los límites diarios y mensuales configurados.
-    
+
     Args:
         cliente: Instancia del cliente
         monto_pyg: Monto de la transacción en guaraníes (PYG)
         fecha_transaccion: Fecha de la transacción (usa datetime.date.today() si es None)
-    
+
     Returns:
         dict: {'valid': bool, 'error_message': str, 'limits_info': dict}
 
@@ -1130,7 +1129,7 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
 
         # Si no hay límites configurados, permitir la transacción
         if not limite_config:
-            return {'valid': True, 'error_message': None, 'limits_info': None}
+            return {"valid": True, "error_message": None, "limits_info": None}
 
         # Usar fecha actual si no se especifica
         if fecha_transaccion is None:
@@ -1140,20 +1139,15 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
         inicio_mes = date(fecha_transaccion.year, fecha_transaccion.month, 1)
 
         # Obtener transacciones existentes del cliente (pendientes y completadas)
-        transacciones_existentes = Transaccion.objects.filter(
-            cliente=cliente,
-            estado__in=['pendiente', 'completada']
-        )
+        transacciones_existentes = Transaccion.objects.filter(cliente=cliente, estado__in=["pendiente", "completada"])
 
         # Calcular montos acumulados del día (convertir a PYG)
-        transacciones_dia = transacciones_existentes.filter(
-            fecha_creacion__date=fecha_transaccion
-        )
+        transacciones_dia = transacciones_existentes.filter(fecha_creacion__date=fecha_transaccion)
 
-        monto_dia_pyg = Decimal('0')
+        monto_dia_pyg = Decimal("0")
         for trans in transacciones_dia:
             # Convertir monto a PYG según el tipo de operación
-            if trans.tipo_operacion == 'compra':
+            if trans.tipo_operacion == "compra":
                 # En compra, el cliente paga en PYG
                 # Lo que cuenta para el límite es lo que paga en PYG
                 monto_dia_pyg += trans.monto_origen
@@ -1164,13 +1158,12 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
 
         # Calcular montos acumulados del mes
         transacciones_mes = transacciones_existentes.filter(
-            fecha_creacion__date__gte=inicio_mes,
-            fecha_creacion__date__lte=fecha_transaccion
+            fecha_creacion__date__gte=inicio_mes, fecha_creacion__date__lte=fecha_transaccion
         )
 
-        monto_mes_pyg = Decimal('0')
+        monto_mes_pyg = Decimal("0")
         for trans in transacciones_mes:
-            if trans.tipo_operacion == 'compra':
+            if trans.tipo_operacion == "compra":
                 monto_mes_pyg += trans.monto_origen
             else:  # venta
                 monto_mes_pyg += trans.monto_destino
@@ -1179,51 +1172,51 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
         nuevo_monto_dia = monto_dia_pyg + Decimal(str(monto_pyg))
         if nuevo_monto_dia > limite_config.limite_diario:
             return {
-                'valid': False,
-                'error_message': f'Límite diario excedido. '
-                               f'Límite: ₲{limite_config.limite_diario:,.0f}, '
-                               f'Usado hoy: ₲{monto_dia_pyg:,.0f}, '
-                               f'Nuevo total sería: ₲{nuevo_monto_dia:,.0f}',
-                'limits_info': {
-                    'limite_diario': float(limite_config.limite_diario),
-                    'usado_dia': float(monto_dia_pyg),
-                    'nuevo_total_dia': float(nuevo_monto_dia)
-                }
+                "valid": False,
+                "error_message": f"Límite diario excedido. "
+                f"Límite: ₲{limite_config.limite_diario:,.0f}, "
+                f"Usado hoy: ₲{monto_dia_pyg:,.0f}, "
+                f"Nuevo total sería: ₲{nuevo_monto_dia:,.0f}",
+                "limits_info": {
+                    "limite_diario": float(limite_config.limite_diario),
+                    "usado_dia": float(monto_dia_pyg),
+                    "nuevo_total_dia": float(nuevo_monto_dia),
+                },
             }
 
         # Verificar límite mensual
         nuevo_monto_mes = monto_mes_pyg + Decimal(str(monto_pyg))
         if nuevo_monto_mes > limite_config.limite_mensual:
             return {
-                'valid': False,
-                'error_message': f'Límite mensual excedido. '
-                               f'Límite: ₲{limite_config.limite_mensual:,.0f}, '
-                               f'Usado este mes: ₲{monto_mes_pyg:,.0f}, '
-                               f'Nuevo total sería: ₲{nuevo_monto_mes:,.0f}',
-                'limits_info': {
-                    'limite_mensual': float(limite_config.limite_mensual),
-                    'usado_mes': float(monto_mes_pyg),
-                    'nuevo_total_mes': float(nuevo_monto_mes)
-                }
+                "valid": False,
+                "error_message": f"Límite mensual excedido. "
+                f"Límite: ₲{limite_config.limite_mensual:,.0f}, "
+                f"Usado este mes: ₲{monto_mes_pyg:,.0f}, "
+                f"Nuevo total sería: ₲{nuevo_monto_mes:,.0f}",
+                "limits_info": {
+                    "limite_mensual": float(limite_config.limite_mensual),
+                    "usado_mes": float(monto_mes_pyg),
+                    "nuevo_total_mes": float(nuevo_monto_mes),
+                },
             }
 
         return {
-            'valid': True,
-            'error_message': None,
-            'limits_info': {
-                'limite_diario': float(limite_config.limite_diario),
-                'limite_mensual': float(limite_config.limite_mensual),
-                'usado_dia': float(monto_dia_pyg),
-                'usado_mes': float(monto_mes_pyg),
-                'disponible_dia': float(limite_config.limite_diario - monto_dia_pyg),
-                'disponible_mes': float(limite_config.limite_mensual - monto_mes_pyg)
-            }
+            "valid": True,
+            "error_message": None,
+            "limits_info": {
+                "limite_diario": float(limite_config.limite_diario),
+                "limite_mensual": float(limite_config.limite_mensual),
+                "usado_dia": float(monto_dia_pyg),
+                "usado_mes": float(monto_mes_pyg),
+                "disponible_dia": float(limite_config.limite_diario - monto_dia_pyg),
+                "disponible_mes": float(limite_config.limite_mensual - monto_mes_pyg),
+            },
         }
 
     except Exception as e:
         # En caso de error, registrar pero permitir la transacción para no bloquear el sistema
         print(f"Error verificando límites de transacción: {e}")
-        return {'valid': True, 'error_message': None, 'limits_info': None}
+        return {"valid": True, "error_message": None, "limits_info": None}
 
 
 @require_GET
@@ -1312,12 +1305,18 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
 
         # Validar límites
         limite_result = _verificar_limites_transaccion(cliente, monto_pyg_transaccion)
-        if not limite_result['valid']:
-            return JsonResponse({
-                "error": limite_result['error_message'],
-                "tipo_error": "limite_excedido",
-                "limits_info": limite_result['limits_info']
-            }, status=400)
+        if not limite_result["valid"]:
+            return JsonResponse(
+                {
+                    "error": limite_result["error_message"],
+                    "tipo_error": "limite_excedido",
+                    "limits_info": limite_result["limits_info"],
+                },
+                status=400,
+            )
+
+        # Obtener la tasa de cambio actual para almacenar como tasa original
+        tasa_actual = Decimal(str(simulation_data["tasa_cambio"]))
 
         transaccion = Transaccion.objects.create(
             cliente=cliente,
@@ -1326,7 +1325,8 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             estado="pendiente",
             divisa_origen=divisa_origen,
             divisa_destino=divisa_destino,
-            tasa_aplicada=Decimal(str(simulation_data["tasa_cambio"])),
+            tasa_aplicada=tasa_actual,
+            tasa_original=tasa_actual,  # Almacenar la tasa original para verificar cambios posteriores
             monto_origen=monto_origen,
             monto_destino=monto_destino,
             medio_pago=metodo_pago,
@@ -1359,6 +1359,7 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
 
     except Exception as e:
         import traceback
+
         print(f"Error en api_crear_transaccion: {e}")
         print(traceback.format_exc())
         return JsonResponse({"error": f"Error al crear transacción: {e!s}"}, status=500)
@@ -1439,9 +1440,7 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
 
         # Verificar que el usuario tiene un cliente activo
         if not request.cliente:
-            return JsonResponse(
-                {"success": False, "message": "No tienes un cliente asociado"}, status=403
-            )
+            return JsonResponse({"success": False, "message": "No tienes un cliente asociado"}, status=403)
 
         # Verificar que la transacción pertenece al cliente actual
         if transaccion.cliente != request.cliente:
@@ -1462,11 +1461,13 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
         transaccion.estado = "cancelada"
         transaccion.save()
 
-        return JsonResponse({
-            "success": True,
-            "message": "Transacción cancelada exitosamente",
-            "transaccion_id": str(transaccion.id_transaccion),
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Transacción cancelada exitosamente",
+                "transaccion_id": str(transaccion.id_transaccion),
+            }
+        )
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
@@ -1478,13 +1479,13 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
 @require_POST
 def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
     """Procesa la respuesta del componente bancario simulado.
-    
+
     Recibe la respuesta del gateway de pagos externo simulado y actualiza
     el estado de la transacción según el resultado (éxito o error).
-    
+
     Args:
         request: HttpRequest con datos JSON del resultado del pago
-    
+
     Returns:
         JsonResponse con el resultado del procesamiento
 
@@ -1498,10 +1499,10 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
     try:
         # Parsear datos JSON
         data = json.loads(request.body)
-        transaccion_id = data.get('transaccion_id')
-        exito = data.get('exito', False)
-        codigo_autorizacion = data.get('codigo_autorizacion')
-        mensaje_error = data.get('mensaje_error')
+        transaccion_id = data.get("transaccion_id")
+        exito = data.get("exito", False)
+        codigo_autorizacion = data.get("codigo_autorizacion")
+        mensaje_error = data.get("mensaje_error")
 
         if not transaccion_id:
             return JsonResponse({"success": False, "message": "ID de transacción requerido"}, status=400)
@@ -1511,18 +1512,17 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         if not cliente:
             return JsonResponse({"success": False, "message": "No hay cliente asociado"}, status=400)
 
-        transaccion = get_object_or_404(
-            Transaccion,
-            id_transaccion=transaccion_id,
-            cliente=cliente
-        )
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
 
         # Verificar que la transacción esté en estado pendiente
         if transaccion.estado != "pendiente":
-            return JsonResponse({
-                "success": False,
-                "message": f"La transacción está en estado '{transaccion.estado}' y no puede ser procesada"
-            }, status=400)
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": f"La transacción está en estado '{transaccion.estado}' y no puede ser procesada",
+                },
+                status=400,
+            )
 
         # Procesar según el resultado del banco
         if exito:
@@ -1548,15 +1548,17 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         # Log del resultado
         print(f"Transacción {transaccion_id}: {mensaje_log}")
 
-        return JsonResponse({
-            "success": True,
-            "message": "Resultado del pago procesado correctamente",
-            "transaccion": {
-                "id": str(transaccion.id_transaccion),
-                "estado": transaccion.estado,
-                "fecha_pago": transaccion.fecha_pago.isoformat() if transaccion.fecha_pago else None
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Resultado del pago procesado correctamente",
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "fecha_pago": transaccion.fecha_pago.isoformat() if transaccion.fecha_pago else None,
+                },
             }
-        })
+        )
 
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "message": "Datos JSON inválidos"}, status=400)
@@ -1570,14 +1572,14 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
 @login_required
 def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpResponse:
     """Vista para la ventana emergente del banco simulado.
-    
+
     Renderiza la interfaz de simulación bancaria en una ventana emergente
     separada para procesar el pago de una transacción.
-    
+
     Args:
         request: HttpRequest de la solicitud
         transaccion_id: ID único de la transacción a procesar
-    
+
     Returns:
         HttpResponse con la página de simulación bancaria
 
@@ -1596,11 +1598,7 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
 
         # Obtener la transacción
         try:
-            transaccion = get_object_or_404(
-                Transaccion,
-                id_transaccion=transaccion_id,
-                cliente=cliente
-            )
+            transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
         except Transaccion.DoesNotExist:
             context = {
                 "error": "Transacción no encontrada",
@@ -1627,7 +1625,8 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
             # Generar código único para TAUSER
             import random
             import string
-            codigo_tauser = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+            codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
             context = {
                 "transaccion": transaccion,
@@ -1661,15 +1660,15 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
 @login_required
 def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> HttpResponse:
     """Vista para generar código TAUSER de retiro después del pago bancario.
-    
+
     Esta función se llama después de que se complete exitosamente un pago
     por tarjeta o cuenta bancaria, para generar el código que permite
     retirar el dinero en efectivo en un TAUSER.
-    
+
     Args:
         request: HttpRequest de la solicitud
         transaccion_id: ID único de la transacción ya pagada
-    
+
     Returns:
         HttpResponse con la página del código TAUSER para retiro
 
@@ -1687,11 +1686,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
 
         # Obtener la transacción
         try:
-            transaccion = get_object_or_404(
-                Transaccion,
-                id_transaccion=transaccion_id,
-                cliente=cliente
-            )
+            transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
         except Transaccion.DoesNotExist:
             context = {
                 "error": "Transacción no encontrada",
@@ -1712,7 +1707,8 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
         # Generar código único para TAUSER (retiro)
         import random
         import string
-        codigo_tauser = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+        codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
         context = {
             "transaccion": transaccion,
@@ -1732,3 +1728,171 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
             "cliente": None,
         }
         return render(request, "popup_codigo_tauser.html", context)
+
+
+@require_GET
+def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para verificar si la cotización de una transacción ha cambiado significativamente.
+
+    Args:
+        request: HttpRequest object
+        transaccion_id: UUID de la transacción a verificar
+
+    Returns:
+        JsonResponse con información del cambio de cotización
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Solo verificar transacciones pendientes
+        if transaccion.estado != "pendiente":
+            return JsonResponse({"success": False, "message": "La transacción no está en estado pendiente"}, status=400)
+
+        # Verificar cambio de cotización
+        resultado = transaccion.verificar_cambio_cotizacion()
+
+        if "error" in resultado:
+            return JsonResponse(
+                {"success": False, "message": f"Error al verificar cotización: {resultado['error']}"}, status=500
+            )
+
+        # Si hay cambio significativo, actualizar el campo de notificación
+        if resultado.get("cambio_detectado"):
+            transaccion.cambio_cotizacion_notificado = True
+            transaccion.save(update_fields=["tasa_actual", "cambio_cotizacion_notificado"])
+
+        return JsonResponse(
+            {
+                "success": True,
+                "cambio_detectado": resultado.get("cambio_detectado", False),
+                "tasa_original": float(resultado.get("tasa_original", 0)),
+                "tasa_actual": float(resultado.get("tasa_actual", 0)),
+                "porcentaje_cambio": float(resultado.get("porcentaje_cambio", 0)),
+                "cambio_absoluto": float(resultado.get("cambio_absoluto", 0)),
+                "umbral_superado": resultado.get("umbral_superado", False),
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "monto_origen": float(transaccion.monto_origen),
+                    "monto_destino": float(transaccion.monto_destino),
+                    "divisa_origen": transaccion.divisa_origen.codigo,
+                    "divisa_destino": transaccion.divisa_destino.codigo,
+                },
+            }
+        )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al verificar cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para cancelar una transacción por cambio de cotización.
+
+    Args:
+        request: HttpRequest object
+        transaccion_id: UUID de la transacción a cancelar
+
+    Returns:
+        JsonResponse confirmando la cancelación
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Solo cancelar transacciones pendientes
+        if transaccion.estado != "pendiente":
+            return JsonResponse(
+                {"success": False, "message": "Solo se pueden cancelar transacciones pendientes"}, status=400
+            )
+
+        # Obtener motivo opcional del request
+        import json
+
+        try:
+            data = json.loads(request.body)
+            motivo_custom = data.get("motivo", "")
+        except (json.JSONDecodeError, AttributeError):
+            motivo_custom = ""
+
+        # Cancelar la transacción
+        motivo = motivo_custom or "Cancelada por el cliente debido a cambio de cotización"
+        transaccion.cancelar_por_cotizacion(motivo)
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Transacción cancelada exitosamente",
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "motivo_cancelacion": transaccion.motivo_cancelacion,
+                },
+            }
+        )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al cancelar por cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para aceptar la nueva cotización y continuar con la transacción.
+
+    Args:
+        request: HttpRequest object
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        JsonResponse confirmando la aceptación
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Solo procesar transacciones pendientes
+        if transaccion.estado != "pendiente":
+            return JsonResponse(
+                {"success": False, "message": "Solo se pueden actualizar transacciones pendientes"}, status=400
+            )
+
+        # Verificar que hay una nueva cotización disponible
+        if not transaccion.tasa_actual:
+            resultado = transaccion.verificar_cambio_cotizacion()
+            if "error" in resultado:
+                return JsonResponse(
+                    {"success": False, "message": f"Error al obtener nueva cotización: {resultado['error']}"},
+                    status=500,
+                )
+
+        # Aceptar la nueva cotización
+        transaccion.aceptar_nueva_cotizacion()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Nueva cotización aceptada exitosamente",
+                "transaccion": {
+                    "id": str(transaccion.id_transaccion),
+                    "estado": transaccion.estado,
+                    "tasa_aplicada": float(transaccion.tasa_aplicada),
+                    "monto_origen": float(transaccion.monto_origen),
+                    "monto_destino": float(transaccion.monto_destino),
+                    "divisa_origen": transaccion.divisa_origen.codigo,
+                    "divisa_destino": transaccion.divisa_destino.codigo,
+                },
+            }
+        )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al aceptar nueva cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
