@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
 from .models import Divisa, TasaCambio, TasaCambioHistorial
+from .utils import get_flag_url_from_currency
 
 
 @require_GET

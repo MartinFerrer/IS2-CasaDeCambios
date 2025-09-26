@@ -1,3 +1,11 @@
+"""Modelos para la aplicación de transacciones.
+
+Este módulo define modelos de Django para transacciones financieras, incluyendo entidades
+(bancos, emisores de tarjetas, proveedores de billeteras), métodos de pago (tarjetas de crédito,
+cuentas bancarias, billeteras electrónicas) y límites de transacciones.
+"""
+
+import uuid
 from datetime import date
 from decimal import Decimal
 
@@ -106,12 +114,10 @@ class MedioFinanciero(models.Model):
     cliente = models.ForeignKey("usuarios.Cliente", on_delete=models.CASCADE, related_name="%(class)s_set")
     alias = models.CharField(max_length=50, blank=True)
     habilitado_para_pago = models.BooleanField(
-        default=True,
-        help_text="Indica si este medio financiero puede utilizarse para realizar pagos"
+        default=True, help_text="Indica si este medio financiero puede utilizarse para realizar pagos"
     )
     habilitado_para_cobro = models.BooleanField(
-        default=False,
-        help_text="Indica si este medio financiero puede utilizarse para recibir cobros"
+        default=False, help_text="Indica si este medio financiero puede utilizarse para recibir cobros"
     )
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
@@ -141,7 +147,7 @@ class MedioFinanciero(models.Model):
         """Representación en cadena del medio financiero.
 
         Returns:
-            str: Cadena en formato "ClaseMedioFinanciero - Nombre del Cliente (alias)" o 
+            str: Cadena en formato "ClaseMedioFinanciero - Nombre del Cliente (alias)" o
                 "ClaseMedioFinanciero - Nombre del Cliente" si no tiene alias.
 
         """
@@ -167,13 +173,23 @@ class TarjetaCredito(MedioFinanciero):
     entidad = models.ForeignKey(
         EntidadFinanciera,
         on_delete=models.PROTECT,
-        limit_choices_to={'tipo': 'emisor_tarjeta', 'activo': True},
+        limit_choices_to={"tipo": "emisor_tarjeta", "activo": True},
         help_text="Entidad emisora de la tarjeta (Visa, Mastercard, etc.)",
         null=True,
-        blank=True
+        blank=True,
     )
 
     def save(self, *args, **kwargs):
+        """Guarda la instancia de TarjetaCredito, configurando habilitaciones por defecto para nuevas instancias.
+
+        Para nuevas tarjetas, establece habilitado_para_pago en True y habilitado_para_cobro en False.
+        Realiza validaciones completas antes de guardar.
+
+        Args:
+            *args: Argumentos posicionales para el método save de Django.
+            **kwargs: Argumentos de palabra clave para el método save de Django.
+
+        """
         # Las tarjetas de crédito solo se usan para pagos, no para cobros
         if not self.pk:
             self.habilitado_para_pago = True
@@ -291,10 +307,10 @@ class CuentaBancaria(MedioFinanciero):
     entidad = models.ForeignKey(
         EntidadFinanciera,
         on_delete=models.PROTECT,
-        limit_choices_to={'tipo': 'banco', 'activo': True},
+        limit_choices_to={"tipo": "banco", "activo": True},
         help_text="Entidad bancaria",
         null=True,
-        blank=True
+        blank=True,
     )
     titular_cuenta = models.CharField(max_length=100)
     documento_titular = models.CharField(max_length=12)
@@ -345,20 +361,18 @@ class CuentaBancaria(MedioFinanciero):
             - Número de cuenta único por cliente y entidad bancaria
 
         Raises:
-            ValidationError: Si el RUC es inválido o si ya existe una cuenta con el mismo número 
+            ValidationError: Si el RUC es inválido o si ya existe una cuenta con el mismo número
                            para el cliente en la entidad bancaria especificada.
 
         """
         super().clean()
 
-        # Validar RUC si se proporciona un RUC
+        # Validar RUC si se proporciona
         if self.documento_titular and not self.documento_titular.isdigit():
             ruc_limpio = limpiar_ruc(self.documento_titular)
 
             if not validar_ruc_completo(ruc_limpio):
-                raise ValidationError({
-                    'documento_titular': 'El dígito verificador del RUC no es válido.'
-                })
+                raise ValidationError({"documento_titular": "El dígito verificador del RUC no es válido."})
 
             self.documento_titular = ruc_limpio[:-1] + "-" + ruc_limpio[-1]
 
@@ -383,7 +397,7 @@ class CuentaBancaria(MedioFinanciero):
 
     class Meta:
         """Configuración para el modelo CuentaBancaria.
-        
+
         Attributes:
             verbose_name (str): Nombre singular legible para el modelo.
             verbose_name_plural (str): Nombre plural legible para el modelo.
@@ -410,10 +424,10 @@ class BilleteraElectronica(MedioFinanciero):
     entidad = models.ForeignKey(
         EntidadFinanciera,
         on_delete=models.PROTECT,
-        limit_choices_to={'tipo': 'proveedor_billetera', 'activo': True},
+        limit_choices_to={"tipo": "proveedor_billetera", "activo": True},
         help_text="Proveedor de la billetera electrónica",
         null=True,
-        blank=True
+        blank=True,
     )
     identificador = models.CharField(max_length=100, help_text="Email, número de teléfono o ID de la billetera")
     numero_telefono = models.CharField(max_length=15)
@@ -423,7 +437,7 @@ class BilleteraElectronica(MedioFinanciero):
         """Genera alias automático basado en proveedor e identificador.
 
         Returns:
-            str: Alias en formato "Proveedor (identificador)", el identificador se trunca 
+            str: Alias en formato "Proveedor (identificador)", el identificador se trunca
                 a 10 caracteres si es muy largo.
 
         """
@@ -456,7 +470,7 @@ class BilleteraElectronica(MedioFinanciero):
             - Combinación única de cliente, entidad e identificador
 
         Raises:
-            ValidationError: Si ya existe una billetera con la misma entidad e identificador 
+            ValidationError: Si ya existe una billetera con la misma entidad e identificador
                            para el cliente especificado.
 
         """
@@ -483,7 +497,7 @@ class BilleteraElectronica(MedioFinanciero):
 
     class Meta:
         """Configuración  para el modelo BilleteraElectronica.
-        
+
         Attributes:
             verbose_name (str): Nombre singular legible para el modelo.
             verbose_name_plural (str): Nombre plural legible para el modelo.
@@ -494,6 +508,156 @@ class BilleteraElectronica(MedioFinanciero):
         verbose_name = "Billetera Electrónica"
         verbose_name_plural = "Billeteras Electrónicas"
         unique_together = ["cliente", "entidad", "identificador"]
+
+
+class Transaccion(models.Model):
+    """Modelo para representar transacciones de cambio de divisas.
+
+    Attributes:
+        idTransaccion (UUIDField): Identificador único de la transacción.
+        cliente (ForeignKey): Referencia al cliente que realiza la transacción.
+        usuario (ForeignKey): Referencia al usuario que procesa la transacción.
+        tipoOperacion (CharField): Tipo de operación (compra, venta).
+        estado (CharField): Estado actual de la transacción.
+        fechaCreacion (DateTimeField): Fecha y hora de creación de la transacción.
+        fechaPago (DateTimeField): Fecha y hora del pago (opcional).
+        fechaActualizacion (DateTimeField): Fecha y hora de última actualización.
+        divisaOrigen (ForeignKey): Divisa de origen de la transacción.
+        divisaDestino (ForeignKey): Divisa de destino de la transacción.
+        tasaAplicada (DecimalField): Tasa de cambio aplicada en la transacción.
+        montoOrigen (DecimalField): Monto en la divisa de origen.
+        montoDestino (DecimalField): Monto en la divisa de destino.
+
+    """
+
+    TIPOS_OPERACION = [
+        ("compra", "Compra"),
+        ("venta", "Venta"),
+    ]
+
+    ESTADOS_TRANSACCION = [
+        ("pendiente", "Pendiente"),
+        ("completada", "Completada"),
+        ("cancelada", "Cancelada"),
+        ("anulada", "Anulada"),
+    ]
+
+    id_transaccion = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False, help_text="Identificador único de la transacción"
+    )
+    cliente = models.ForeignKey(
+        "usuarios.Cliente",
+        on_delete=models.CASCADE,
+        related_name="transacciones",
+        help_text="Cliente que realiza la transacción",
+    )
+    usuario = models.ForeignKey(
+        "usuarios.Usuario",
+        on_delete=models.CASCADE,
+        related_name="transacciones_procesadas",
+        help_text="Usuario que procesa la transacción",
+    )
+    tipo_operacion = models.CharField(
+        max_length=50, choices=TIPOS_OPERACION, help_text="Tipo de operación (compra o venta)"
+    )
+    estado = models.CharField(
+        max_length=20, choices=ESTADOS_TRANSACCION, default="pendiente", help_text="Estado actual de la transacción"
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True, help_text="Fecha y hora de creación de la transacción")
+    fecha_pago = models.DateTimeField(null=True, blank=True, help_text="Fecha y hora del pago (opcional)")
+    fecha_actualizacion = models.DateTimeField(auto_now=True, help_text="Fecha y hora de última actualización")
+    divisa_origen = models.ForeignKey(
+        "operaciones.Divisa",
+        on_delete=models.CASCADE,
+        related_name="transacciones_origen",
+        help_text="Divisa de origen de la transacción",
+    )
+    divisa_destino = models.ForeignKey(
+        "operaciones.Divisa",
+        on_delete=models.CASCADE,
+        related_name="transacciones_destino",
+        help_text="Divisa de destino de la transacción",
+    )
+    tasa_aplicada = models.DecimalField(
+        max_digits=15, decimal_places=8, help_text="Tasa de cambio aplicada en la transacción"
+    )
+    monto_origen = models.DecimalField(max_digits=20, decimal_places=8, help_text="Monto en la divisa de origen")
+    monto_destino = models.DecimalField(max_digits=20, decimal_places=8, help_text="Monto en la divisa de destino")
+    medio_pago = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Identificador del medio de pago utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+    )
+    medio_cobro = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Identificador del medio de cobro utilizado (efectivo, tarjeta_X, cuenta_X, billetera_X)"
+    )
+
+    class Meta:
+        """Configuración para el modelo Transaccion.
+
+        Attributes:
+            verbose_name (str): Nombre singular legible para el modelo.
+            verbose_name_plural (str): Nombre plural legible para el modelo.
+            ordering (list): Orden predeterminado por fecha de creación descendente.
+
+        """
+
+        verbose_name = "Transacción"
+        verbose_name_plural = "Transacciones"
+        ordering = ["-fecha_creacion"]
+
+    def __str__(self):
+        """Representación en cadena de la transacción.
+
+        Returns:
+            str: Cadena descriptiva de la transacción.
+
+        """
+        return f"Transacción {self.tipo_operacion} - {self.cliente.nombre} - {self.estado}"
+
+    def clean(self):
+        """Validaciones del modelo antes de guardar.
+
+        Validates:
+            - Los montos sean positivos
+            - La tasa aplicada sea positiva
+            - Las divisas de origen y destino sean diferentes
+
+        Raises:
+            ValidationError: Si alguna de las validaciones falla.
+
+        """
+        super().clean()
+
+        # Validar que los montos sean positivos
+        if self.monto_origen is not None and self.monto_origen <= 0:
+            raise ValidationError({"monto_origen": "El monto de origen debe ser positivo."})
+
+        if self.monto_destino is not None and self.monto_destino <= 0:
+            raise ValidationError({"monto_destino": "El monto de destino debe ser positivo."})
+
+        # Validar que la tasa aplicada sea positiva
+        if self.tasa_aplicada is not None and self.tasa_aplicada <= 0:
+            raise ValidationError({"tasa_aplicada": "La tasa aplicada debe ser positiva."})
+
+        # Validar que las divisas sean diferentes
+        if self.divisa_origen and self.divisa_destino and self.divisa_origen == self.divisa_destino:
+            raise ValidationError("Las divisas de origen y destino deben ser diferentes.")
+
+    def save(self, *args, **kwargs):
+        """Guarda la instancia realizando validaciones completas.
+
+        Args:
+            *args: Argumentos posicionales para el método save de Django.
+            **kwargs: Argumentos de palabra clave para el método save de Django.
+
+        """
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class LimiteTransacciones(models.Model):
@@ -511,18 +675,13 @@ class LimiteTransacciones(models.Model):
     """
 
     limite_diario = models.DecimalField(
-        max_digits=15,
-        decimal_places=0,
-        help_text="Límite máximo de transacciones por día en guaraníes"
+        max_digits=15, decimal_places=0, help_text="Límite máximo de transacciones por día en guaraníes"
     )
     limite_mensual = models.DecimalField(
-        max_digits=15,
-        decimal_places=0,
-        help_text="Límite máximo de transacciones por mes en guaraníes"
+        max_digits=15, decimal_places=0, help_text="Límite máximo de transacciones por mes en guaraníes"
     )
     fecha_modificacion = models.DateTimeField(
-        auto_now_add=True,
-        help_text="Fecha y hora de cuando se estableció este límite"
+        auto_now_add=True, help_text="Fecha y hora de cuando se estableció este límite"
     )
 
     class Meta:
@@ -531,7 +690,7 @@ class LimiteTransacciones(models.Model):
         db_table = "limite_transacciones"
         verbose_name = "Límite de Transacciones"
         verbose_name_plural = "Límites de Transacciones"
-        ordering = ['-fecha_modificacion']
+        ordering = ["-fecha_modificacion"]
 
     def __str__(self):
         """Representación en string del objeto."""

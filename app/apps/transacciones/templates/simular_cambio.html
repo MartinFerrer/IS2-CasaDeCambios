@@ -5,7 +5,19 @@
 {% endblock title %}
 {% block content %}
     <div class="container mx-auto p-8">
-        <h2 class="text-3xl font-bold mb-6 text-center">Simulador de Cambio de Divisas</h2>
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">Simulador de Cambio de Divisas</h2>
+            <a href="/" class="btn btn-outline">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Volver al inicio
+            </a>
+        </div>
         <!-- Información del Cliente -->
         {% if user.is_authenticated and request.cliente %}
             <div class="alert alert-info mb-6">
@@ -464,6 +476,37 @@
             montoInput.addEventListener('input', performSimulation);
             metodoPagoSelect.addEventListener('change', performSimulation);
             metodoCobroSelect.addEventListener('change', performSimulation);
+
+            // Manejar click del botón "Proceder a Realizar Transacción"
+            if (proceedBtn) {
+                proceedBtn.addEventListener('click', function() {
+                    if (!currentCliente) {
+                        alert('Debe tener un cliente asociado para proceder.');
+                        return;
+                    }
+
+                    // Obtener los valores actuales del formulario
+                    const tipoOperacion = getTipoOperacion();
+                    const divisaOrigen = tipoOperacion === 'compra' ? 'USD' : divisaSelect.value;
+                    const divisaDestino = tipoOperacion === 'compra' ? divisaSelect.value : 'USD';
+                    const monto = montoInput.value;
+                    const metodoPago = metodoPagoSelect.value;
+                    const metodoCobro = metodoCobroSelect.value;
+
+                    // Construir URL con parámetros de la simulación
+                    const params = new URLSearchParams({
+                        tipo_operacion: tipoOperacion,
+                        divisa_origen: divisaOrigen,
+                        divisa_destino: divisaDestino,
+                        monto: monto,
+                        metodo_pago: metodoPago,
+                        metodo_cobro: metodoCobro
+                    });
+
+                    // Redirigir a la página de realizar transacción con los parámetros
+                    window.location.href = `{% url 'transacciones:realizar_transaccion' %}?${params.toString()}`;
+                });
+            }
 
             // Inicialización
             updateLabels();

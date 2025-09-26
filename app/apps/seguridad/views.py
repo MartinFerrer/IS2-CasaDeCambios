@@ -5,8 +5,6 @@ registro con verificación por email, login, logout, y gestión de clientes
 en el sistema de casa de cambios.
 """
 
-from apps.usuarios.forms import CustomUserCreationForm
-from apps.usuarios.models import Usuario
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -18,6 +16,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+
+from apps.usuarios.forms import CustomUserCreationForm
+from apps.usuarios.models import Usuario
 
 token_generator = PasswordResetTokenGenerator()
 
@@ -113,14 +114,13 @@ def login_view(request):
         user = authenticate(request, email=email, password=password)
 
         if user is not None:
-            if not user.is_active or not user.is_active:
+            if not user.is_active:
                 messages.error(request, "Debes verificar tu correo antes de iniciar sesión.")
                 return redirect("seguridad:login")
 
-            # Loguear usuario
             login(request, user)
 
-            # Redirigir a la selección de cliente
+            # Redirigir directamente a selección de cliente
             return redirect("seguridad:seleccionar_cliente")
 
         else:
@@ -211,6 +211,11 @@ def seleccionar_cliente(request):
     """
     user = request.user
     clientes = user.clientes.all()
+
+    # Si no hay clientes, seguir directo al home
+    if not clientes.exists():
+        request.session["cliente_id"] = None
+        return redirect("presentacion:home")
 
     if request.method == "POST":
         cliente_id = request.POST.get("cliente_id")
