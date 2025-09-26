@@ -5,7 +5,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("operaciones", "0007_divisa_estado_alter_divisa_codigo_and_more"),
+        ("operaciones", "0008_alter_divisa_simbolo"),
     ]
 
     operations = [

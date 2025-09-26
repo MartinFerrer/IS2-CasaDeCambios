@@ -151,7 +151,6 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
     return redirect("operaciones:tasa_cambio_listar")
 
 
-#########################################################################################################
 @require_GET
 def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
     """Devuelve las tasas de cambio actuales en formato JSON.
@@ -232,9 +231,6 @@ def historial_tasas_api(request: HttpRequest) -> JsonResponse:
         historial[divisa]["venta"].append(precio_venta)
 
     return JsonResponse({"historial": historial})
-
-
-##########################################################################################################
 
 
 def tasa_cambio_historial_listar(request: HttpRequest) -> object:
