@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 {% block title %}
     Transacción Procesada
 {% endblock title %}
@@ -87,11 +88,11 @@
                             </div>
                             <div>
                                 <span class="font-semibold">Tasa Aplicada:</span>
-                                <span class="ml-2">{{ transaccion.tasa_aplicada|floatformat:8 }}</span>
+                                <span class="ml-2">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</span>
                             </div>
                             <div>
                                 <span class="font-semibold">Monto:</span>
-                                <span class="ml-2">{{ transaccion.monto_origen|floatformat:2 }} {{ transaccion.divisa_origen.codigo }}</span>
+                                <span class="ml-2">{{ transaccion.monto_origen|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}</span>
                             </div>
                         </div>
                     </div>
@@ -107,11 +108,11 @@
                                 {% endif %}
                             </div>
                             <div class="text-3xl font-bold text-primary mb-3 drop-shadow-sm">
-                                {{ transaccion.monto_destino|floatformat:0 }} {{ transaccion.divisa_destino.codigo }}
+                                {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
                             </div>
                             <div class="bg-white/70 rounded-lg px-4 py-2 inline-block">
                                 <div class="text-xs text-gray-600">Tasa de cambio aplicada</div>
-                                <div class="text-sm font-bold text-gray-800">{{ transaccion.tasa_aplicada|floatformat:4 }}</div>
+                                <div class="text-sm font-bold text-gray-800">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</div>
                             </div>
                         </div>
                     </div>
@@ -940,6 +941,17 @@
             document.body.style.overflow = '';
         }
 
+        function formatDecimal(value, maxDecimals = 8) {
+            // Formato de número decimal sin ceros a la derecha
+            if (typeof value === 'string') {
+                value = parseFloat(value);
+            }
+            if (isNaN(value)) return '0';
+
+            // Usar toFixed con maxDecimals y luego parseFloat para remover ceros trailing
+            return parseFloat(value.toFixed(maxDecimals)).toString();
+        }
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -996,15 +1008,15 @@
                 document.getElementById('cambio-cotizacion').classList.remove('hidden');
 
                 // Actualizar valores con mayor precisión (3 decimales)
-                document.getElementById('tasa-original').textContent = data.tasa_original.toFixed(3);
-                document.getElementById('tasa-actual').textContent = data.tasa_actual.toFixed(3);
-                document.getElementById('porcentaje-cambio').textContent = `${data.porcentaje_cambio.toFixed(2)}%`;
+                document.getElementById('tasa-original').textContent = formatDecimal(data.tasa_original, 8);
+                document.getElementById('tasa-actual').textContent = formatDecimal(data.tasa_actual, 8);
+                document.getElementById('porcentaje-cambio').textContent = `${formatDecimal(data.porcentaje_cambio, 2)}%`;
 
                 // Mostrar cambio absoluto si está disponible
                 if (data.cambio_absoluto !== undefined) {
                     const cambioAbsolutoElement = document.getElementById('cambio-absoluto');
                     if (cambioAbsolutoElement) {
-                        cambioAbsolutoElement.textContent = data.cambio_absoluto.toFixed(3);
+                        cambioAbsolutoElement.textContent = formatDecimal(data.cambio_absoluto, 8);
                     }
                 }
 
@@ -1041,6 +1053,12 @@
 
         function aceptarNuevaCotizacion() {
             const btnAceptar = document.getElementById('btn-aceptar-cotizacion');
+
+            // Prevenir múltiples requests concurrentes
+            if (btnAceptar.disabled) {
+                return;
+            }
+
             btnAceptar.disabled = true;
             btnAceptar.innerHTML = `
                 <div class="loading loading-spinner loading-sm"></div>
@@ -1054,31 +1072,17 @@
                     'Content-Type': 'application/json',
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
+
                 if (data.success) {
                     showToast('Nueva cotización aceptada exitosamente', 'success');
-
-                    // Ocultar sección de cambio de cotización
-                    document.getElementById('cambio-cotizacion').classList.add('hidden');
-
-                    // Mostrar cotización vigente
-                    document.getElementById('cotizacion-vigente').classList.remove('hidden');
-                    document.getElementById('cotizacion-vigente').classList.add('flex');
-
-                    // Restaurar botón de pago
-                    const btnPagar = document.getElementById('btnPagarTransaccion');
-                    if (btnPagar) {
-                        btnPagar.disabled = false;
-                        btnPagar.innerHTML = `
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Proceder al Pago
-                        `;
-                        btnPagar.classList.remove('btn-warning');
-                        btnPagar.classList.add('btn-success');
-                    }
 
                     // Detener verificación automática ya que se aceptó la nueva tasa
                     cotizacionVerificada = true;
@@ -1087,7 +1091,15 @@
                         verificacionInterval = null;
                     }
 
+                    // Recargar la página para actualizar el estado y los botones
+                    setTimeout(() => {
+                        // Mantener los parámetros actuales de la URL
+                        const currentUrl = new URL(window.location);
+                        window.location.href = currentUrl.href;
+                    }, 1000); // Pequeño delay para que el usuario vea el mensaje de éxito
+
                 } else {
+                    console.error('Server returned error:', data.message);
                     showToast(`Error: ${data.message}`, 'error');
                     btnAceptar.disabled = false;
                     btnAceptar.innerHTML = `
@@ -1100,8 +1112,16 @@
             })
             .catch(error => {
                 console.error('Error al aceptar cotización:', error);
-                showToast('Error de conexión', 'error');
+                showToast('Error de conexión. Revise la consola para más detalles.', 'error');
+
+                // Restaurar botón en caso de error
                 btnAceptar.disabled = false;
+                btnAceptar.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Aceptar Nueva Cotización
+                `;
             });
         }
 
