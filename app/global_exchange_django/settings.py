@@ -188,11 +188,18 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1",
     "https://localhost",
     "https://127.0.0.1",
+    "http://localhost:8000",  # Dev environment
+    "http://localhost:8080",  # Prod environment (nginx)
+    "https://localhost:4443", # Prod environment (nginx HTTPS)
     "https://global-exchange-2000226d6e82.herokuapp.com",
 ]
 
 # Use X-Forwarded-Proto header to detect HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Use forwarded headers for correct URL generation behind proxy
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 if not DEBUG:
     # HTTPS settings
