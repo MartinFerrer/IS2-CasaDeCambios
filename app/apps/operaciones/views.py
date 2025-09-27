@@ -4,6 +4,7 @@ Este módulo contiene las vistas CRUD para el modelo TasaCambio.
 """
 
 import pycountry
+from apps.seguridad.decorators import admin_required
 from django.db.models import Q
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,6 +17,7 @@ from .models import Divisa, TasaCambio, TasaCambioHistorial
 from .utils import get_flag_url_from_currency
 
 
+@admin_required
 def crear_divisa(request):
     """View para crear una nueva divisa.
 
@@ -127,6 +129,7 @@ def divisa_detail(request, pk):
     return render(request, "divisa_detalle.html", {"divisa": divisa})
 
 
+@admin_required
 def divisa_listar(request: HttpRequest) -> object:
     """Muestra el listado de todas las divisas en el sistema.
 
@@ -143,6 +146,7 @@ def divisa_listar(request: HttpRequest) -> object:
     return render(request, "divisa_list.html", {"object_list": divisas})
 
 
+@admin_required
 def tasa_cambio_listar(request: HttpRequest) -> object:
     """Renderiza la página de listado de tasas de cambio.
 
@@ -157,6 +161,7 @@ def tasa_cambio_listar(request: HttpRequest) -> object:
     return render(request, "tasa_cambio_list.html", {"tasas_de_cambio": tasas})
 
 
+@admin_required
 def tasa_cambio_crear(request: HttpRequest):
     """Crea una nueva tasa de cambio.
 
@@ -438,6 +443,7 @@ def historial_tasas_api(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"historial": historial})
 
 
+@admin_required
 def tasa_cambio_historial_listar(request: HttpRequest) -> object:
     """Renderiza la página de listado del historial de tasas de cambio con filtros.
 

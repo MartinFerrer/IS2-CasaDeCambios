@@ -1,10 +1,11 @@
 import json
 
+from apps.operaciones.models import Divisa
+from apps.usuarios.models import Usuario
+from django.contrib.auth.models import Group
 from django.template.exceptions import TemplateDoesNotExist
 from django.test import Client, TestCase
 from django.urls import reverse
-
-from apps.operaciones.models import Divisa
 
 
 class TestDivisaViews(TestCase):
@@ -13,6 +14,14 @@ class TestDivisaViews(TestCase):
         self.url_crear_divisa = reverse("operaciones:crear_divisa")
         self.url_divisa_list = reverse("operaciones:divisa_list")
         self.divisa = Divisa.objects.create(codigo="USD", nombre="Dólar Estadounidense", simbolo="$")
+
+        # Create admin user and login
+        self.grupo_admin = Group.objects.get_or_create(name="Administrador")[0]
+        self.usuario_admin = Usuario.objects.create(
+            email="admin@test.com", nombre="Admin Test", password="testpass", activo=True
+        )
+        self.usuario_admin.groups.add(self.grupo_admin)
+        self.client.force_login(self.usuario_admin)
 
     def test_crear_divisa_get(self):
         try:
