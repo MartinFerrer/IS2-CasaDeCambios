@@ -1,37 +1,37 @@
-"""Context processors for security and user information.
+"""Procesadores de contexto para seguridad e información de usuario.
 
-This module provides context processors that make user and client
-information available in all templates.
+Este módulo proporciona procesadores de contexto que hacen que la información
+del usuario y del cliente esté disponible en todos los templates.
 """
 
 
 def user_context(request):
-    """Add user and client information to template context.
+    """Agrega información del usuario y del cliente al contexto del template.
 
     Args:
-        request: Django HttpRequest object.
+        request: Objeto HttpRequest de Django.
 
     Returns:
-        dict: Context variables for templates.
+        dict: Variables de contexto para los templates.
 
     """
     context = {}
 
     if hasattr(request, "user") and request.user.is_authenticated:
-        # Check if user has associated clients
+        # Verificar si el usuario tiene clientes asociados
         has_clients = hasattr(request.user, "clientes") and request.user.clientes.exists()
         context["user_has_clients"] = has_clients
 
-        # Get active client from middleware if available
+        # Obtener cliente activo del middleware si está disponible
         if hasattr(request, "cliente"):
             context["active_client"] = request.cliente
         else:
             context["active_client"] = None
 
-        # Get user's groups for role checking
+        # Obtener grupos del usuario para verificación de roles
         context["user_groups"] = list(request.user.groups.values_list("name", flat=True))
 
-        # Check if user is admin or analyst
+        # Verificar si el usuario es administrador o analista cambiario
         authorized_groups = ["Administrador", "Analista Cambiario"]
         context["user_is_admin"] = any(group in authorized_groups for group in context["user_groups"])
 
