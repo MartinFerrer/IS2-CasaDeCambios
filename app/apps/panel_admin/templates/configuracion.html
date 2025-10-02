@@ -35,12 +35,13 @@
                                 <label class="label row">
                                     <span class="label-text">Cliente {{ tipo_cliente.nombre }} (%)</span>
                                 </label>
-                                <input type="number"
+                                <input type="decimal"
                                        name="descuento_comision_{{ tipo_cliente.pk }}"
                                        min="0"
+                                       pattern="^\d*\,?\d+$"
                                        max="20"
                                        step="0.1"
-                                       class="input input-bordered"
+                                       class="input input-bordered decimal-input"
                                        title="Debe ser entre 0 y 20"
                                        value="{{ tipo_cliente.descuento_sobre_comision | strip_trailing_zeros }}"
                                        required>
@@ -283,24 +284,26 @@
                         <label class="label">
                             <span class="label-text">Comisión Compra (%)</span>
                         </label>
-                        <input type="number"
+                        <input type="decimal"
                                name="comision_compra"
+                               pattern="^\d*\,?\d+$"
                                step="0.01"
                                min="0"
-                               placeholder="0.00"
-                               class="input input-bordered"
+                               placeholder="0,00"
+                               class="input input-bordered decimal-input"
                                required />
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Comisión Venta (%)</span>
                         </label>
-                        <input type="number"
+                        <input type="decimal"
                                name="comision_venta"
+                               pattern="^\d*\,?\d+$"
                                step="0.01"
                                min="0"
-                               placeholder="0.00"
-                               class="input input-bordered"
+                               placeholder="0,00"
+                               class="input input-bordered decimal-input"
                                required />
                     </div>
                 </div>
@@ -365,24 +368,26 @@
                             <label class="label">
                                 <span class="label-text">Comisión Compra (%)</span>
                             </label>
-                            <input type="number"
+                            <input type="decimal"
                                    name="comision_compra"
+                                   pattern="^\d*\,?\d+$"
                                    value="{{ entidad.comision_compra }}"
                                    step="0.01"
                                    min="0"
-                                   class="input input-bordered"
+                                   class="input input-bordered decimal-input"
                                    required />
                         </div>
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text">Comisión Venta (%)</span>
                             </label>
-                            <input type="number"
+                            <input type="decimal"
                                    name="comision_venta"
+                                   pattern="^\d*\,?\d+$"
                                    value="{{ entidad.comision_venta }}"
                                    step="0.01"
                                    min="0"
-                                   class="input input-bordered"
+                                   class="input input-bordered decimal-input"
                                    required />
                         </div>
                     </div>
