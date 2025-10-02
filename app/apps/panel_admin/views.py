@@ -782,7 +782,7 @@ def tasa_cambio_crear(request: HttpRequest):
                 motivo="Creación de Tasa",
                 fecha_registro=timezone.now(),
             )
-            return redirect("operaciones:tasa_cambio_listar")
+            return redirect("tasa_cambio_listar")
     else:
         form = TasaCambioForm()
     return render(request, "tasa_cambio_form.html", {"form": form})
