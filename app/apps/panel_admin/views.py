@@ -14,6 +14,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
@@ -152,8 +153,8 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
             limite.save()
 
         messages.success(request, f"Límites actualizados exitosamente. "
-                       f"Diario: ₲{limite.limite_diario:,.0f}, "
-                       f"Mensual: ₲{limite.limite_mensual:,.0f}")
+                       f"Diario: ₲{strip_trailing_zeros(limite.limite_diario, 0)}, "
+                       f"Mensual: ₲{strip_trailing_zeros(limite.limite_mensual, 0)}")
     except ValidationError as e:
         for error in e.messages:
             messages.error(request, error)
