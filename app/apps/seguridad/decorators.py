@@ -136,3 +136,65 @@ def client_required(view_func):
         return view_func(request, *args, **kwargs)
 
     return _wrapped_view
+
+
+def permission_required(*permission_codenames, require_all=False):
+    """Decorador parametrizado que requiere que el usuario tenga uno o más permisos específicos.
+
+    Este decorador verifica que el usuario esté autenticado y tenga los permisos
+    necesarios para acceder a la vista. Los permisos se verifican por codename.
+
+    Args:
+        *permission_codenames: Codenames de los permisos requeridos (ej: 'view_usuario', 'change_cliente').
+        require_all: Si es True, requiere todos los permisos. Si es False (default),
+                    requiere al menos uno de los permisos listados.
+
+    Returns:
+        El decorador configurado.
+
+    Examples:
+        @permission_required('view_usuario')  # Requiere el permiso view_usuario
+        @permission_required('view_usuario', 'change_usuario')  # Requiere al menos uno
+        @permission_required('view_usuario', 'change_usuario', require_all=True)  # Requiere ambos
+
+    """
+
+    def decorator(view_func):
+        @wraps(view_func)
+        @login_required
+        def _wrapped_view(request, *args, **kwargs):
+            # Superusuarios tienen todos los permisos
+            if request.user.is_superuser:
+                return view_func(request, *args, **kwargs)
+
+            # Construir el formato completo del permiso: app_label.codename
+            user_permissions = set()
+            for perm in request.user.get_all_permissions():
+                # Los permisos vienen en formato 'app_label.codename'
+                if "." in perm:
+                    user_permissions.add(perm.split(".")[1])
+                user_permissions.add(perm)
+
+            # Verificar si el usuario tiene los permisos necesarios
+            has_permission = False
+            if require_all:
+                # Requiere todos los permisos
+                has_permission = all(perm in user_permissions for perm in permission_codenames)
+            else:
+                # Requiere al menos uno de los permisos
+                has_permission = any(perm in user_permissions for perm in permission_codenames)
+
+            if not has_permission:
+                permisos_texto = " y ".join(permission_codenames) if require_all else " o ".join(permission_codenames)
+                return render(
+                    request,
+                    "error_403.html",
+                    {"message": f"No tienes los permisos necesarios: {permisos_texto}"},
+                    status=403,
+                )
+
+            return view_func(request, *args, **kwargs)
+
+        return _wrapped_view
+
+    return decorator

@@ -25,19 +25,46 @@
                             </svg>
                             {{ grupo.name|title }}
                         </h2>
-                        <div class="mb-4">
-                            <div class="badge badge-outline mb-2">
-                                {{ grupo.permissions.count }} permiso{{ grupo.permissions.count|pluralize }}
-                            </div>
+                        <div class="mb-4 flex items-center justify-between">
+                            <div class="badge badge-outline mb-2">{{ grupo.permission_count }} permiso{{ grupo.permission_count|pluralize }}</div>
+                            <button class="btn btn-sm btn-primary"
+                                    onclick="document.getElementById('modal_asignar_{{ grupo.id }}').showModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-4 w-4"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Agregar permiso
+                            </button>
                         </div>
-                        {% if grupo.permissions.exists %}
+                        {% if grupo.permissions %}
                             <div class="overflow-x-auto">
                                 <h3 class="font-semibold text-gray-700 mb-2">Permisos asignados:</h3>
                                 <div class="space-y-1 max-h-64 overflow-y-auto">
-                                    {% for permission in grupo.permissions.all %}
-                                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                            <span class="text-sm font-medium text-gray-800">{{ permission.name }}</span>
-                                            <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">{{ permission.codename }}</span>
+                                    {% for permission in grupo.permissions %}
+                                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100">
+                                            <div class="flex-1">
+                                                <span class="text-sm font-medium text-gray-800">{{ permission.display_name|default:permission.name }}</span>
+                                                <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded ml-2">{{ permission.codename }}</span>
+                                            </div>
+                                            <form method="post"
+                                                  action="{% url 'rol_desasignar_permiso' grupo.id permission.id %}"
+                                                  class="inline">
+                                                {% csrf_token %}
+                                                <button type="submit"
+                                                        class="btn btn-ghost btn-xs text-red-600 hover:text-red-800"
+                                                        onclick="return confirm('¿Estás seguro de quitar este permiso?')">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-4 w-4"
+                                                         fill="none"
+                                                         viewBox="0 0 24 24"
+                                                         stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </form>
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -59,6 +86,50 @@
                         </div>
                     </div>
                 </div>
+                {# Modal para asignar permisos #}
+                <dialog id="modal_asignar_{{ grupo.id }}" class="modal">
+                    <div class="modal-box w-11/12 max-w-3xl">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <h3 class="font-bold text-lg text-blue-700 mb-4">Agregar Permiso a: {{ grupo.name }}</h3>
+                        <form method="post" action="{% url 'rol_asignar_permiso' grupo.id %}">
+                            {% csrf_token %}
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Seleccione un permiso</span>
+                                </label>
+                                <select name="permiso_id" class="select select-bordered w-full" required>
+                                    <option value="">-- Seleccione un permiso --</option>
+                                    {% for app_label, permisos in permisos_por_app.items %}
+                                        <optgroup label="{{ app_label|title }}">
+                                            {% for permiso in permisos %}
+                                                <option value="{{ permiso.id }}">{{ permiso.display_name|default:permiso.name }} ({{ permiso.codename }})</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="modal-action">
+                                <button type="submit" class="btn btn-primary">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="h-5 w-5 mr-2"
+                                         fill="none"
+                                         viewBox="0 0 24 24"
+                                         stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Agregar
+                                </button>
+                                <button type="button"
+                                        class="btn btn-ghost"
+                                        onclick="document.getElementById('modal_asignar_{{ grupo.id }}').close()">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </dialog>
             {% empty %}
                 <div class="col-span-full">
                     <div class="card bg-white shadow-xl">
@@ -91,7 +162,7 @@
                         </svg>
                     </div>
                     <div class="stat-title">Total de roles</div>
-                    <div class="stat-value text-primary">{{ grupos.count }}</div>
+                    <div class="stat-value text-primary">{{ grupos|length }}</div>
                     <div class="stat-desc">roles configurados en el sistema</div>
                 </div>
                 {% for grupo in grupos %}
@@ -106,7 +177,7 @@
                             </svg>
                         </div>
                         <div class="stat-title">{{ grupo.name|title }}</div>
-                        <div class="stat-value text-secondary">{{ grupo.user_set.count }}</div>
+                        <div class="stat-value text-secondary">{{ grupo.user_count }}</div>
                         <div class="stat-desc">usuarios con este rol</div>
                     </div>
                 {% endfor %}

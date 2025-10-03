@@ -14,7 +14,25 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.seguridad.decorators import admin_required, group_required
+from apps.seguridad.decorators import admin_required, permission_required
+from apps.seguridad.permissions import (
+    PERM_ADD_CLIENTE,
+    PERM_ADD_ENTIDADFINANCIERA,
+    PERM_ADD_USUARIO,
+    PERM_ASOCIAR_CLIENTE,
+    PERM_CHANGE_CLIENTE,
+    PERM_CHANGE_COMISIONES,
+    PERM_CHANGE_ENTIDADFINANCIERA,
+    PERM_CHANGE_LIMITES,
+    PERM_CHANGE_USUARIO,
+    PERM_DELETE_CLIENTE,
+    PERM_DELETE_ENTIDADFINANCIERA,
+    PERM_DELETE_USUARIO,
+    PERM_DESASOCIAR_CLIENTE,
+    PERM_VIEW_CLIENTE,
+    PERM_VIEW_USUARIO,
+    get_permission_display_name,
+)
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
@@ -35,7 +53,7 @@ def panel_inicio(request: HttpRequest) -> HttpResponse:
     return render(request, "panel_inicio.html")
 
 
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_COMISIONES, PERM_CHANGE_LIMITES)
 def configuracion(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de configuracion de opciones.
 
@@ -69,7 +87,7 @@ def configuracion(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_COMISIONES)
 def guardar_comisiones(request: HttpRequest) -> HttpResponse:
     """Guarda los descuentos de comisión enviados por el formulario.
 
@@ -126,7 +144,7 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_LIMITES)
 def guardar_limites(request: HttpRequest) -> HttpResponse:
     """Guarda los límites de transacciones enviados por el formulario.
 
@@ -173,7 +191,7 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
 
 
 # CRUD de Usuarios
-@group_required("Administrador")
+@permission_required(PERM_VIEW_USUARIO)
 def usuario_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de usuarios y roles en el panel de administración.
 
@@ -189,7 +207,7 @@ def usuario_list(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos})
 
 
-@group_required("Administrador")
+@permission_required(PERM_ADD_USUARIO)
 def usuario_create(request: HttpRequest) -> HttpResponse:
     """Crea un nuevo usuario en el panel de administración.
 
@@ -221,7 +239,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_USUARIO)
 def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita un usuario existente en el panel de administración.
 
@@ -264,7 +282,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
-@group_required("Administrador")
+@permission_required(PERM_DELETE_USUARIO)
 def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina un usuario existente en el panel de administración.
 
@@ -286,7 +304,7 @@ def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 # CRUD de Roles
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_USUARIO)
 def rol_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de roles (grupos) y sus permisos asociados.
 
@@ -297,12 +315,131 @@ def rol_list(request: HttpRequest) -> HttpResponse:
         HttpResponse: Rendered rol_list.html template.
 
     """
-    grupos = Group.objects.prefetch_related("permissions").all()
-    return render(request, "rol_list.html", {"grupos": grupos})
+    from django.contrib.auth.models import Permission
+
+    # Serializar grupos y permisos en estructuras simples para la plantilla
+    grupos_qs = Group.objects.prefetch_related("permissions", "user_set").all()
+    grupos = []
+    for g in grupos_qs:
+        permisos = []
+        for p in g.permissions.all():
+            permisos.append(
+                {
+                    "id": getattr(p, "pk", None),
+                    "codename": p.codename,
+                    "name": p.name,
+                    "display_name": get_permission_display_name(p.codename) if p.codename else p.name,
+                }
+            )
+        grupos.append(
+            {
+                "id": getattr(g, "pk", None),
+                "name": g.name,
+                "permission_count": len(permisos),
+                "permissions": permisos,
+                "user_count": g.user_set.count(),
+            }
+        )
+
+    # Obtener todos los permisos disponibles, agrupados por app (serializados)
+    permisos_por_app = {}
+    for perm in Permission.objects.select_related("content_type").all():
+        app_label = perm.content_type.app_label
+        if app_label not in permisos_por_app:
+            permisos_por_app[app_label] = []
+        permisos_por_app[app_label].append(
+            {
+                "id": getattr(perm, "pk", None),
+                "codename": perm.codename,
+                "name": perm.name,
+                "display_name": get_permission_display_name(perm.codename) if perm.codename else perm.name,
+            }
+        )
+
+    return render(
+        request,
+        "rol_list.html",
+        {
+            "grupos": grupos,
+            "permisos_por_app": permisos_por_app,
+        },
+    )
+
+
+@require_POST
+@permission_required(PERM_CHANGE_USUARIO)
+def rol_asignar_permiso(request: HttpRequest, rol_id: int) -> HttpResponse:
+    """Asigna un permiso a un rol (grupo).
+
+    Args:
+        request: HttpRequest object con permiso_id en POST.
+        rol_id: ID del rol al que se asignará el permiso.
+
+    Retorna:
+        HttpResponse: Redirect to rol_listar with success or error message.
+
+    """
+    from django.contrib.auth.models import Permission
+
+    grupo = get_object_or_404(Group, pk=rol_id)
+    permiso_id = request.POST.get("permiso_id")
+
+    if not permiso_id:
+        messages.error(request, "Debe seleccionar un permiso.")
+        return redirect("rol_listar")
+
+    try:
+        permiso = Permission.objects.get(pk=permiso_id)
+
+        if permiso in grupo.permissions.all():
+            messages.warning(request, f"El rol '{grupo.name}' ya tiene el permiso '{permiso.name}'.")
+        else:
+            grupo.permissions.add(permiso)
+            messages.success(request, f"Permiso '{permiso.name}' asignado al rol '{grupo.name}' exitosamente.")
+    except Permission.DoesNotExist:
+        messages.error(request, "El permiso seleccionado no existe.")
+    except Exception as e:
+        messages.error(request, f"Error al asignar el permiso: {e}")
+
+    return redirect("rol_listar")
+
+
+@require_POST
+@permission_required(PERM_CHANGE_USUARIO)
+def rol_desasignar_permiso(request: HttpRequest, rol_id: int, permiso_id: int) -> HttpResponse:
+    """Desasigna un permiso de un rol (grupo).
+
+    Args:
+        request: HttpRequest object.
+        rol_id: ID del rol del que se quitará el permiso.
+        permiso_id: ID del permiso a quitar.
+
+    Retorna:
+        HttpResponse: Redirect to rol_listar with success or error message.
+
+    """
+    from django.contrib.auth.models import Permission
+
+    grupo = get_object_or_404(Group, pk=rol_id)
+
+    try:
+        permiso = Permission.objects.get(pk=permiso_id)
+
+        if permiso not in grupo.permissions.all():
+            messages.warning(request, f"El rol '{grupo.name}' no tiene el permiso '{permiso.name}'.")
+        else:
+            grupo.permissions.remove(permiso)
+            messages.success(request, f"Permiso '{permiso.name}' removido del rol '{grupo.name}' exitosamente.")
+    except Permission.DoesNotExist:
+        messages.error(request, "El permiso seleccionado no existe.")
+    except Exception as e:
+        messages.error(request, f"Error al quitar el permiso: {e}")
+
+    return redirect("rol_listar")
 
 
 # CRUD de Clientes
-@group_required("Administrador")
+@permission_required(PERM_VIEW_CLIENTE)
 def cliente_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de clientes, tipos de cliente y usuarios en el panel de administración.
 
@@ -323,7 +460,7 @@ def cliente_list(request: HttpRequest) -> HttpResponse:
     )
 
 
-@group_required("Administrador")
+@permission_required(PERM_ADD_CLIENTE)
 def cliente_create(request: HttpRequest) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -351,7 +488,7 @@ def cliente_create(request: HttpRequest) -> HttpResponse:
     )
 
 
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_CLIENTE)
 def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -381,7 +518,7 @@ def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@group_required("Administrador")
+@permission_required(PERM_DELETE_CLIENTE)
 def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina al cliente y renderiza la lista de clientes actualizada.
 
@@ -407,7 +544,7 @@ def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_CLIENTE)
 def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     """Muestra el formulario para asociar un cliente a un usuario.
 
@@ -431,7 +568,7 @@ def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     return render(request, "asociar_cliente_usuario.html", {"clientes": clientes, "usuarios": usuarios})
 
 
-@group_required("Administrador")
+@permission_required(PERM_ASOCIAR_CLIENTE)
 def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Asocia un cliente a un usuario.
 
@@ -460,7 +597,7 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpR
     return redirect("asociar_cliente_usuario_form")
 
 
-@group_required("Administrador")
+@permission_required(PERM_DESASOCIAR_CLIENTE)
 def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Desasocia un cliente a un usuario.
 
@@ -494,7 +631,7 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
 
 
 # CRUD de Entidades de Medios financiero
-@group_required("Administrador")
+@permission_required(PERM_ADD_ENTIDADFINANCIERA)
 def entidad_create(request: HttpRequest) -> HttpResponse:
     """Crea una nueva entidad de medio financiero.
 
@@ -535,7 +672,7 @@ def entidad_create(request: HttpRequest) -> HttpResponse:
     return redirect("configuracion")
 
 
-@group_required("Administrador")
+@permission_required(PERM_CHANGE_ENTIDADFINANCIERA)
 def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita una entidad financiera existente.
 
@@ -583,7 +720,7 @@ def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return redirect("configuracion")
 
 
-@group_required("Administrador")
+@permission_required(PERM_DELETE_ENTIDADFINANCIERA)
 def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina una entidad de medio financiero.
 
@@ -611,7 +748,10 @@ def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
             if en_uso:
                 messages.error(
                     request,
-                    f"No se puede eliminar la entidad '{entidad.nombre}' porque está siendo utilizada por medios financiero existentes.",
+                    (
+                        "No se puede eliminar la entidad '"
+                        f"{entidad.nombre}' porque está siendo utilizada por medios financiero existentes."
+                    ),
                 )
             else:
                 nombre = entidad.nombre
