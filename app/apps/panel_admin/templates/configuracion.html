@@ -38,11 +38,11 @@
                                 <input type="decimal"
                                        name="descuento_comision_{{ tipo_cliente.pk }}"
                                        min="0"
-                                       pattern="^\d*\,?\d+$"
+                                       pattern="^\d{1,2}(,\d)?$"
                                        max="20"
                                        step="0.1"
                                        class="input input-bordered decimal-input"
-                                       title="Debe ser entre 0 y 20"
+                                       title="Debe ser entre 0 y 20, máximo 1 decimal"
                                        value="{{ tipo_cliente.descuento_sobre_comision | strip_trailing_zeros }}"
                                        required>
                             {% endfor %}
