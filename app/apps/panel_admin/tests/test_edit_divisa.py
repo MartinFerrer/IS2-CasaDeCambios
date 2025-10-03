@@ -12,7 +12,7 @@ class DivisaViewsTestCase(TestCase):
 
     def test_edit_divisa_post_valid(self):
         data = {"codigo": "USD", "nombre": "US Dollar Updated", "simbolo": "$", "estado": "inactiva"}
-        response = self.client.post(reverse("operaciones:edit_divisa", args=[self.divisa.pk]), data)
+        response = self.client.post(reverse("edit_divisa", args=[self.divisa.pk]), data)
 
         self.assertEqual(response.status_code, 302)
         self.divisa.refresh_from_db()
@@ -21,5 +21,5 @@ class DivisaViewsTestCase(TestCase):
         self.assertEqual(self.divisa.codigo, "USD")
 
     def test_edit_divisa_get_redirects(self):
-        response = self.client.get(reverse("operaciones:edit_divisa", args=[self.divisa.pk]))
+        response = self.client.get(reverse("edit_divisa", args=[self.divisa.pk]))
         self.assertEqual(response.status_code, 302)

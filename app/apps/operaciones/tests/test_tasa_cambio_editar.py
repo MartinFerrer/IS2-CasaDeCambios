@@ -40,7 +40,7 @@ class TasaCambioEditarTest(TestCase):
     def test_editar_tasa_inexistente(self):
         # Generar un UUID válido pero que no existe en la DB
         uuid_inexistente = str(uuid.uuid4())
-        response = self.client.post(reverse("operaciones:tasa_cambio_editar", args=[uuid_inexistente]), {})
+        response = self.client.post(reverse("tasa_cambio_editar", args=[uuid_inexistente]), {})
         # Debería retornar 404 porque no encuentra el objeto
         self.assertEqual(response.status_code, 404)
 
@@ -53,7 +53,7 @@ class TasaCambioEditarTest(TestCase):
             "comision_venta": "15",
             "activo": True,
         }
-        response = self.client.post(reverse("operaciones:tasa_cambio_editar", args=[self.tasa.pk]), data)
+        response = self.client.post(reverse("tasa_cambio_editar", args=[self.tasa.pk]), data)
 
         # Verificar qué está pasando exactamente
         if response.status_code == 200:

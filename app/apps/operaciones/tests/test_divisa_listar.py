@@ -1,8 +1,9 @@
-from apps.operaciones.models import Divisa
-from apps.usuarios.models import Usuario
 from django.contrib.auth.models import Group
 from django.test import Client, TestCase
 from django.urls import reverse
+
+from apps.operaciones.models import Divisa
+from apps.usuarios.models import Usuario
 
 
 class DivisaListarTest(TestCase):
@@ -29,9 +30,7 @@ class DivisaListarTest(TestCase):
         )
 
     def test_divisa_listar(self):
-        # Login with admin user
-        self.client.force_login(self.usuario_admin)
-        response = self.client.get(reverse("operaciones:divisa_listar"))
+        response = self.client.get(reverse("divisa_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Dólar")
         self.assertContains(response, "Euro")

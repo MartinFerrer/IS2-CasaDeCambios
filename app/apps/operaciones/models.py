@@ -27,7 +27,7 @@ class Divisa(models.Model):
 
     codigo = models.CharField(primary_key=True, max_length=3, unique=True, help_text="(ej. PYG, USD, EUR).")
     nombre = models.CharField(max_length=50, help_text="(ej. Guaraní, Dólar Estadounidense).")
-    simbolo = models.CharField(max_length=5, help_text="(ej. ₲, $, €).")
+    simbolo = models.CharField(max_length=5, blank=True, default="", help_text="(ej. ₲, $, €).")
     estado = models.CharField(
         max_length=10,
         choices=[("activa", "Activa"), ("inactiva", "Inactiva")],

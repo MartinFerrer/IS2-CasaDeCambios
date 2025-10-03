@@ -33,4 +33,24 @@ urlpatterns = [
     path("asociar/", views.asociar_cliente_usuario_form, name="asociar_cliente_usuario_form"),
     path("asociar/<int:usuario_id>/", views.asociar_cliente_usuario_post, name="asociar_cliente_usuario_post"),
     path("desasociar/<int:usuario_id>/", views.desasociar_cliente_usuario, name="desasociar_cliente_usuario"),
+    # URL para la vista que muestra el listado de todas las divisa
+    path("divisa/", views.divisa_listar, name="divisa_list"),
+    # URL para la vista que crea una nueva divisa
+    path("divisa/crear/", views.crear_divisa, name="crear_divisa"),
+    # Se agrega la URL para editar una divisa, que faltaba
+    path("divisa/editar/<str:pk>/", views.edit_divisa, name="edit_divisa"),
+    # URL para la vista que elimina una divisa específica
+    path("divisa/delete/<str:pk>/", views.delete_divisa, name="delete_divisa"),
+    path("divisa/<str:pk>/", views.divisa_detail, name="divisa_detail"),
+    # URL para obtener las divisas en formato JSON
+    path("divisas/api/", views.obtener_divisas, name="api_divisas"),
+    # URLs para el CRUD de Tasas de Cambio
+    path("tasas/", views.tasa_cambio_listar, name="tasa_cambio_listar"),
+    path("tasas/crear/", views.tasa_cambio_crear, name="tasa_cambio_crear"),
+    path("tasas/<str:pk>/editar/", views.tasa_cambio_editar, name="tasa_cambio_editar"),
+    path("tasas/<str:pk>/desactivar/", views.tasa_cambio_desactivar, name="tasa_cambio_desactivar"),
+    path("tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
+    # URLs para historial de tasas de cambio
+    path("tasas/historial/", views.tasa_cambio_historial_listar, name="tasa_cambio_historial_listar"),
+
 ]

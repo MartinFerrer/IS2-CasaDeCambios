@@ -1,10 +1,11 @@
 from decimal import Decimal
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Usuario
 from django.contrib.auth.models import Group
 from django.test import Client, TestCase
 from django.urls import reverse
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Usuario
 
 
 class TasaCambioListarTest(TestCase):
@@ -42,8 +43,6 @@ class TasaCambioListarTest(TestCase):
         )
 
     def test_tasa_cambio_listar(self):
-        # Force login with admin user
-        self.client.force_login(self.usuario_admin)
-        response = self.client.get(reverse("operaciones:tasa_cambio_listar"))
+        response = self.client.get(reverse("tasa_cambio_listar"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("tasas_de_cambio", response.context)
