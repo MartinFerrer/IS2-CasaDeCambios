@@ -1,9 +1,10 @@
 """Tests unitarios para las views de roles en panel_admin/views.py."""
 
 import pytest
-from apps.usuarios.models import Usuario
 from django.contrib.auth.models import Group
 from django.urls import reverse
+
+from apps.usuarios.models import Usuario
 
 
 @pytest.mark.django_db
@@ -24,4 +25,4 @@ def test_rol_list_view(client):
     response = client.get(url)
     assert response.status_code == 200
     assert "grupos" in response.context
-    assert response.context["grupos"].count() >= 2  # Administrador + Rol1
+    assert len(response.context["grupos"]) >= 2  # Administrador + Rol1
