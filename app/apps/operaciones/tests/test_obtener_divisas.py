@@ -20,7 +20,7 @@ class ObtenerDivisasTest(TestCase):
         )
 
     def test_obtener_divisas_json(self):
-        response = self.client.get(reverse("operaciones:obtener_divisas"))
+        response = self.client.get(reverse("api_divisas"))
         self.assertEqual(response.status_code, 200)
 
         data = json.loads(response.content)

@@ -33,8 +33,8 @@ class TasaCambioActivarDesactivarTest(TestCase):
         )
 
     def test_desactivar_tasa(self):
-        response = self.client.post(reverse("operaciones:tasa_cambio_desactivar", args=[self.tasa.pk]))
-        self.assertRedirects(response, reverse("operaciones:tasa_cambio_listar"))
+        response = self.client.post(reverse("tasa_cambio_desactivar", args=[self.tasa.pk]))
+        self.assertRedirects(response, reverse("tasa_cambio_listar"))
         self.tasa.refresh_from_db()
         self.assertFalse(self.tasa.activo)
         self.assertTrue(TasaCambioHistorial.objects.filter(motivo="Desactivación de Tasa").exists())
@@ -42,8 +42,8 @@ class TasaCambioActivarDesactivarTest(TestCase):
     def test_activar_tasa(self):
         self.tasa.activo = False
         self.tasa.save()
-        response = self.client.post(reverse("operaciones:tasa_cambio_activar", args=[self.tasa.pk]))
-        self.assertRedirects(response, reverse("operaciones:tasa_cambio_listar"))
+        response = self.client.post(reverse("tasa_cambio_activar", args=[self.tasa.pk]))
+        self.assertRedirects(response, reverse("tasa_cambio_listar"))
         self.tasa.refresh_from_db()
         self.assertTrue(self.tasa.activo)
         self.assertTrue(TasaCambioHistorial.objects.filter(motivo="Activación de Tasa").exists())
