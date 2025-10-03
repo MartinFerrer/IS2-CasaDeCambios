@@ -117,17 +117,17 @@ class TasasManager {
         this.colors = ["#22c55e", "#ef4444", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899"];
         this.currentView = 'tasas';
         this.divisasDisponibles = [];
-        this.tasasActuales = [];
+        this.tasasActuales = []; 
         this.historialDivisas = {}; // Guardar historial real
         this.initializeElements();
         this.loadTasas();
-
+        
         // Auto-refresh cada 30 segundos solo en vista de tasas
         setInterval(() => {
             if (this.currentView === 'tasas') {
                 this.loadTasas();
             }
-        }, 30000);
+        }, 30000); 
     }
 
     initializeElements() {
@@ -221,13 +221,13 @@ class TasasManager {
     async loadTasas() {
         try {
             if (!this.tasasTbody.innerHTML) this.showLoading();
-
+            
             const response = await fetch(this.apiUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
+            
             const data = await response.json();
             console.log('📊 Datos recibidos:', data); // Debug
-
+            
             if (data.tasas && data.tasas.length > 0) {
                 // Procesar historial de cada divisa
                 data.tasas.forEach(tasa => {
@@ -376,14 +376,14 @@ class TasasManager {
         this.divisasDisponibles = tasas;
         const currentValue = this.divisaSelect.value;
         this.divisaSelect.innerHTML = '<option value="">Seleccionar divisa</option>';
-
+        
         tasas.forEach(tasa => {
             const option = document.createElement('option');
             option.value = tasa.divisa.codigo;
             option.textContent = `${tasa.divisa.codigo} - ${tasa.divisa.nombre}`;
             this.divisaSelect.appendChild(option);
         });
-
+        
         // Restaurar selección si existe
         if (currentValue && tasas.find(t => t.divisa.codigo === currentValue)) {
             this.divisaSelect.value = currentValue;
@@ -400,18 +400,18 @@ class TasasManager {
         }
 
         console.log(`📊 Cargando historial para ${divisaSeleccionada}, período: ${periodo} días`);
-
+        
         this.showLoadingHistorial();
-
+        
         setTimeout(() => {
             try {
                 let historial = this.historialDivisas[divisaSeleccionada];
-
+                
                 // Filtrar por período (últimos N registros o por fecha)
                 if (historial.length > periodo) {
                     historial = historial.slice(-periodo);
                 }
-
+                
                 if (historial.length === 0) {
                     this.renderEmptyChart();
                     return;
@@ -420,7 +420,7 @@ class TasasManager {
                 console.log(`📈 Renderizando gráfico con ${historial.length} puntos para ${divisaSeleccionada}`);
                 this.renderChart(historial, divisaSeleccionada);
                 this.hideLoadingHistorial();
-
+                
             } catch (error) {
                 console.error('❌ Error al procesar historial:', error);
                 this.showErrorHistorial();
@@ -446,7 +446,7 @@ class TasasManager {
 
     renderChart(historial, divisaCodigo) {
         this.emptyHistorial.classList.add('hidden');
-
+        
         // Ordenar historial cronológicamente
         const historialOrdenado = [...historial].sort((a, b) => new Date(a.fecha_iso) - new Date(b.fecha_iso));
 
@@ -506,19 +506,19 @@ class TasasManager {
                 titlefont: { size: 14, color: '#374151' },
                 tickangle: -45
             },
-            yaxis: {
-                title: '💰 Precio (₲)',
-                gridcolor: '#e5e7eb',
+            yaxis: { 
+                title: '💰 Precio (₲)', 
+                gridcolor: '#e5e7eb', 
                 tickformat: ',.0f',
                 titlefont: { size: 14, color: '#374151' }
             },
             plot_bgcolor: 'rgba(249,250,251,0.8)',
             paper_bgcolor: 'rgba(255,255,255,1)',
             margin: { l: 80, r: 40, t: 80, b: 80 },
-            legend: {
-                orientation: 'h',
-                x: 0.5,
-                xanchor: 'center',
+            legend: { 
+                orientation: 'h', 
+                x: 0.5, 
+                xanchor: 'center', 
                 y: -0.15,
                 bgcolor: 'rgba(255,255,255,0.8)',
                 bordercolor: '#e5e7eb',
@@ -528,9 +528,9 @@ class TasasManager {
             font: { family: 'Arial, sans-serif', size: 12 }
         };
 
-        const config = {
-            responsive: true,
-            displayModeBar: true,
+        const config = { 
+            responsive: true, 
+            displayModeBar: true, 
             modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d'],
             locale: 'es',
             toImageButtonOptions: {
@@ -554,10 +554,10 @@ class TasasManager {
     renderEmptyChart() {
         this.emptyHistorial.classList.remove('hidden');
         this.hideLoadingHistorial();
-
+        
         const layout = {
-            title: {
-                text: '📊 Selecciona una divisa para ver el historial',
+            title: { 
+                text: '📊 Selecciona una divisa para ver el historial', 
                 font: { size: 18, color: '#6b7280' },
                 x: 0.5
             },
@@ -567,16 +567,16 @@ class TasasManager {
             paper_bgcolor: 'rgba(0,0,0,0)',
             margin: { l: 40, r: 40, t: 80, b: 40 }
         };
-
+        
         const config = { responsive: true, displayModeBar: false };
         Plotly.newPlot('historial_plotly', [], layout, config);
     }
 }
 
 // Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => { 
     console.log('🚀 Iniciando TasasManager...');
-    new TasasManager();
+    new TasasManager(); 
 });
     </script>
 {% endblock extra_scripts %}
