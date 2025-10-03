@@ -118,6 +118,28 @@ class TasaCambio(models.Model):
         if self.comision_venta is not None and self.comision_venta < 0:
             raise ValidationError("La comisión de venta no puede ser negativa.")
 
+        # Validar que la comisión de compra sea menor que el precio base
+        if (
+            self.comision_compra is not None
+            and self.precio_base is not None
+            and self.comision_compra >= self.precio_base
+        ):
+            raise ValidationError(
+                {
+                    "comision_compra": "La comisión de compra debe ser menor que el precio base.\n"
+                    f"Precio base: {self.precio_base}, Comisión: {self.comision_compra}"
+                }
+            )
+
+        # Validar que la comisión de venta sea menor que el precio base
+        if self.comision_venta is not None and self.precio_base is not None and self.comision_venta >= self.precio_base:
+            raise ValidationError(
+                {
+                    "comision_venta": "La comisión de venta debe ser menor que el precio base.\n"
+                    f"Precio base: {self.precio_base}, Comisión: {self.comision_venta}"
+                }
+            )
+
     def save(self, *args, **kwargs):
         """Guarda el objeto después de validar los datos."""
         self.full_clean()

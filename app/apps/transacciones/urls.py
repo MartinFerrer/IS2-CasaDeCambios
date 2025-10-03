@@ -62,7 +62,25 @@ urlpatterns = [
     ),
     path("api/procesar-pago-bancario/", views.api_procesar_pago_bancario, name="api_procesar_pago_bancario"),
     path("popup-banco/<str:transaccion_id>/", views.popup_banco_simulado, name="popup_banco_simulado"),
-    path("popup-tauser-retiro/<str:transaccion_id>/", views.popup_codigo_tauser_retiro, name="popup_codigo_tauser_retiro"),
+    path(
+        "popup-tauser-retiro/<str:transaccion_id>/", views.popup_codigo_tauser_retiro, name="popup_codigo_tauser_retiro"
+    ),
     path("procesar/<str:transaccion_id>/", views.procesar_transaccion_view, name="procesar_transaccion"),
+    # URLs para verificación y cancelación por cotización
+    path(
+        "api/verificar-cotizacion/<str:transaccion_id>/",
+        views.api_verificar_cotizacion,
+        name="api_verificar_cotizacion",
+    ),
+    path(
+        "api/cancelar-por-cotizacion/<str:transaccion_id>/",
+        views.api_cancelar_por_cotizacion,
+        name="api_cancelar_por_cotizacion",
+    ),
+    path(
+        "api/aceptar-nueva-cotizacion/<str:transaccion_id>/",
+        views.api_aceptar_nueva_cotizacion,
+        name="api_aceptar_nueva_cotizacion",
+    ),
     path("", views.vista_transacciones, name="lista"),
 ]
