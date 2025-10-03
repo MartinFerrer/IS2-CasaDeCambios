@@ -140,6 +140,10 @@ PERM_GENERATE_REPORTES = "generate_reportes"  # Generar reportes
 # Permisos para asociación de cliente
 PERM_ASOCIAR_CLIENTE = "asociar_cliente"
 PERM_DESASOCIAR_CLIENTE = "desasociar_cliente"
+# Permisos específicos para gestión de roles
+PERM_VIEW_ROL = "view_rol"
+PERM_ASIGNAR_PERMISO_ROL = "asignar_permiso_rol"
+PERM_DESASIGNAR_PERMISO_ROL = "desasignar_permiso_rol"
 
 
 def get_permission_display_name(codename: str) -> str:
@@ -243,5 +247,9 @@ def get_permission_display_name(codename: str) -> str:
         # Asociación de clientes
         PERM_ASOCIAR_CLIENTE: "Asociar cliente a usuario",
         PERM_DESASOCIAR_CLIENTE: "Desasociar cliente de usuario",
+        # Roles / gestión de permisos sobre roles
+        PERM_VIEW_ROL: "Ver roles",
+        PERM_ASIGNAR_PERMISO_ROL: "Asignar permiso a rol",
+        PERM_DESASIGNAR_PERMISO_ROL: "Desasignar permiso de rol",
     }
     return permission_names.get(codename, codename)

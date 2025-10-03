@@ -19,6 +19,7 @@ from apps.seguridad.permissions import (
     PERM_ADD_CLIENTE,
     PERM_ADD_ENTIDADFINANCIERA,
     PERM_ADD_USUARIO,
+    PERM_ASIGNAR_PERMISO_ROL,
     PERM_ASOCIAR_CLIENTE,
     PERM_CHANGE_CLIENTE,
     PERM_CHANGE_COMISIONES,
@@ -28,8 +29,10 @@ from apps.seguridad.permissions import (
     PERM_DELETE_CLIENTE,
     PERM_DELETE_ENTIDADFINANCIERA,
     PERM_DELETE_USUARIO,
+    PERM_DESASIGNAR_PERMISO_ROL,
     PERM_DESASOCIAR_CLIENTE,
     PERM_VIEW_CLIENTE,
+    PERM_VIEW_ROL,
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
@@ -304,7 +307,7 @@ def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 # CRUD de Roles
-@permission_required(PERM_CHANGE_USUARIO)
+@permission_required(PERM_VIEW_ROL)
 def rol_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de roles (grupos) y sus permisos asociados.
 
@@ -367,7 +370,7 @@ def rol_list(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
-@permission_required(PERM_CHANGE_USUARIO)
+@permission_required(PERM_ASIGNAR_PERMISO_ROL)
 def rol_asignar_permiso(request: HttpRequest, rol_id: int) -> HttpResponse:
     """Asigna un permiso a un rol (grupo).
 
@@ -405,7 +408,7 @@ def rol_asignar_permiso(request: HttpRequest, rol_id: int) -> HttpResponse:
 
 
 @require_POST
-@permission_required(PERM_CHANGE_USUARIO)
+@permission_required(PERM_DESASIGNAR_PERMISO_ROL)
 def rol_desasignar_permiso(request: HttpRequest, rol_id: int, permiso_id: int) -> HttpResponse:
     """Desasigna un permiso de un rol (grupo).
 
@@ -544,7 +547,7 @@ def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@permission_required(PERM_CHANGE_CLIENTE)
+@permission_required(PERM_ASOCIAR_CLIENTE)
 def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     """Muestra el formulario para asociar un cliente a un usuario.
 

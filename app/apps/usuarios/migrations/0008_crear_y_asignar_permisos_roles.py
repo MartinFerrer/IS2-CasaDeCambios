@@ -36,6 +36,9 @@ def asignar_permisos(apps, schema_editor):
         ("generate_reportes", "Generar reportes", "transacciones", "transaccion"),
         ("asociar_cliente", "Asociar cliente a usuario", "usuarios", "usuario"),
         ("desasociar_cliente", "Desasociar cliente de usuario", "usuarios", "usuario"),
+        ("view_rol", "Ver roles", "auth", "group"),
+        ("asignar_permiso_rol", "Asignar permiso a rol", "auth", "group"),
+        ("desasignar_permiso_rol", "Desasignar permiso de rol", "auth", "group"),
     ]
 
     for codename, nombre, app_label, model in custom_permisos:
