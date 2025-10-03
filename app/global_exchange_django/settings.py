@@ -128,13 +128,21 @@ AUTH_PASSWORD_VALIDATORS = [
     # },
 ]
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "es-PY"  # Español de Paraguay
 
-TIME_ZONE = "America/Argentina/Buenos_Aires"
+USE_L10N = True  # Habilitar localización de formatos de número, fecha, etc.
 
-USE_I18N = True
+USE_THOUSAND_SEPARATOR = True
 
-USE_TZ = True
+# Forzar localización incluso en DEBUG=True
+FORMAT_MODULE_PATH = [
+    'global_exchange_django.locale',
+]
+
+# Directorio de locales personalizados
+LOCALE_PATHS = [
+    BASE_DIR / "global_exchange_django" / "locale",
+]
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]

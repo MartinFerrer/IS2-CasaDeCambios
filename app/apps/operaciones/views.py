@@ -13,6 +13,7 @@ from forex_python.converter import CurrencyCodes
 
 from .forms import DivisaForm, TasaCambioForm
 from .models import Divisa, TasaCambio, TasaCambioHistorial
+from .templatetags.custom_filters import strip_trailing_zeros
 from .utils import get_flag_url_from_currency
 
 
@@ -216,11 +217,11 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
             # Verificar si hubo cambios reales
             cambios = []
             if tasa.precio_base != valores_originales["precio_base"]:
-                cambios.append(f"Precio base: {valores_originales['precio_base']} → {tasa.precio_base}")
+                cambios.append(f"Precio base: {strip_trailing_zeros(valores_originales['precio_base'])} → {strip_trailing_zeros(tasa.precio_base)}")
             if tasa.comision_compra != valores_originales["comision_compra"]:
-                cambios.append(f"Comisión compra: {valores_originales['comision_compra']} → {tasa.comision_compra}")
+                cambios.append(f"Comisión compra: {strip_trailing_zeros(valores_originales['comision_compra'])} → {strip_trailing_zeros(tasa.comision_compra)}")
             if tasa.comision_venta != valores_originales["comision_venta"]:
-                cambios.append(f"Comisión venta: {valores_originales['comision_venta']} → {tasa.comision_venta}")
+                cambios.append(f"Comisión venta: {strip_trailing_zeros(valores_originales['comision_venta'])} → {strip_trailing_zeros(tasa.comision_venta)}")
             if tasa.activo != valores_originales["activo"]:
                 cambios.append(
                     f"Estado: {'Activo' if valores_originales['activo'] else 'Inactivo'} → {'Activo' if tasa.activo else 'Inactivo'}"

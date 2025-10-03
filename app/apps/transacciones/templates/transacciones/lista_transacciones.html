@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% load static %}
 {% block title %}
     Mis Transacciones
@@ -163,18 +164,18 @@
                                         </td>
                                         <td>
                                             <div class="font-mono">
-                                                {{ transaccion.monto_origen|floatformat:2 }}
+                                                {{ transaccion.monto_origen|strip_trailing_zeros }}
                                                 <span class="text-xs text-gray-500">{{ transaccion.divisa_origen.codigo }}</span>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="font-mono font-semibold">
-                                                {{ transaccion.monto_destino|floatformat:0 }}
+                                                {{ transaccion.monto_destino|strip_trailing_zeros }}
                                                 <span class="text-xs text-gray-500">{{ transaccion.divisa_destino.codigo }}</span>
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="font-mono text-xs">{{ transaccion.tasa_aplicada|floatformat:4 }}</div>
+                                            <div class="font-mono text-xs">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</div>
                                         </td>
                                         <td>
                                             <div class="text-xs">

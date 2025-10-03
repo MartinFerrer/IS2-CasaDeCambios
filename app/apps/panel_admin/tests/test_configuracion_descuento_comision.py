@@ -3,8 +3,9 @@
 from decimal import Decimal
 
 import pytest
-from apps.usuarios.models import TipoCliente
 from django.urls import reverse
+
+from apps.usuarios.models import TipoCliente
 
 
 @pytest.mark.django_db
@@ -30,15 +31,17 @@ class TestPanelAdminConfiguracion:
 
         content = resp.content
 
-        # Buscamos los inputs por name (usando pk) y que el value contenga el valor esperado con 1 decimal
+        # Buscamos los inputs por name (usando pk) y que el value contenga el valor esperado
+        # El template usa strip_trailing_zeros que elimina decimales innecesarios
         assert f'name="descuento_comision_{self.minorista.pk}"'.encode() in content
-        assert f'value="{self.minorista.descuento_sobre_comision:.1f}"'.encode() in content
+        # Minorista tiene 0.0, que con strip_trailing_zeros se convierte a "0"
+        assert b'value="0"' in content
 
         assert f'name="descuento_comision_{self.corporativo.pk}"'.encode() in content
-        assert f'value="{self.corporativo.descuento_sobre_comision:.1f}"'.encode() in content
+        assert b'value="5"' in content  # 5.0 se convierte a "5"
 
         assert f'name="descuento_comision_{self.vip.pk}"'.encode() in content
-        assert f'value="{self.vip.descuento_sobre_comision:.1f}"'.encode() in content
+        assert b'value="10"' in content  # 10.0 se convierte a "10"
 
     def test_guardar_comisiones_actualiza_los_valores(self, client):
         """Al postear el formulario, los valores en BD deben actualizarse."""

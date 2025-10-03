@@ -3,8 +3,9 @@
 from decimal import Decimal
 
 import pytest
-from apps.transacciones.models import EntidadFinanciera
 from django.core.exceptions import ValidationError
+
+from apps.transacciones.models import EntidadFinanciera
 
 
 @pytest.mark.django_db
@@ -93,7 +94,7 @@ class TestEntidadFinanciera:
         with pytest.raises(ValidationError) as exc_info:
             EntidadFinanciera.objects.create(nombre="Banco Nacional", tipo="banco")
 
-        assert "Entidad Financiera with this Nombre and Tipo already exists" in str(exc_info.value)
+        assert "Entidad Financiera con este Nombre y Tipo ya existe" in str(exc_info.value)
 
     def test_different_names_same_type_allowed(self):
         """Test que se permite diferentes nombres con mismo tipo."""

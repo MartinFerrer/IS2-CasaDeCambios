@@ -8,14 +8,16 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.usuarios.models import Cliente
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 
@@ -1174,9 +1176,9 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
             return {
                 "valid": False,
                 "error_message": f"Límite diario excedido. "
-                f"Límite: ₲{limite_config.limite_diario:,.0f}, "
-                f"Usado hoy: ₲{monto_dia_pyg:,.0f}, "
-                f"Nuevo total sería: ₲{nuevo_monto_dia:,.0f}",
+                f"Límite: ₲{strip_trailing_zeros(limite_config.limite_diario, 0)}, "
+                f"Usado hoy: ₲{strip_trailing_zeros(monto_dia_pyg, 0)}, "
+                f"Nuevo total sería: ₲{strip_trailing_zeros(nuevo_monto_dia, 0)}",
                 "limits_info": {
                     "limite_diario": float(limite_config.limite_diario),
                     "usado_dia": float(monto_dia_pyg),
@@ -1895,4 +1897,5 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
     except Exception as e:
         print(f"Error al aceptar nueva cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)

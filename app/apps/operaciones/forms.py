@@ -50,8 +50,9 @@ class TasaCambioForm(forms.ModelForm):
         widgets = {
             "precio_base": forms.NumberInput(
                 attrs={
-                    "class": "input input-bordered w-full validator",
-                    "type": "number",
+                    "class": "input input-bordered w-full validator decimal-input",
+                    "type": "decimal",
+                    "pattern": r"^\d*\,?\d+$",
                     "min": "1",
                     "step": "0.001",
                     "required": "required",
@@ -61,8 +62,9 @@ class TasaCambioForm(forms.ModelForm):
             ),
             "comision_compra": forms.NumberInput(
                 attrs={
-                    "class": "input input-bordered w-full validator",
-                    "type": "number",
+                    "class": "input input-bordered w-full validator decimal-input",
+                    "type": "decimal",
+                    "pattern": r"^\d*\,?\d+$",
                     "min": "0",
                     "step": "0.001",
                     "required": "required",
@@ -72,8 +74,9 @@ class TasaCambioForm(forms.ModelForm):
             ),
             "comision_venta": forms.NumberInput(
                 attrs={
-                    "class": "input input-bordered w-full validator",
-                    "type": "number",
+                    "class": "input input-bordered w-full validator decimal-input",
+                    "type": "decimal",
+                    "pattern": r"^\d*\,?\d+$",
                     "min": "0",
                     "step": "0.001",
                     "required": "required",

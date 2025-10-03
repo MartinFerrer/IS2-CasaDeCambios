@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% block title %}
     Configuración del Sistema
 {% endblock title %}
@@ -34,14 +35,15 @@
                                 <label class="label row">
                                     <span class="label-text">Cliente {{ tipo_cliente.nombre }} (%)</span>
                                 </label>
-                                <input type="number"
+                                <input type="decimal"
                                        name="descuento_comision_{{ tipo_cliente.pk }}"
                                        min="0"
+                                       pattern="^\d{1,2}(,\d)?$"
                                        max="20"
                                        step="0.1"
-                                       class="input input-bordered"
-                                       title="Debe ser entre 0 y 20"
-                                       value="{{ tipo_cliente.descuento_sobre_comision | floatformat:1 }}"
+                                       class="input input-bordered decimal-input"
+                                       title="Debe ser entre 0 y 20, máximo 1 decimal"
+                                       value="{{ tipo_cliente.descuento_sobre_comision | strip_trailing_zeros }}"
                                        required>
                             {% endfor %}
                         </div>
@@ -73,10 +75,10 @@
                                 <h3 class="font-bold">Límites Actuales</h3>
                                 <div class="text-sm">
                                     <p>
-                                        <strong>Límite Diario:</strong> ₲{{ limite_actual.limite_diario|floatformat:0 }}
+                                        <strong>Límite Diario:</strong> ₲{{ limite_actual.limite_diario|strip_trailing_zeros:0 }}
                                     </p>
                                     <p>
-                                        <strong>Límite Mensual:</strong> ₲{{ limite_actual.limite_mensual|floatformat:0 }}
+                                        <strong>Límite Mensual:</strong> ₲{{ limite_actual.limite_mensual|strip_trailing_zeros:0 }}
                                     </p>
                                     <p>
                                         <strong>Última Modificación:</strong> {{ limite_actual.fecha_modificacion|date:"d/m/Y H:i" }}
@@ -108,7 +110,6 @@
                                    step="1"
                                    class="input input-bordered"
                                    placeholder="Ej: 10000000"
-                                   value="{% if limite_actual %}{{ limite_actual.limite_diario|floatformat:0 }}{% endif %}"
                                    required>
                             <label class="label row">
                                 <span class="label-text">Límite Mensual (₲)</span>
@@ -119,7 +120,6 @@
                                    step="1"
                                    class="input input-bordered"
                                    placeholder="Ej: 100000000"
-                                   value="{% if limite_actual %}{{ limite_actual.limite_mensual|floatformat:0 }}{% endif %}"
                                    required>
                         </div>
                         <!-- Botones de acción -->
@@ -192,8 +192,8 @@
                                                 <div class="badge badge-warning">Billetera</div>
                                             {% endif %}
                                         </td>
-                                        <td>{{ entidad.comision_compra }}%</td>
-                                        <td>{{ entidad.comision_venta }}%</td>
+                                        <td>{{ entidad.comision_compra|strip_trailing_zeros }}%</td>
+                                        <td>{{ entidad.comision_venta|strip_trailing_zeros }}%</td>
                                         <td>
                                             {% if entidad.activo %}
                                                 <div class="badge badge-success">Activo</div>
@@ -284,24 +284,26 @@
                         <label class="label">
                             <span class="label-text">Comisión Compra (%)</span>
                         </label>
-                        <input type="number"
+                        <input type="decimal"
                                name="comision_compra"
+                               pattern="^\d*\,?\d+$"
                                step="0.01"
                                min="0"
-                               placeholder="0.00"
-                               class="input input-bordered"
+                               placeholder="0,00"
+                               class="input input-bordered decimal-input"
                                required />
                     </div>
                     <div class="form-control">
                         <label class="label">
                             <span class="label-text">Comisión Venta (%)</span>
                         </label>
-                        <input type="number"
+                        <input type="decimal"
                                name="comision_venta"
+                               pattern="^\d*\,?\d+$"
                                step="0.01"
                                min="0"
-                               placeholder="0.00"
-                               class="input input-bordered"
+                               placeholder="0,00"
+                               class="input input-bordered decimal-input"
                                required />
                     </div>
                 </div>
@@ -366,24 +368,26 @@
                             <label class="label">
                                 <span class="label-text">Comisión Compra (%)</span>
                             </label>
-                            <input type="number"
+                            <input type="decimal"
                                    name="comision_compra"
+                                   pattern="^\d*\,?\d+$"
                                    value="{{ entidad.comision_compra }}"
                                    step="0.01"
                                    min="0"
-                                   class="input input-bordered"
+                                   class="input input-bordered decimal-input"
                                    required />
                         </div>
                         <div class="form-control">
                             <label class="label">
                                 <span class="label-text">Comisión Venta (%)</span>
                             </label>
-                            <input type="number"
+                            <input type="decimal"
                                    name="comision_venta"
+                                   pattern="^\d*\,?\d+$"
                                    value="{{ entidad.comision_venta }}"
                                    step="0.01"
                                    min="0"
-                                   class="input input-bordered"
+                                   class="input input-bordered decimal-input"
                                    required />
                         </div>
                     </div>
@@ -459,8 +463,8 @@
                         {% for limite in historial_limites %}
                             <tr>
                                 <td>{{ limite.fecha_modificacion|date:"d/m/Y H:i" }}</td>
-                                <td>₲{{ limite.limite_diario|floatformat:0 }}</td>
-                                <td>₲{{ limite.limite_mensual|floatformat:0 }}</td>
+                                <td>₲{{ limite.limite_diario|strip_trailing_zeros:0 }}</td>
+                                <td>₲{{ limite.limite_mensual|strip_trailing_zeros:0 }}</td>
                             </tr>
                         {% empty %}
                             <tr>

@@ -8,29 +8,23 @@ Filtros incluidos:
 - strip_trailing_zeros: elimina los ceros finales de números decimales
 """
 
-from decimal import Decimal
 
 from django import template
+from django.utils.formats import number_format
 
 register = template.Library()
 
 
-@register.filter
-def strip_trailing_zeros(value):
-    """Elimina los ceros a la derecha de un número Decimal.
-
-    Args:
-        value (Decimal): El valor decimal a formatear.
-    Retorna:
-        str: El valor como cadena sin ceros a la derecha.
-        Ejemplo: 100.00 -> 100, 150.50 -> 150.5
+@register.filter(name="strip_trailing_zeros")
+def strip_trailing_zeros(value, decimal_pos=-99):
+    """Formatea el número con separadores de miles y hasta `decimal_pos` decimales,
+    pero elimina ceros innecesarios al final.
 
     """
-    if isinstance(value, (Decimal, float)):
-        # Convierte el valor a una cadena y elimina los ceros finales y el punto decimal
-        # si es el último carácter.
-        s = f"{value:f}"
-        if "." in s:
-            s = s.rstrip("0").rstrip(".")
-        return s
-    return value
+    if(decimal_pos == -99):
+        s = number_format(value, use_l10n=True)
+    else:
+        s = number_format(value, decimal_pos=decimal_pos, use_l10n=True)
+    if ',' in s:  # quitar ceros extra
+        s = s.rstrip('0').rstrip(',')
+    return s

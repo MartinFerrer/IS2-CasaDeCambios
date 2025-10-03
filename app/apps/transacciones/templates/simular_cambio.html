@@ -118,12 +118,13 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <input type="number"
+                                    <input type="decimal"
                                            id="monto-input"
                                            name="monto"
+                                           pattern="^\d*\,?\d+$"
                                            min="1"
                                            step="0.01"
-                                           class="input input-bordered w-full text-left ml-0"
+                                           class="input input-bordered w-full text-left ml-0 decimal-input"
                                            placeholder="Ingrese el monto (mínimo 1)"
                                            required>
                                 </div>
@@ -258,22 +259,68 @@
 
             function formatNumber(value, currency) {
                 const dec = isoDecimals[currency] !== undefined ? isoDecimals[currency] : 2;
-                return Number(value).toLocaleString(undefined, {
-                    minimumFractionDigits: dec,
-                    maximumFractionDigits: dec
-                });
+                const num = Number(value);
+                if (!isFinite(num)) return value;
+                
+                // Separar la parte entera y decimal
+                const [integerPart, decimalPart] = num.toFixed(dec).split('.');
+                
+                // Formatear parte entera con espacios como separadores de miles
+                const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                
+                // Combinar con coma como separador decimal
+                if (dec > 0) {
+                    return `${formattedInteger},${decimalPart}`;
+                } else {
+                    return formattedInteger;
+                }
             }
 
             // Formatea la tasa mostrando los decimales necesarios y quitando ceros finales
             function formatRate(rate) {
-                // rate puede venir como string o número
                 const num = Number(rate);
                 if (!isFinite(num)) return rate;
-                // convertir a string con máximo 12 decimales para no perder precisión
+                
+                // Obtener representación con suficientes decimales
                 let s = num.toFixed(12);
-                // quitar ceros finales y punto si corresponde
+                // Quitar ceros finales y punto si corresponde
                 s = s.replace(/(?:\.0+|(?<=\.[0-9]*?)0+)$/, '');
-                return s;
+                
+                // Convertir a formato latinoamericano
+                const [integerPart, decimalPart] = s.split('.');
+                const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                
+                if (decimalPart) {
+                    return `${formattedInteger},${decimalPart}`;
+                } else {
+                    return formattedInteger;
+                }
+            }
+
+            // Parsear input en formato latinoamericano a número
+            function parseInputNumber(value) {
+                if (!value) return 0;
+                // Remover espacios (separadores de miles) y reemplazar coma por punto
+                const normalized = value.replace(/\s/g, '').replace(',', '.');
+                return parseFloat(normalized) || 0;
+            }
+
+            // Formatear input en tiempo real
+            function formatInputNumber(value) {
+                
+                // Separar parte entera y decimal
+                const [integerPart, decimalPart] = value.split(',');
+                
+                // Formatear parte entera con espacios
+                const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                
+                // Limitar decimales a 2 dígitos
+                if (decimalPart !== undefined) {
+                    const limitedDecimal = decimalPart.substring(0, 2);
+                    return `${formattedInteger},${limitedDecimal}`;
+                } else {
+                    return formattedInteger;
+                }
             }
 
             // Obtener tipo de operación seleccionado
@@ -371,7 +418,7 @@
 
             // Realizar simulación
             async function performSimulation() {
-                const monto = parseFloat(montoInput.value) || 0;
+                const monto = parseInputNumber(montoInput.value);
                 const divisa = divisaSelect.value;
                 const tipo = getTipoOperacion();
 
@@ -473,7 +520,32 @@
             });
 
             divisaSelect.addEventListener('change', performSimulation);
-            montoInput.addEventListener('input', performSimulation);
+            
+            // Event listeners para formateo en tiempo real del input de monto
+            montoInput.addEventListener('input', function(e) {
+                const cursorPosition = e.target.selectionStart;
+                const oldValue = e.target.value;
+                const newValue = formatInputNumber(oldValue);
+                
+                if (newValue !== oldValue) {
+                    e.target.value = newValue;
+                    // Ajustar posición del cursor
+                    const lengthDiff = newValue.length - oldValue.length;
+                    const newCursorPosition = cursorPosition + lengthDiff;
+                    e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+                }
+                
+                performSimulation();
+            });
+            
+            // Prevenir caracteres no válidos
+            montoInput.addEventListener('keypress', function(e) {
+                const char = String.fromCharCode(e.which);
+                if (!/[\d, ]/.test(char) && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                }
+            });
+            
             metodoPagoSelect.addEventListener('change', performSimulation);
             metodoCobroSelect.addEventListener('change', performSimulation);
 
@@ -489,7 +561,7 @@
                     const tipoOperacion = getTipoOperacion();
                     const divisaOrigen = tipoOperacion === 'compra' ? 'USD' : divisaSelect.value;
                     const divisaDestino = tipoOperacion === 'compra' ? divisaSelect.value : 'USD';
-                    const monto = montoInput.value;
+                    const monto = parseInputNumber(montoInput.value);
                     const metodoPago = metodoPagoSelect.value;
                     const metodoCobro = metodoCobroSelect.value;
 
