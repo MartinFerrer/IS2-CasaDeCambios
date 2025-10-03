@@ -23,22 +23,30 @@ from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
 from apps.seguridad.decorators import admin_required, permission_required
 from apps.seguridad.permissions import (
     PERM_ADD_CLIENTE,
+    PERM_ADD_DIVISA,
     PERM_ADD_ENTIDADFINANCIERA,
+    PERM_ADD_TASACAMBIO,
     PERM_ADD_USUARIO,
     PERM_ASIGNAR_PERMISO_ROL,
     PERM_ASOCIAR_CLIENTE,
     PERM_CHANGE_CLIENTE,
     PERM_CHANGE_COMISIONES,
+    PERM_CHANGE_DIVISA,
     PERM_CHANGE_ENTIDADFINANCIERA,
     PERM_CHANGE_LIMITETRANSACCIONES,
+    PERM_CHANGE_TASACAMBIO,
     PERM_CHANGE_USUARIO,
     PERM_DELETE_CLIENTE,
+    PERM_DELETE_DIVISA,
     PERM_DELETE_ENTIDADFINANCIERA,
     PERM_DELETE_USUARIO,
     PERM_DESASIGNAR_PERMISO_ROL,
     PERM_DESASOCIAR_CLIENTE,
     PERM_VIEW_CLIENTE,
+    PERM_VIEW_DIVISA,
     PERM_VIEW_ROL,
+    PERM_VIEW_TASACAMBIO,
+    PERM_VIEW_TASACAMBIOHISTORIAL,
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
@@ -642,6 +650,7 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
 # Sección de Divisas:
 
 
+@permission_required(PERM_ADD_DIVISA)
 def crear_divisa(request):
     """View para crear una nueva divisa.
 
@@ -675,6 +684,7 @@ def crear_divisa(request):
     return render(request, "divisa_list.html", {"form": form})
 
 
+@permission_required(PERM_CHANGE_DIVISA)
 def edit_divisa(request, pk):
     """View para editar una divisa existente.
 
@@ -696,6 +706,7 @@ def edit_divisa(request, pk):
     return redirect("divisa_list")
 
 
+@permission_required(PERM_DELETE_DIVISA)
 def delete_divisa(request, pk):
     """View para eliminar una divisa específica.
 
@@ -713,6 +724,7 @@ def delete_divisa(request, pk):
     return redirect("divisa_detail", pk=pk)
 
 
+@permission_required(PERM_VIEW_DIVISA)
 def divisa_detail(request, pk):
     """View para mostrar los detalles de una divisa específica.
 
@@ -727,6 +739,7 @@ def divisa_detail(request, pk):
     return render(request, "divisa_detalle.html", {"divisa": divisa})
 
 
+@permission_required(PERM_VIEW_DIVISA)
 def divisa_listar(request: HttpRequest) -> object:
     """Muestra el listado de todas las divisas en el sistema.
 
@@ -743,6 +756,7 @@ def divisa_listar(request: HttpRequest) -> object:
     return render(request, "divisa_list.html", {"object_list": divisas})
 
 
+@permission_required(PERM_VIEW_DIVISA)
 def obtener_divisas(request: HttpRequest) -> JsonResponse:
     """Obtiene las divisas disponibles en el sistema y las devuelve como un JSON.
 
@@ -906,6 +920,7 @@ def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
 # CRUD Tasas de Cambio
 
 
+@permission_required(PERM_VIEW_TASACAMBIO)
 def tasa_cambio_listar(request: HttpRequest) -> object:
     """Renderiza la página de listado de tasas de cambio.
 
@@ -920,6 +935,7 @@ def tasa_cambio_listar(request: HttpRequest) -> object:
     return render(request, "tasa_cambio_list.html", {"tasas_de_cambio": tasas})
 
 
+@permission_required(PERM_ADD_TASACAMBIO)
 def tasa_cambio_crear(request: HttpRequest):
     """Crea una nueva tasa de cambio.
 
@@ -952,6 +968,7 @@ def tasa_cambio_crear(request: HttpRequest):
     return render(request, "tasa_cambio_form.html", {"form": form})
 
 
+@permission_required(PERM_CHANGE_TASACAMBIO)
 def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
     """Edita una tasa de cambio existente y guarda los cambios en el historial.
 
@@ -986,7 +1003,10 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
                 cambios.append(f"Comisión venta: {valores_originales['comision_venta']} → {tasa.comision_venta}")
             if tasa.activo != valores_originales["activo"]:
                 cambios.append(
-                    f"Estado: {'Activo' if valores_originales['activo'] else 'Inactivo'} → {'Activo' if tasa.activo else 'Inactivo'}"
+                    "Estado: "
+                    + ("Activo" if valores_originales["activo"] else "Inactivo")
+                    + " → "
+                    + ("Activo" if tasa.activo else "Inactivo")
                 )
 
             # Solo guardar en historial si hubo cambios
@@ -1015,6 +1035,7 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
     return render(request, "tasa_cambio_form.html", {"form": form})
 
 
+@permission_required(PERM_CHANGE_TASACAMBIO)
 def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
     """Desactiva una tasa de cambio existente.
 
@@ -1046,6 +1067,7 @@ def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
     return redirect("tasa_cambio_listar")
 
 
+@permission_required(PERM_CHANGE_TASACAMBIO)
 def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
     """Activa una tasa de cambio existente.
 
@@ -1077,6 +1099,7 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
     return redirect("tasa_cambio_listar")
 
 
+@permission_required(PERM_VIEW_TASACAMBIOHISTORIAL)
 def tasa_cambio_historial_listar(request: HttpRequest) -> object:
     """Renderiza la página de listado del historial de tasas de cambio con filtros.
 
