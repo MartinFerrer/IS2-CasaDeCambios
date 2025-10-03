@@ -11,8 +11,7 @@ from . import views
 app_name = "operaciones"
 
 urlpatterns = [
-    path("admin/tasas/historial/", views.tasa_cambio_historial_listar, name="tasa_cambio_historial_listar"),
-    path("admin/tasas/historial/", views.historial_tasas_api, name="historial_tasas_api"),
+    path("tasas/historial/api/", views.historial_tasas_api, name="historial_tasas_api"),
     # API endpoint para obtener tasas de cambio actuales
     path("tasas/api/", views.tasas_cambio_api, name="tasas_cambio_api"),
 ]

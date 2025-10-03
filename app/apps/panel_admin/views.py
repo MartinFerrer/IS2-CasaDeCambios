@@ -7,19 +7,21 @@ así como la lógica de asociación entre Cliente y Usuario.
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 import pycountry
-from apps.operaciones.forms import DivisaForm, TasaCambioForm
-from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
-from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
-from apps.usuarios.models import Cliente, TipoCliente, Usuario
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from forex_python.converter import CurrencyCodes
+
+from apps.operaciones.forms import DivisaForm, TasaCambioForm
+from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
+from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
+from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
 from .forms import ClienteForm, UsuarioForm
 
@@ -910,3 +912,50 @@ def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
             fecha_registro=timezone.now(),
         )
     return redirect("tasa_cambio_listar")
+
+def tasa_cambio_historial_listar(request: HttpRequest) -> object:
+    """Renderiza la página de listado del historial de tasas de cambio con filtros.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        HttpResponse: Renderiza el template tasa_cambio_historial_list.html con el contexto del historial filtrado.
+
+    """
+    from datetime import datetime
+
+    historial = TasaCambioHistorial.objects.all().order_by("-fecha_registro")
+
+    # Filtros
+    fecha_inicio = request.GET.get("fecha_inicio")
+    fecha_fin = request.GET.get("fecha_fin")
+    divisa = request.GET.get("divisa")
+    motivo = request.GET.get("motivo")
+
+    if fecha_inicio:
+        historial = historial.filter(fecha_registro__gte=fecha_inicio)
+    if fecha_fin:
+        # Hacer que la fecha de fin sea inclusiva hasta el final del día
+        try:
+            fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d")
+            fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+            historial = historial.filter(fecha_registro__lte=fecha_fin_dt)
+        except Exception:
+            historial = historial.filter(fecha_registro__lte=fecha_fin)
+    if divisa:
+        historial = historial.filter(Q(divisa_origen__codigo=divisa) | Q(divisa_destino__codigo=divisa))
+    if motivo:
+        historial = historial.filter(motivo__icontains=motivo)
+
+    # Obtener motivos únicos (sin duplicados)
+    motivos_queryset = TasaCambioHistorial.objects.values_list("motivo", flat=True).distinct()
+    motivos_unicos = sorted(set(motivos_queryset))
+
+    context = {
+        "historial": historial,
+        "divisas": Divisa.objects.all(),  # Para el filtro de divisas
+        "motivos": motivos_unicos,  # Motivos únicos para el filtro
+    }
+
+    return render(request, "tasa_cambio_historial_list.html", context)

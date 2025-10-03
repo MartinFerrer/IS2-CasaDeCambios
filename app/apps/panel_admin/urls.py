@@ -44,4 +44,7 @@ urlpatterns = [
     path("tasas/<str:pk>/editar/", views.tasa_cambio_editar, name="tasa_cambio_editar"),
     path("tasas/<str:pk>/desactivar/", views.tasa_cambio_desactivar, name="tasa_cambio_desactivar"),
     path("tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
+    # URLs para historial de tasas de cambio
+    path("tasas/historial/", views.tasa_cambio_historial_listar, name="tasa_cambio_historial_listar"),
+
 ]
