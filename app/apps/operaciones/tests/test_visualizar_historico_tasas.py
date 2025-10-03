@@ -44,17 +44,18 @@ def test_historial_tasas_api(client):
     if response.get("Content-Type").startswith("application/json"):
         data = response.json()
         assert "historial" in data
-        assert isinstance(data["historial"], list)
-        # Debe haber al menos una tasa de cambio
-        assert len(data["historial"]) > 0
-        # Verificar estructura de cada elemento de la lista
-        for tasa in data["historial"]:
-            assert "divisa_origen" in tasa
-            assert "divisa_destino" in tasa
-            assert "precio_base" in tasa
-            assert "comision_compra" in tasa
-            assert "comision_venta" in tasa
-            assert "activo" in tasa
+        assert isinstance(data["historial"], dict)
+        # Verificar estructura de cada divisa en el historial
+        # El historial es un dict donde las claves son códigos de divisa
+        # y los valores son dicts con fechas, compra y venta
+        for codigo_divisa, datos_divisa in data["historial"].items():
+            assert isinstance(codigo_divisa, str)
+            assert "fechas" in datos_divisa
+            assert "compra" in datos_divisa
+            assert "venta" in datos_divisa
+            assert isinstance(datos_divisa["fechas"], list)
+            assert isinstance(datos_divisa["compra"], list)
+            assert isinstance(datos_divisa["venta"], list)
     else:
         # Si devuelve HTML, hay un error en la vista - imprimir contenido para debug
         print(f"Vista devolvió HTML en lugar de JSON. Content-Type: {response.get('Content-Type')}")

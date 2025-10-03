@@ -38,15 +38,14 @@
                        class="hover:bg-blue-700 rounded-md">Asociar Cliente a Usuario</a>
                 </li>
                 <li>
-                    <a href="{% url 'operaciones:divisa_list' %}"
-                       class="hover:bg-blue-700 rounded-md">Divisas</a>
+                    <a href="{% url 'divisa_list' %}" class="hover:bg-blue-700 rounded-md">Divisas</a>
                 </li>
                 <li>
-                    <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                    <a href="{% url 'tasa_cambio_listar' %}"
                        class="hover:bg-blue-700 rounded-md">Tasas de Cambio</a>
                 </li>
                 <li>
-                    <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+                    <a href="{% url 'tasa_cambio_historial_listar' %}"
                        class="hover:bg-blue-700 rounded-md">Historial de Tasas de Cambio</a>
                 </li>
                 <li>
@@ -98,11 +97,11 @@
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Clientes</a>
             <a href="{% url 'asociar_cliente_usuario_form' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Asociar Cliente a Usuario</a>
-            <a href="{% url 'operaciones:divisa_list' %}"
+            <a href="{% url 'divisa_list' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Divisas</a>
-            <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+            <a href="{% url 'tasa_cambio_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Tasas de Cambio</a>
-            <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+            <a href="{% url 'tasa_cambio_historial_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Historial de Tasas de Cambio</a>
             <a href="{% url 'configuracion' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Configuración</a>

@@ -21,7 +21,7 @@ class DivisaListarTest(TestCase):
         )
 
     def test_divisa_listar(self):
-        response = self.client.get(reverse("operaciones:divisa_listar"))
+        response = self.client.get(reverse("divisa_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Dólar")
         self.assertContains(response, "Euro")
