@@ -194,7 +194,6 @@ def get_permission_display_name(codename: str) -> str:
         PERM_VIEW_LIMITETRANSACCIONES: "Ver límites de transacciones",
         # Administrativos
         PERM_CHANGE_COMISIONES: "Modificar comisiones",
-        PERM_CHANGE_LIMITES: "Modificar límites del sistema",
         PERM_VIEW_REPORTES: "Ver reportes",
         PERM_GENERATE_REPORTES: "Generar reportes",
         # Sistema / admin

@@ -24,7 +24,7 @@ from apps.seguridad.permissions import (
     PERM_CHANGE_CLIENTE,
     PERM_CHANGE_COMISIONES,
     PERM_CHANGE_ENTIDADFINANCIERA,
-    PERM_CHANGE_LIMITES,
+    PERM_CHANGE_LIMITETRANSACCIONES,
     PERM_CHANGE_USUARIO,
     PERM_DELETE_CLIENTE,
     PERM_DELETE_ENTIDADFINANCIERA,
@@ -56,7 +56,7 @@ def panel_inicio(request: HttpRequest) -> HttpResponse:
     return render(request, "panel_inicio.html")
 
 
-@permission_required(PERM_CHANGE_COMISIONES, PERM_CHANGE_LIMITES)
+@permission_required(PERM_CHANGE_COMISIONES, PERM_CHANGE_LIMITETRANSACCIONES, PERM_CHANGE_ENTIDADFINANCIERA)
 def configuracion(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de configuracion de opciones.
 
@@ -147,7 +147,7 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
-@permission_required(PERM_CHANGE_LIMITES)
+@permission_required(PERM_CHANGE_LIMITETRANSACCIONES)
 def guardar_limites(request: HttpRequest) -> HttpResponse:
     """Guarda los límites de transacciones enviados por el formulario.
 
