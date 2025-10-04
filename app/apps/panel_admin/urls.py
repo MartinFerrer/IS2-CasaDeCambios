@@ -20,6 +20,12 @@ urlpatterns = [
     path("usuarios/<int:pk>/editar/", views.usuario_edit, name="usuario_editar"),
     path("usuarios/<int:pk>/eliminar/", views.usuario_delete, name="usuario_eliminar"),
     path("roles/", views.rol_list, name="rol_listar"),
+    path("roles/<int:rol_id>/asignar_permiso/", views.rol_asignar_permiso, name="rol_asignar_permiso"),
+    path(
+        "roles/<int:rol_id>/desasignar_permiso/<int:permiso_id>/",
+        views.rol_desasignar_permiso,
+        name="rol_desasignar_permiso",
+    ),
     path("clientes/", views.cliente_list, name="cliente_listar"),
     path("clientes/crear/", views.cliente_create, name="cliente_crear"),
     path("clientes/<int:pk>/editar/", views.cliente_edit, name="cliente_editar"),

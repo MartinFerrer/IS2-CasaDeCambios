@@ -84,6 +84,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.seguridad.context_processors.user_context",
             ],
         },
     },
@@ -167,7 +168,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://127.0.0.1",
     "http://localhost:8000",  # Dev environment
     "http://localhost:8080",  # Prod environment (nginx)
-    "https://localhost:4443", # Prod environment (nginx HTTPS)
+    "https://localhost:4443",  # Prod environment (nginx HTTPS)
     "https://global-exchange-2000226d6e82.herokuapp.com",
 ]
 
