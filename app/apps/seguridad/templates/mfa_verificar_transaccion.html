@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Verificación MFA - Crear Transacción{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header de Alerta -->
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 text-red-600 mr-3"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 13.5c-.77.833.192 2.5 1.732 2.5z">
+                        </path>
+                    </svg>
+                    <div>
+                        <h1 class="text-xl font-bold text-red-800">Verificación de Seguridad Requerida</h1>
+                        <p class="text-red-600">Se requiere autenticación adicional para crear esta transacción</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Resumen de la Transacción -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">Resumen de la Transacción</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-sm text-gray-500">Tipo de Operación:</span>
+                        <p class="font-medium text-gray-800 capitalize">{{ datos_transaccion.tipo_operacion }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500">Divisa:</span>
+                        <p class="font-medium text-gray-800">{{ datos_transaccion.divisa_seleccionada }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500">Monto:</span>
+                        <p class="font-medium text-gray-800">{{ datos_transaccion.monto }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500">Método de Pago:</span>
+                        <p class="font-medium text-gray-800">{{ datos_transaccion.metodo_pago|default:"efectivo" }}</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Formulario de Verificación -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                    <svg class="w-6 h-6 inline mr-2 text-red-600"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                        </path>
+                    </svg>
+                    Código de Verificación
+                </h2>
+                {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                            <div class="bg-red-100 text-red-700 p-3 rounded mb-2 text-center">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    <!-- Código MFA -->
+                    <div>
+                        <label for="{{ form.codigo.id_for_label }}"
+                               class="block text-sm font-medium text-gray-700 mb-2">{{ form.codigo.label }}</label>
+                        {{ form.codigo }}
+                        {% if form.codigo.help_text %}<p class="mt-2 text-sm text-gray-500">{{ form.codigo.help_text }}</p>{% endif %}
+                        {% if form.codigo.errors %}
+                            {% for error in form.codigo.errors %}<p class="mt-1 text-sm text-red-600">{{ error }}</p>{% endfor %}
+                        {% endif %}
+                    </div>
+                    <!-- Botones -->
+                    <div class="flex space-x-4">
+                        <button type="submit"
+                                class="flex-1 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition">
+                            <svg class="w-5 h-5 inline mr-2"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                            Verificar y Crear Transacción
+                        </button>
+                        <a href="{% url 'transacciones:realizar_transaccion' %}"
+                           class="flex-1 py-3 bg-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-400 transition text-center">
+                            <svg class="w-5 h-5 inline mr-2"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+                <!-- Información de seguridad -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 mr-2 mt-0.5"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        <div>
+                            <h3 class="font-medium text-blue-800">Información de Seguridad</h3>
+                            <p class="text-sm text-blue-700 mt-1">
+                                Este código se requiere para crear transacciones como medida de seguridad adicional.
+                                Usa tu aplicación de autenticación (Google Authenticator, Authy, etc.) para obtener el código de 6 dígitos.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Advertencia de tiempo -->
+            <div class="mt-4 text-center text-sm text-gray-500">
+                <svg class="w-4 h-4 inline mr-1"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                Los códigos TOTP son válidos por 30 segundos
+            </div>
+        </div>
+    </div>
+    <script>
+    // Auto-focus en el campo de código
+    document.addEventListener('DOMContentLoaded', function() {
+        const codigoInput = document.getElementById('{{ form.codigo.id_for_label }}');
+        if (codigoInput) {
+            codigoInput.focus();
+        }
+    });
+
+    // Solo permitir números
+    const codigoInput = document.getElementById('{{ form.codigo.id_for_label }}');
+    if (codigoInput) {
+        codigoInput.addEventListener('keypress', function(e) {
+            if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+    }
+    </script>
+{% endblock %}

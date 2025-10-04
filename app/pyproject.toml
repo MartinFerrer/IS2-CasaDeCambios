@@ -24,6 +24,8 @@ dependencies = [
     "forex-python>=1.9.2",
     "dj-database-url>=2.1.0",
     "whitenoise>=6.8.2",
+    "pyotp>=2.9.0",
+    "qrcode[pil]>=7.4.2",
 ]
 
 [project.optional-dependencies]
