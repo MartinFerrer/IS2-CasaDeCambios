@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block title %}Configurar Autenticación Multifactor - Global Exchange{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Configurar Autenticación Multifactor (MFA)</h1>
+                <p class="text-gray-600">Aumenta la seguridad de tu cuenta activando la autenticación de dos factores.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Configuración -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                        <svg class="w-6 h-6 inline mr-2 text-blue-600"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Configuración
+                    </h2>
+                    {% if messages %}
+                        <div class="mb-4">
+                            {% for message in messages %}<div class="bg-green-100 text-green-700 p-3 rounded mb-2">{{ message }}</div>{% endfor %}
+                        </div>
+                    {% endif %}
+                    <form method="post" class="space-y-4">
+                        {% csrf_token %}
+                        <!-- MFA para Login -->
+                        <div class="p-4 border border-blue-200 rounded-lg bg-blue-50">
+                            <div class="flex items-center space-x-3">
+                                {{ form.mfa_habilitado_login }}
+                                <label for="{{ form.mfa_habilitado_login.id_for_label }}"
+                                       class="text-sm font-medium text-gray-700">
+                                    {{ form.mfa_habilitado_login.label }}
+                                </label>
+                            </div>
+                            {% if form.mfa_habilitado_login.help_text %}
+                                <p class="text-xs text-gray-600 ml-7 mt-1">{{ form.mfa_habilitado_login.help_text }}</p>
+                            {% endif %}
+                        </div>
+                        <!-- MFA para Transacciones -->
+                        <div class="p-4 border border-green-200 rounded-lg bg-green-50">
+                            <div class="flex items-center space-x-3">
+                                {{ form.mfa_habilitado_transacciones }}
+                                <label for="{{ form.mfa_habilitado_transacciones.id_for_label }}"
+                                       class="text-sm font-medium text-gray-700">
+                                    {{ form.mfa_habilitado_transacciones.label }}
+                                </label>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Recomendado
+                                </span>
+                            </div>
+                            {% if form.mfa_habilitado_transacciones.help_text %}
+                                <p class="text-xs text-gray-600 ml-7 mt-1">{{ form.mfa_habilitado_transacciones.help_text }}</p>
+                            {% endif %}
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                            Guardar Configuración
+                        </button>
+                    </form>
+                    <!-- Estado actual -->
+                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <h3 class="font-semibold text-gray-800 mb-3">Estado Actual:</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center space-x-2">
+                                {% if perfil_mfa.mfa_habilitado_login %}
+                                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    <span class="text-green-700 font-medium">MFA Activado para Login</span>
+                                {% else %}
+                                    <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                    <span class="text-yellow-700 font-medium">MFA Desactivado para Login</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                {% if perfil_mfa.mfa_habilitado_transacciones %}
+                                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    <span class="text-green-700 font-medium">MFA Activado para Transacciones</span>
+                                {% else %}
+                                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                                    <span class="text-red-700 font-medium">MFA Desactivado para Transacciones</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                        ! Se recomienda activar
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Código QR -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                        <svg class="w-6 h-6 inline mr-2 text-green-600"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V4a1 1 0 00-1-1H5a1 1 0 00-1 1v3a1 1 0 001 1zm12 0h2a1 1 0 001-1V4a1 1 0 00-1-1h-2a1 1 0 00-1 1v3a1 1 0 001 1zM5 20h2a1 1 0 001-1v-3a1 1 0 00-1-1H5a1 1 0 00-1 1v3a1 1 0 001 1z">
+                            </path>
+                        </svg>
+                        Configurar Aplicación
+                    </h2>
+                    <div class="text-center">
+                        <img src="{{ qr_url }}"
+                             alt="Código QR para MFA"
+                             class="mx-auto mb-4 border rounded-lg p-2">
+                        <p class="text-sm text-gray-600 mb-4">Escanea este código QR con tu aplicación de autenticación:</p>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-center justify-center space-x-2">
+                                <span class="font-medium">Google Authenticator</span>
+                            </div>
+                            <div class="flex items-center justify-center space-x-2">
+                                <span class="font-medium">Microsoft Authenticator</span>
+                            </div>
+                            <div class="flex items-center justify-center space-x-2">
+                                <span class="font-medium">Authy</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Manual setup -->
+                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <h3 class="font-semibold text-gray-800 mb-2">Configuración Manual:</h3>
+                        <p class="text-sm text-gray-600 mb-2">Si no puedes escanear el código QR, ingresa esta clave manualmente:</p>
+                        <code class="bg-white px-2 py-1 rounded text-sm border select-all">{{ perfil_mfa.secreto_totp }}</code>
+                    </div>
+                </div>
+            </div>
+            <!-- Información importante -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mt-6">
+                <h3 class="text-lg font-semibold text-yellow-800 mb-2">
+                    <svg class="w-5 h-5 inline mr-2"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                    Información Importante
+                </h3>
+                <ul class="text-sm text-yellow-700 space-y-1">
+                    <li>
+                        • La autenticación multifactor (MFA) es <strong>obligatoria</strong> para todas las transacciones de cambio de divisas.
+                    </li>
+                    <li>• Cuando habilites MFA para login, necesitarás tu aplicación de autenticación cada vez que inicies sesión.</li>
+                    <li>• Asegúrate de hacer una copia de seguridad de tu clave secreta en un lugar seguro.</li>
+                    <li>• Si pierdes acceso a tu aplicación de autenticación, contacta al administrador del sistema.</li>
+                </ul>
+            </div>
+            <!-- Botón de regreso -->
+            <div class="mt-6 text-center">
+                <a href="{% url 'presentacion:home' %}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                    <svg class="w-4 h-4 mr-2"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver al Inicio
+                </a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
