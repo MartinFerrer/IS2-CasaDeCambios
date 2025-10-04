@@ -114,7 +114,7 @@ def login_view(request):
         user = authenticate(request, email=email, password=password)
 
         if user is not None:
-            if not user.is_active:
+            if not user.is_active or not user.activo:
                 messages.error(request, "Debes verificar tu correo antes de iniciar sesión.")
                 return redirect("seguridad:login")
 

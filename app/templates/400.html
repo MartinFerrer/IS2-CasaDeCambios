@@ -1,0 +1,27 @@
+{% extends 'error_base.html' %}
+{% block title %}Error 400 - Global Exchange{% endblock %}
+{% block body_gradient %}from-yellow-50 via-yellow-100 to-gray-50{% endblock %}
+{% block error_icon %}
+    <svg class="w-20 h-20 text-yellow-500"
+         fill="currentColor"
+         viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+        <path d="M12 2l10.5 18H1.5L12 2zm0 3L4.5 18h15L12 5zm-1 8h2v2h-2v-2zm0-6h2v4h-2V7z" />
+    </svg>
+{% endblock %}
+{% block error_title %}Solicitud Incorrecta{% endblock %}
+{% block error_code %}Error 400{% endblock %}
+{% block alert_class %}bg-yellow-50 border border-yellow-200{% endblock %}
+{% block text_class %}text-yellow-700{% endblock %}
+{% block text_muted_class %}text-yellow-600{% endblock %}
+{% block error_message %}La solicitud enviada no pudo ser procesada.{% endblock %}
+{% block error_description %}Esto puede deberse a:{% endblock %}
+{% block error_list %}
+    <ul class="text-yellow-600 text-left mt-2 space-y-1">
+        <li>• Datos del formulario inválidos o incompletos</li>
+        <li>• Formato de datos incorrecto</li>
+        <li>• Parámetros de URL malformados</li>
+        <li>• Solicitud mal estructurada</li>
+    </ul>
+{% endblock %}
