@@ -1,9 +1,11 @@
 import uuid
 
+from django.contrib.auth.models import Group
 from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Usuario
 
 
 class TasaCambioEditarTest(TestCase):
@@ -37,7 +39,15 @@ class TasaCambioEditarTest(TestCase):
             activo=True,
         )
 
+        # Crear grupo y usuario administrador para las pruebas
+        self.grupo_admin = Group.objects.get_or_create(name="Administrador")[0]
+        self.usuario_admin = Usuario.objects.create(
+            email="admin@test.com", nombre="Admin Test", password="testpass", activo=True
+        )
+        self.usuario_admin.groups.add(self.grupo_admin)
+
     def test_editar_tasa_inexistente(self):
+        self.client.force_login(self.usuario_admin)
         # Generar un UUID válido pero que no existe en la DB
         uuid_inexistente = str(uuid.uuid4())
         response = self.client.post(reverse("tasa_cambio_editar", args=[uuid_inexistente]), {})
