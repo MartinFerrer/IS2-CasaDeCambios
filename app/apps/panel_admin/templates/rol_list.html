@@ -1,6 +1,6 @@
 {# apps/panel_admin/templates/panel_admin/rol_list.html #}
 {% extends "base.html" %}
-{% block title %}Gestión de grupos{% endblock %}
+{% block title %}Gestión de Roles y Permisos{% endblock %}
 {% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
 {# Usamos header específico para admin #}
 {% block header %}
@@ -42,9 +42,19 @@
                         {% if grupo.permissions %}
                             <div class="overflow-x-auto">
                                 <h3 class="font-semibold text-gray-700 mb-2">Permisos asignados:</h3>
-                                <div class="space-y-1 max-h-64 overflow-y-auto">
+                                <div class="mb-2">
+                                    <input id="search_assigned_{{ grupo.id }}"
+                                           type="search"
+                                           placeholder="Filtrar permisos asignados..."
+                                           class="input input-sm input-bordered w-full"
+                                           oninput="filterAssigned({{ grupo.id }})" />
+                                </div>
+                                <div id="assigned_perms_{{ grupo.id }}"
+                                     class="space-y-1 max-h-64 overflow-y-auto">
                                     {% for permission in grupo.permissions %}
-                                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100">
+                                        <div class="perm-item flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100"
+                                             data-name="{{ permission.display_name|default:permission.name }}"
+                                             data-codename="{{ permission.codename }}">
                                             <div class="flex-1">
                                                 <span class="text-sm font-medium text-gray-800">{{ permission.display_name|default:permission.name }}</span>
                                                 <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded ml-2">{{ permission.codename }}</span>
@@ -99,7 +109,17 @@
                                 <label class="label">
                                     <span class="label-text font-semibold">Seleccione un permiso</span>
                                 </label>
-                                <select name="permiso_id" class="select select-bordered w-full" required>
+                                <div class="mb-2">
+                                    <input id="search_modal_{{ grupo.id }}"
+                                           type="search"
+                                           placeholder="Filtrar permisos..."
+                                           class="input input-sm input-bordered w-full"
+                                           oninput="filterModalOptions({{ grupo.id }})" />
+                                </div>
+                                <select id="select_perm_{{ grupo.id }}"
+                                        name="permiso_id"
+                                        class="select select-bordered w-full"
+                                        required>
                                     <option value="">-- Seleccione un permiso --</option>
                                     {% for app_label, permisos in permisos_por_app.items %}
                                         <optgroup label="{{ app_label|title }}">
@@ -184,4 +204,39 @@
             </div>
         </div>
     </div>
+{% endblock %}
+{% block extra_scripts %}
+    <script>
+// Filtra las opciones del select dentro del modal por texto (display_name o codename)
+function filterModalOptions(grupoId) {
+    const query = document.getElementById(`search_modal_${grupoId}`).value.toLowerCase();
+    const select = document.getElementById(`select_perm_${grupoId}`);
+    if (!select) return;
+
+    for (let i = 0; i < select.options.length; i++) {
+        const opt = select.options[i];
+        const text = (opt.text || '').toLowerCase();
+        // Mostrar siempre la opción vacía
+        if (opt.value === "") { opt.style.display = ''; continue; }
+        opt.style.display = text.indexOf(query) !== -1 ? '' : 'none';
+    }
+}
+
+// Filtra los permisos ya asignados en la lista de un rol
+function filterAssigned(grupoId) {
+    const q = document.getElementById(`search_assigned_${grupoId}`).value.toLowerCase();
+    const container = document.getElementById(`assigned_perms_${grupoId}`);
+    if (!container) return;
+    const items = container.querySelectorAll('.perm-item');
+    items.forEach((it) => {
+        const name = (it.dataset.name || '').toLowerCase();
+        const codename = (it.dataset.codename || '').toLowerCase();
+        if (name.indexOf(q) !== -1 || codename.indexOf(q) !== -1) {
+            it.style.display = '';
+        } else {
+            it.style.display = 'none';
+        }
+    });
+}
+    </script>
 {% endblock %}
