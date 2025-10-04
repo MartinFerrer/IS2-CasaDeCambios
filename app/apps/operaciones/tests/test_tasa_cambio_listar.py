@@ -43,6 +43,7 @@ class TasaCambioListarTest(TestCase):
         )
 
     def test_tasa_cambio_listar(self):
+        self.client.force_login(self.usuario_admin)
         response = self.client.get(reverse("tasa_cambio_listar"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("tasas_de_cambio", response.context)

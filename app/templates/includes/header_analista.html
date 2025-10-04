@@ -18,11 +18,11 @@
         </div>
         {# Desktop navigation with limited analyst options #}
         <div class="hidden lg:flex lg:items-center lg:space-x-4">
-            <a href="{% url 'operaciones:divisa_list' %}"
+            <a href="{% url 'divisa_list' %}"
                class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Divisas</a>
-            <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+            <a href="{% url 'tasa_cambio_listar' %}"
                class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Tasas de Cambio</a>
-            <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+            <a href="{% url 'tasa_cambio_historial_listar' %}"
                class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Historial</a>
         </div>
         {# Menú de usuario desplegable #}
@@ -74,11 +74,11 @@
         <nav class="menu p-4">
             <a href="{% url 'panel_inicio' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Inicio</a>
-            <a href="{% url 'operaciones:divisa_list' %}"
+            <a href="{% url 'divisa_list' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Divisas</a>
-            <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+            <a href="{% url 'tasa_cambio_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Tasas de Cambio</a>
-            <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+            <a href="{% url 'tasa_cambio_historial_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Historial de Tasas de Cambio</a>
             <div class="border-t border-neutral-content my-3"></div>
             <div class="mb-3 flex items-center space-x-2">

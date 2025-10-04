@@ -30,6 +30,8 @@ class DivisaListarTest(TestCase):
         )
 
     def test_divisa_listar(self):
+        # Login con el usuario administrador
+        self.client.force_login(self.usuario_admin)
         response = self.client.get(reverse("divisa_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Dólar")
