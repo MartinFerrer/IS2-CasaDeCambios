@@ -54,6 +54,7 @@ def historial_tasas_api(request: HttpRequest) -> JsonResponse:
 
     return JsonResponse({"historial": historial})
 
+
 @require_GET
 def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
     """Devuelve las tasas de cambio actuales en formato JSON.
