@@ -17,6 +17,7 @@ from apps.operaciones.models import Divisa, TasaCambio
 from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
 from apps.usuarios.models import Cliente, TipoCliente
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
@@ -153,10 +154,14 @@ class Command(BaseCommand):
         """Crear usuarios de ejemplo."""
         self.stdout.write("Creando usuarios...")
 
+        # Crear o obtener grupos necesarios
+        admin_group, _ = Group.objects.get_or_create(name="Administrador")
+        analyst_group, _ = Group.objects.get_or_create(name="Analista Cambiario")
+
         usuarios_data = [
-            {"email": "admin@test.com", "nombre": "Administrador Test", "is_staff": True},
-            {"email": "operador1@test.com", "nombre": "Operador Test 1", "is_staff": False},
-            {"email": "operador2@test.com", "nombre": "Operador Test 2", "is_staff": False},
+            {"email": "admin@test.com", "nombre": "Administrador Test", "is_staff": True, "groups": ["Administrador"]},
+            {"email": "operador1@test.com", "nombre": "Operador Test 1", "is_staff": False, "groups": []},
+            {"email": "operador2@test.com", "nombre": "Operador Test 2", "is_staff": False, "groups": []},
         ]
 
         for usuario_data in usuarios_data:
@@ -168,6 +173,19 @@ class Command(BaseCommand):
                 usuario.set_password("123")
                 usuario.save()
                 self.stdout.write(f"  Creado usuario: {usuario.email}")
+
+                # Asignar grupos al usuario
+                for group_name in usuario_data.get("groups", []):
+                    group = Group.objects.get(name=group_name)
+                    usuario.groups.add(group)
+                    self.stdout.write(f"    Asignado grupo '{group_name}' al usuario {usuario.email}")
+            else:
+                # Si el usuario ya existe, asegurar que tenga los grupos correctos
+                for group_name in usuario_data.get("groups", []):
+                    group = Group.objects.get(name=group_name)
+                    if not usuario.groups.filter(name=group_name).exists():
+                        usuario.groups.add(group)
+                        self.stdout.write(f"    Asignado grupo '{group_name}' al usuario existente {usuario.email}")
 
     def create_clientes(self):
         """Crear clientes de ejemplo."""

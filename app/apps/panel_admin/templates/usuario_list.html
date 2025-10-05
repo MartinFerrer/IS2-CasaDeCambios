@@ -4,7 +4,7 @@
 {% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
 {# Usamos header específico para admin #}
 {% block header %}
-    {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin_conditional.html" %}
 {% endblock %}
 {% block extra_head %}
     <style>
@@ -387,17 +387,17 @@
             const checkboxes = document.querySelectorAll('#modal_crear_usuario input[name="groups"]:checked');
             const selectedText = document.getElementById('roles-selected-text');
             const badgesContainer = document.getElementById('selected-roles-badges');
-            
+
             // Limpiar badges existentes
             badgesContainer.innerHTML = '';
-            
+
             if (checkboxes.length === 0) {
                 selectedText.textContent = 'Seleccione uno o más roles...';
                 selectedText.className = 'text-gray-500';
             } else {
                 selectedText.textContent = `${checkboxes.length} rol(es) seleccionado(s)`;
                 selectedText.className = 'text-gray-900';
-                
+
                 // Crear badges para cada rol seleccionado
                 checkboxes.forEach(checkbox => {
                     const row = checkbox.closest('tr');
@@ -421,17 +421,17 @@
             const checkboxes = document.querySelectorAll(`#modal_editar_usuario_${userId} input[name="groups"]:checked`);
             const selectedText = document.getElementById(`roles-selected-text-${userId}`);
             const badgesContainer = document.getElementById(`selected-roles-badges-${userId}`);
-            
+
             // Limpiar badges existentes
             badgesContainer.innerHTML = '';
-            
+
             if (checkboxes.length === 0) {
                 selectedText.textContent = 'Seleccione uno o más roles...';
                 selectedText.className = 'text-gray-500';
             } else {
                 selectedText.textContent = `${checkboxes.length} rol(es) seleccionado(s)`;
                 selectedText.className = 'text-gray-900';
-                
+
                 // Crear badges para cada rol seleccionado
                 checkboxes.forEach(checkbox => {
                     const row = checkbox.closest('tr');

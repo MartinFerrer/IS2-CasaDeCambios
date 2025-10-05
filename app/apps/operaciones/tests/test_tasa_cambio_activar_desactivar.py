@@ -1,12 +1,23 @@
+from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
+from apps.usuarios.models import Usuario
+from django.contrib.auth.models import Group
 from django.test import Client, TestCase
 from django.urls import reverse
-
-from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
 
 
 class TasaCambioActivarDesactivarTest(TestCase):
     def setUp(self):
         self.client = Client()
+
+        # Crear grupo y usuario administrador
+        admin_group, _ = Group.objects.get_or_create(name="Administrador")
+        self.admin_user = Usuario(email="admin@test.com", nombre="Admin User")
+        self.admin_user.set_password("testpass123")
+        self.admin_user.save()
+        self.admin_user.groups.add(admin_group)
+
+        # Autenticar usuario
+        self.client.force_login(self.admin_user)
 
         origen, _ = Divisa.objects.get_or_create(
             codigo="USD",

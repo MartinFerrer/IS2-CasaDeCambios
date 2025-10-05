@@ -1,0 +1,15 @@
+{# templates/includes/header_admin_conditional.html #}
+{# This template conditionally includes the appropriate header based on user role #}
+{% if user_is_admin %}
+    {# User is Administrador - show full admin header #}
+    {% if "Administrador" in user_groups %}
+        {% include "includes/header_admin.html" %}
+    {% elif "Analista Cambiario" in user_groups %}
+        {% include "includes/header_analista.html" %}
+    {% else %}
+        {% include "includes/header_admin.html" %}
+    {% endif %}
+{% else %}
+    {# Fallback to admin header for other authorized users #}
+    {% include "includes/header_admin.html" %}
+{% endif %}

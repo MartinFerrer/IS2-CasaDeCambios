@@ -1,7 +1,6 @@
 """Configuración común para tests de transacciones."""
 
 import pytest
-
 from apps.transacciones.models import EntidadFinanciera
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
@@ -15,11 +14,7 @@ def tipo_cliente():
 @pytest.fixture
 def usuario():
     """Fixture para crear un usuario."""
-    return Usuario.objects.create(
-        email="testuser@example.com",
-        nombre="Test User",
-        password="testpass123"
-    )
+    return Usuario.objects.create(email="testuser@example.com", nombre="Test User", password="testpass123")
 
 
 @pytest.fixture
