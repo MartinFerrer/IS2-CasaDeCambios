@@ -310,19 +310,40 @@ def configurar_mfa(request):
     # Obtener o crear perfil MFA
     perfil_mfa = crear_perfil_mfa(request.user)
 
+    # Guardar valores originales para comparación en mensajes
+    mfa_login_original = perfil_mfa.mfa_habilitado_login
+    mfa_transacciones_original = perfil_mfa.mfa_habilitado_transacciones
+
     if request.method == "POST":
-        form = ConfiguracionMFAForm(request.POST, instance=perfil_mfa)
+        form = ConfiguracionMFAForm(request.POST, instance=perfil_mfa, usuario=request.user, perfil_mfa=perfil_mfa)
         if form.is_valid():
             form.save()
-            messages.success(request, "Configuración de MFA actualizada correctamente.")
+            # Mensajes específicos según lo que se activó/desactivó
+            mfa_login_nuevo = form.cleaned_data.get("mfa_habilitado_login", False)
+            mfa_transacciones_nuevo = form.cleaned_data.get("mfa_habilitado_transacciones", False)
+
+            if mfa_login_nuevo and not mfa_login_original:
+                messages.success(request, "MFA para login activado.")
+            elif not mfa_login_nuevo and mfa_login_original:
+                messages.success(request, "MFA para login desactivado.")
+
+            if mfa_transacciones_nuevo != mfa_transacciones_original:
+                if mfa_transacciones_nuevo:
+                    messages.success(request, "MFA para transacciones activado.")
+                else:
+                    messages.success(request, "MFA para transacciones desactivado.")
+
             return redirect("seguridad:configurar_mfa")
+        else:
+            # CLAVE: Si hay errores, recargar el perfil desde la BD para mostrar el estado real
+            perfil_mfa.refresh_from_db()
     else:
-        form = ConfiguracionMFAForm(instance=perfil_mfa)
+        form = ConfiguracionMFAForm(instance=perfil_mfa, usuario=request.user, perfil_mfa=perfil_mfa)
 
     context = {
         "form": form,
-        "perfil_mfa": perfil_mfa,
-        "qr_url": request.build_absolute_uri(f"/seguridad/mfa/qr/{perfil_mfa.id}/"),
+        "perfil_mfa": perfil_mfa,  # Estado real de la BD (recargado si hay errores)
+        "qr_url": request.build_absolute_uri(f"/seguridad/mfa/qr/{perfil_mfa.pk}/"),
     }
     return render(request, "configurar_mfa.html", context)
 
