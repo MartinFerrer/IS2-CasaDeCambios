@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block title %}Configuración de Usuario - Global Exchange{% endblock %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Configuración de Usuario</h1>
+                <p class="text-gray-600">Gestiona tu perfil y configuraciones de la cuenta.</p>
+            </div>
+            <!-- Tarjetas de configuración -->
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <!-- Perfil de Usuario -->
+                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                <svg class="w-6 h-6 text-blue-600"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="card-title text-lg">Perfil de Usuario</h2>
+                                <p class="text-sm text-gray-600">Información personal</p>
+                            </div>
+                        </div>
+                        <!-- Información básica del usuario -->
+                        <div class="space-y-3 mb-4">
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                <span class="text-sm font-medium text-gray-600">Nombre:</span>
+                                <span class="text-sm text-gray-900">{{ usuario.nombre|default:"No especificado" }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                                <span class="text-sm font-medium text-gray-600">Email:</span>
+                                <span class="text-sm text-gray-900">{{ usuario.email|default:"No especificado" }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2">
+                                <span class="text-sm font-medium text-gray-600">Roles:</span>
+                                <div class="flex flex-wrap gap-1">
+                                    {% for group in user_groups %}
+                                        <span class="badge badge-primary badge-sm">{{ group }}</span>
+                                    {% empty %}
+                                        <span class="text-sm text-gray-500">Sin rol asignado</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-actions justify-end">
+                            <button class="btn btn-outline btn-sm" onclick="editProfile()">
+                                <svg class="w-4 h-4 mr-1"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                    </path>
+                                </svg>
+                                Editar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Seguridad (MFA) -->
+                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                <svg class="w-6 h-6 text-green-600"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="card-title text-lg">Seguridad</h2>
+                                <p class="text-sm text-gray-600">Autenticación multifactor</p>
+                            </div>
+                        </div>
+                        <!-- Estado MFA -->
+                        <div class="space-y-3 mb-4">
+                            {% if perfil_mfa %}
+                                <div class="flex items-center space-x-2">
+                                    {% if perfil_mfa.mfa_habilitado_login %}
+                                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                        <span class="text-sm text-green-700 font-medium">MFA activado para login</span>
+                                    {% else %}
+                                        <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                        <span class="text-sm text-yellow-700 font-medium">MFA desactivado para login</span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    {% if perfil_mfa.mfa_habilitado_transacciones %}
+                                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                        <span class="text-sm text-green-700 font-medium">MFA activado para transacciones</span>
+                                    {% else %}
+                                        <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                                        <span class="text-sm text-red-700 font-medium">MFA desactivado para transacciones</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full"></div>
+                                    <span class="text-sm text-gray-600">MFA no configurado</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-actions justify-end">
+                            <a href="{% url 'seguridad:configurar_mfa' %}"
+                               class="btn btn-primary btn-sm">
+                                <svg class="w-4 h-4 mr-1"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Configurar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Medios de Pago -->
+                {% if user_has_clients %}
+                    <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                                    <svg class="w-6 h-6 text-purple-600"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="card-title text-lg">Medios de Pago</h2>
+                                    <p class="text-sm text-gray-600">Tarjetas y cuentas</p>
+                                </div>
+                            </div>
+                            <!-- Selector de cliente -->
+                            <div class="mb-4">
+                                <label class="text-sm font-medium text-gray-700 block mb-2">Gestionar medios de pago para:</label>
+                                <select id="clienteMediosPago"
+                                        class="select select-bordered w-full text-black">
+                                    <option value="">Seleccionar cliente...</option>
+                                    {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}"
+                                                {% if cliente_seleccionado and cliente.id == cliente_seleccionado.id %}selected{% endif %}>
+                                            {{ cliente.nombre }} ({{ cliente.ruc }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="card-actions justify-end">
+                                <button onclick="gestionarMediosPago()"
+                                        class="btn btn-secondary btn-sm"
+                                        id="btnGestionarMedios">
+                                    <svg class="w-4 h-4 mr-1"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Gestionar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- Listado de Clientes -->
+                {% if user_has_clients %}
+                    <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow lg:col-span-3">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
+                                    <svg class="w-6 h-6 text-indigo-600"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="card-title text-lg">Clientes Asociados</h2>
+                                    <p class="text-sm text-gray-600">Información de tus clientes registrados</p>
+                                </div>
+                            </div>
+                            <!-- Lista de clientes -->
+                            <div class="overflow-x-auto">
+                                <table class="table table-zebra w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>RUC</th>
+                                            <th>Nombre</th>
+                                            <th>Email</th>
+                                            <th>Teléfono</th>
+                                            <th>Tipo Cliente</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for cliente in clientes %}
+                                            <tr>
+                                                <td class="font-mono text-sm">{{ cliente.ruc }}</td>
+                                                <td class="font-medium">{{ cliente.nombre }}</td>
+                                                <td class="text-sm">{{ cliente.email|default:"No especificado" }}</td>
+                                                <td class="text-sm">{{ cliente.telefono|default:"No especificado" }}</td>
+                                                <td>
+                                                    {% if cliente.tipo_cliente %}
+                                                        <span class="badge badge-outline badge-sm">{{ cliente.tipo_cliente.nombre }}</span>
+                                                    {% else %}
+                                                        <span class="text-gray-500 text-sm">Sin tipo</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- Nota informativa -->
+                            <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <div class="flex items-start space-x-3">
+                                    <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                        </path>
+                                    </svg>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-yellow-800">Información importante</h4>
+                                        <p class="text-sm text-yellow-700 mt-1">
+                                            Si encuentras algún error en los datos de tus clientes, por favor contacta a un agente de Global Exchange para realizar las correcciones necesarias.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- Notificaciones (futuro) -->
+                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow opacity-60">
+                    <div class="card-body">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                                <svg class="w-6 h-6 text-orange-600"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.343 12.344l1.414 1.414L9.878 9.636M6.343 8.343l1.414-1.414 4.242 4.243m3.535-2.828L18.364 5.5l-2.828 2.828L9.878 14.978">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="card-title text-lg">Notificaciones</h2>
+                                <p class="text-sm text-gray-600">Preferencias de notificación</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2 mb-4">
+                            <p class="text-sm text-gray-600">Configura cómo y cuándo recibir notificaciones sobre tus transacciones.</p>
+                            <div class="badge badge-ghost badge-sm">Próximamente</div>
+                        </div>
+                        <div class="card-actions justify-end">
+                            <button class="btn btn-outline btn-sm" disabled>
+                                <svg class="w-4 h-4 mr-1"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                    </path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Configurar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Botón de regreso -->
+            <div class="mt-8 text-center">
+                <a href="{% url 'presentacion:home' %}"
+                   class="inline-flex items-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                    <svg class="w-5 h-5 mr-2"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver al Inicio
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- Modal para editar perfil (placeholder) -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-box">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="closeEditProfileModal()">✕</button>
+            </form>
+            <h3 class="font-bold text-lg mb-4">Editar Perfil</h3>
+            <p class="py-4 text-gray-600">La funcionalidad de edición de perfil estará disponible próximamente.</p>
+            <div class="modal-action">
+                <button class="btn" onclick="closeEditProfileModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function editProfile() {
+            const modal = document.getElementById('editProfileModal');
+            modal.classList.add('modal-open');
+        }
+
+        function closeEditProfileModal() {
+            const modal = document.getElementById('editProfileModal');
+            modal.classList.remove('modal-open');
+        }
+
+        function gestionarMediosPago() {
+            const clienteSelect = document.getElementById('clienteMediosPago');
+            const clienteId = clienteSelect.value;
+            
+            if (!clienteId) {
+                alert('Por favor, selecciona un cliente primero.');
+                return;
+            }
+            
+            // Redirigir a la página de medios de pago del cliente seleccionado
+            window.location.href = `/transacciones/configuracion/cliente/${clienteId}/`;
+        }
+
+        // Actualizar estado del botón según la selección
+        document.addEventListener('DOMContentLoaded', function() {
+            const clienteSelect = document.getElementById('clienteMediosPago');
+            const btnGestionar = document.getElementById('btnGestionarMedios');
+            
+            if (clienteSelect && btnGestionar) {
+                function updateButtonState() {
+                    if (clienteSelect.value) {
+                        btnGestionar.disabled = false;
+                        btnGestionar.classList.remove('btn-disabled');
+                    } else {
+                        btnGestionar.disabled = true;
+                        btnGestionar.classList.add('btn-disabled');
+                    }
+                }
+                
+                clienteSelect.addEventListener('change', updateButtonState);
+                updateButtonState(); // Inicializar estado
+            }
+        });
+
+        // Cerrar modal al hacer clic fuera de él
+        document.getElementById('editProfileModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditProfileModal();
+            }
+        });
+    </script>
+{% endblock %}
