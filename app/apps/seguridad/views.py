@@ -335,7 +335,7 @@ def configurar_mfa(request):
 
             return redirect("seguridad:configurar_mfa")
         else:
-            # CLAVE: Si hay errores, recargar el perfil desde la BD para mostrar el estado real
+            # Si hay errores, recargar el perfil desde la BD para mostrar el estado real
             perfil_mfa.refresh_from_db()
     else:
         form = ConfiguracionMFAForm(instance=perfil_mfa, usuario=request.user, perfil_mfa=perfil_mfa)
