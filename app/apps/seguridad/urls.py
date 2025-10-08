@@ -1,7 +1,17 @@
 from django.urls import path
 
 from . import views
-from .views import cambiar_cliente, login_view, logout_view, obtener_clientes, registro_view, seleccionar_cliente
+from .views import (
+    cambiar_cliente,
+    configurar_mfa,
+    generar_qr_mfa,
+    login_view,
+    logout_view,
+    obtener_clientes,
+    registro_view,
+    seleccionar_cliente,
+    verificar_mfa_login,
+)
 
 app_name = "seguridad"
 
@@ -14,4 +24,9 @@ urlpatterns = [
     path("cambiar-cliente/", cambiar_cliente, name="cambiar_cliente"),
     path("obtener-clientes/", obtener_clientes, name="obtener_clientes"),
     path("seleccionar-cliente/", seleccionar_cliente, name="seleccionar_cliente"),
+    # MFA URLs
+    path("mfa/login/", verificar_mfa_login, name="verificar_mfa_login"),
+    path("mfa/configurar/", configurar_mfa, name="configurar_mfa"),
+    path("mfa/qr/<int:perfil_id>/", generar_qr_mfa, name="generar_qr_mfa"),
+    path("api/verificar-mfa-transaccion/", views.verificar_mfa_transaccion, name="verificar_mfa_transaccion"),
 ]
