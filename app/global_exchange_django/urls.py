@@ -33,3 +33,9 @@ urlpatterns = [
     path("operaciones/", include("apps.operaciones.urls")),
     path("usuarios/", include("apps.usuarios.urls")),
 ]
+
+# Configurar handlers de error personalizados
+handler400 = 'global_exchange_django.views.handler400'
+handler403 = 'global_exchange_django.views.handler403'
+handler404 = 'global_exchange_django.views.handler404'
+handler500 = 'global_exchange_django.views.handler500'
