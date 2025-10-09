@@ -50,6 +50,7 @@ from apps.seguridad.permissions import (
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
@@ -192,12 +193,9 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
             limite.full_clean()  # Usa las validaciones del modelo
             limite.save()
 
-        messages.success(
-            request,
-            f"Límites actualizados exitosamente. "
-            f"Diario: ₲{limite.limite_diario:,.0f}, "
-            f"Mensual: ₲{limite.limite_mensual:,.0f}",
-        )
+        messages.success(request, f"Límites actualizados exitosamente. "
+                       f"Diario: ₲{strip_trailing_zeros(limite.limite_diario, 0)}, "
+                       f"Mensual: ₲{strip_trailing_zeros(limite.limite_mensual, 0)}")
     except ValidationError as e:
         for error in e.messages:
             messages.error(request, error)
@@ -1000,11 +998,11 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
             # Verificar si hubo cambios reales
             cambios = []
             if tasa.precio_base != valores_originales["precio_base"]:
-                cambios.append(f"Precio base: {valores_originales['precio_base']} → {tasa.precio_base}")
+                cambios.append(f"Precio base: {strip_trailing_zeros(valores_originales['precio_base'])} → {strip_trailing_zeros(tasa.precio_base)}")
             if tasa.comision_compra != valores_originales["comision_compra"]:
-                cambios.append(f"Comisión compra: {valores_originales['comision_compra']} → {tasa.comision_compra}")
+                cambios.append(f"Comisión compra: {strip_trailing_zeros(valores_originales['comision_compra'])} → {strip_trailing_zeros(tasa.comision_compra)}")
             if tasa.comision_venta != valores_originales["comision_venta"]:
-                cambios.append(f"Comisión venta: {valores_originales['comision_venta']} → {tasa.comision_venta}")
+                cambios.append(f"Comisión venta: {strip_trailing_zeros(valores_originales['comision_venta'])} → {strip_trailing_zeros(tasa.comision_venta)}")
             if tasa.activo != valores_originales["activo"]:
                 cambios.append(
                     "Estado: "

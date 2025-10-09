@@ -56,6 +56,36 @@
       {% block content %}
       {% endblock content %}
     </main>
+    <script>
+  document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll(".decimal-input").forEach(input => {
+          // Mostrar con coma si viene con punto
+          if (input.value.includes(".")) {
+              input.value = input.value.replace(".", ",");
+          }
+
+            // Solo permitir números y una sola coma
+            input.addEventListener("input", () => {
+              // Eliminar caracteres no permitidos
+              input.value = input.value.replace(/[^0-9,]/g, "");
+              // Permitir solo una coma
+              const parts = input.value.split(",");
+              if (parts.length > 2) {
+                input.value = parts[0] + "," + parts.slice(1).join("");
+                // Elimina comas adicionales
+                input.value = input.value.replace(/,+/g, ",");
+              }
+            });
+
+          // Convertir coma a punto antes de enviar
+          input.form?.addEventListener("submit", () => {
+              if (input.value.includes(",")) {
+                  input.value = input.value.replace(",", ".");
+              }
+          });
+      });
+  });
+    </script>
     {% include "includes/footer.html" %}
     {% block extra_scripts %}
     {% endblock extra_scripts %}
