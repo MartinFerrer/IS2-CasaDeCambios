@@ -179,6 +179,9 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
+# Custom error views for CSRF failures
+CSRF_FAILURE_VIEW = 'global_exchange_django.views.csrf_failure'
+
 if not DEBUG:
     # HTTPS settings
     SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
