@@ -237,6 +237,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
         form = UsuarioForm(request.POST)
         if form.is_valid():
             usuario = form.save(commit=False)
+            usuario.set_password(form.cleaned_data["password"])
             usuario.save()
 
             # Obtener los grupos seleccionados del formulario
@@ -272,6 +273,9 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
         if form.is_valid():
             # Guardar el usuario sin los grupos primero
             usuario = form.save(commit=False)
+            # No se encripta la contraseña si el campo de la contraseña es la vieja
+            if not form.cleaned_data["password"] == form.initial["password"]:
+                usuario.set_password(form.cleaned_data["password"])
             usuario.save()
 
             # Verificar si el usuario tenía el rol "Usuario Asociado a Cliente"
