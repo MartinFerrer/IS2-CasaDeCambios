@@ -1,0 +1,15 @@
+{% extends "error_base.html" %}
+{% block title %}Error 403 - Global Exchange{% endblock %}
+{% block body_gradient %}from-red-50 via-red-100 to-gray-50{% endblock %}
+{% block error_title %}Acceso Prohibido{% endblock %}
+{% block error_code %}Error 403{% endblock %}
+{% block error_message %}Lo sentimos, no tienes permiso para acceder a esta página.{% endblock %}
+{% block error_description %}Esto puede deberse a:{% endblock %}
+{% block error_list %}
+    <ul class="text-red-600 text-left mt-2 space-y-1">
+        <li>• Token de seguridad CSRF expirado o inválido</li>
+        <li>• Sesión expirada</li>
+        <li>• Permisos insuficientes</li>
+        <li>• Configuración de seguridad</li>
+    </ul>
+{% endblock %}
