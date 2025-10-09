@@ -11,24 +11,42 @@ from django.urls import reverse
 
 
 @pytest.mark.django_db
-def test_usuario_list_view(client):
-    """Prueba la vista de listado de usuarios.
-
-    Verifica que la respuesta sea exitosa y que el contexto contenga 'usuarios' y 'grupos'.
-    """
+def test_usuario_list_view_administrador_access(client_administrador):
+    """Prueba que un administrador puede acceder a la vista de listado de usuarios."""
     url = reverse("usuario_listar")
-    response = client.get(url)
+    response = client_administrador.get(url)
     assert response.status_code == 200
     assert "usuarios" in response.context
     assert "grupos" in response.context
 
 
 @pytest.mark.django_db
-def test_usuario_create_view(client):
-    """Prueba la vista de creación de usuarios.
+def test_usuario_list_view_analista_forbidden(client_analista):
+    """Prueba que un analista NO puede acceder a la vista de listado de usuarios."""
+    url = reverse("usuario_listar")
+    response = client_analista.get(url)
+    assert response.status_code == 403
 
-    Verifica que un usuario se crea correctamente y redirecciona después de la creación.
-    """
+
+@pytest.mark.django_db
+def test_usuario_list_view_sin_rol_forbidden(client_sin_rol):
+    """Prueba que un usuario sin rol NO puede acceder a la vista de listado de usuarios."""
+    url = reverse("usuario_listar")
+    response = client_sin_rol.get(url)
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_usuario_list_view_anonymous_redirect(client):
+    """Prueba que un usuario anónimo es redirigido al login."""
+    url = reverse("usuario_listar")
+    response = client.get(url)
+    assert response.status_code == 302  # Redirect to login
+
+
+@pytest.mark.django_db
+def test_usuario_create_view_administrador(client_administrador):
+    """Prueba que un administrador puede crear usuarios."""
     group = Group.objects.create(name="TestGroup")
     url = reverse("usuario_listar")
     data = {
@@ -38,7 +56,7 @@ def test_usuario_create_view(client):
         "activo": True,
         "groups": [group.pk],
     }
-    response = client.post(url, data)
+    response = client_administrador.post(url, data)
     # Si hay errores de validación (200), muestra los errores para depuración
     if response.status_code == 200 and "form" in response.context:
         print(f"Errores en el formulario: {response.context['form'].errors}")
@@ -50,11 +68,24 @@ def test_usuario_create_view(client):
 
 
 @pytest.mark.django_db
-def test_usuario_edit_view(client):
-    """Prueba la vista de edición de usuarios.
+def test_usuario_create_view_analista_forbidden(client_analista):
+    """Prueba que un analista NO puede crear usuarios."""
+    group = Group.objects.create(name="TestGroup")
+    url = reverse("usuario_listar")
+    data = {
+        "nombre": "Test User",
+        "email": "test@example.com",
+        "password": "testpass",
+        "activo": True,
+        "groups": [group.pk],
+    }
+    response = client_analista.post(url, data)
+    assert response.status_code == 403
 
-    Verifica que un usuario se edita correctamente y redirecciona después de la edición.
-    """
+
+@pytest.mark.django_db
+def test_usuario_edit_view_administrador(client_administrador):
+    """Prueba que un administrador puede editar usuarios."""
     group = Group.objects.create(name="TestGroup")
     usuario = Usuario.objects.create(nombre="Edit User", email="edit@example.com", password="pass", activo=True)
     usuario.groups.add(group)
@@ -66,7 +97,7 @@ def test_usuario_edit_view(client):
         "activo": False,
         "groups": [group.pk],
     }
-    response = client.post(url, data)
+    response = client_administrador.post(url, data)
     # Si hay errores de validación (200), muestra los errores para depuración
     if response.status_code == 200 and "form" in response.context:
         print(f"Errores en el formulario: {response.context['form'].errors}")
@@ -80,16 +111,33 @@ def test_usuario_edit_view(client):
 
 
 @pytest.mark.django_db
-def test_usuario_delete_view(client):
-    """Prueba la vista de eliminación de usuarios.
+def test_usuario_edit_view_analista_forbidden(client_analista):
+    """Prueba que un analista NO puede editar usuarios."""
+    group = Group.objects.create(name="TestGroup")
+    usuario = Usuario.objects.create(nombre="Edit User", email="edit@example.com", password="pass", activo=True)
+    usuario.groups.add(group)
+    url = reverse("usuario_editar", args=[usuario.pk])
+    response = client_analista.get(url)
+    assert response.status_code == 403
 
-    Verifica que un usuario se elimina correctamente y redirecciona después de la eliminación.
-    """
+
+@pytest.mark.django_db
+def test_usuario_delete_view_administrador(client_administrador):
+    """Prueba que un administrador puede eliminar usuarios."""
     usuario = Usuario.objects.create(nombre="Delete User", email="delete@example.com", password="pass", activo=True)
     url = reverse("usuario_eliminar", args=[usuario.pk])
-    response = client.post(url)
+    response = client_administrador.post(url)
     # Acepta tanto 302 (redirect después de éxito) como 200 (renderización de página)
     assert response.status_code in [200, 302]
     # Verificar eliminación solo si hubo éxito
     if response.status_code == 302:
         assert not Usuario.objects.filter(pk=usuario.pk).exists()
+
+
+@pytest.mark.django_db
+def test_usuario_delete_view_analista_forbidden(client_analista):
+    """Prueba que un analista NO puede eliminar usuarios."""
+    usuario = Usuario.objects.create(nombre="Delete User", email="delete@example.com", password="pass", activo=True)
+    url = reverse("usuario_eliminar", args=[usuario.pk])
+    response = client_analista.post(url)
+    assert response.status_code == 403

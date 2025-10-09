@@ -1,33 +1,38 @@
 import json
 
+from apps.operaciones.models import Divisa
+from apps.usuarios.models import Usuario
+from django.contrib.auth.models import Group
 from django.template.exceptions import TemplateDoesNotExist
 from django.test import Client, TestCase
 from django.urls import reverse
-
-from apps.operaciones.models import Divisa
 
 
 class TestDivisaViews(TestCase):
     def setUp(self):
         self.client = Client()
-        self.url_crear_divisa = reverse("operaciones:crear_divisa")
-        self.url_divisa_list = reverse("operaciones:divisa_list")
+        self.url_crear_divisa = reverse("crear_divisa")
+        self.url_divisa_list = reverse("divisa_list")
         self.divisa = Divisa.objects.create(codigo="USD", nombre="Dólar Estadounidense", simbolo="$")
+
+        # Create admin user and login
+        self.grupo_admin = Group.objects.get_or_create(name="Administrador")[0]
+        self.usuario_admin = Usuario.objects.create(
+            email="admin@test.com", nombre="Admin Test", password="testpass", activo=True
+        )
+        self.usuario_admin.groups.add(self.grupo_admin)
+        self.client.force_login(self.usuario_admin)
 
     def test_crear_divisa_get(self):
         try:
-            response = self.client.get(reverse("operaciones:crear_divisa"))
-            # If we get a response, the view works
+            response = self.client.get(reverse("crear_divisa"))
             self.assertIn(response.status_code, [200, 302])
         except TemplateDoesNotExist:
-            # Template issues are environment-specific, not code issues
-            # We can still verify the view logic works by checking it doesn't
-            # crash with a 500 error
             pass
 
     def test_crear_divisa_post_valid(self):
         data = {"codigo": "EUR", "nombre": "Euro", "simbolo": "€", "estado": "activa"}
-        response = self.client.post(reverse("operaciones:crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        response = self.client.post(reverse("crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
         self.assertEqual(response.status_code, 201)
         response_data = response.json()
@@ -37,7 +42,7 @@ class TestDivisaViews(TestCase):
 
     def test_crear_divisa_post_invalid(self):
         data = {"codigo": ""}
-        response = self.client.post(reverse("operaciones:crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        response = self.client.post(reverse("crear_divisa"), data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
         self.assertEqual(response.status_code, 400)
         response_data = response.json()

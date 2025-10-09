@@ -3,6 +3,8 @@
 from decimal import Decimal
 
 import pytest
+from apps.usuarios.models import TipoCliente, Usuario
+from django.contrib.auth.models import Group
 from django.urls import reverse
 
 from apps.usuarios.models import TipoCliente
@@ -13,15 +15,30 @@ class TestPanelAdminConfiguracion:
     """Testeos Unitarios para la configuración de descuento sobre comisión para cada TipoCliente."""
 
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self, client):
         """Realizar setup para testeos unitarios, Creamos 3 tipos de cliente con valores conocidos."""
+        # Crear grupo administrador
+        admin_group, _ = Group.objects.get_or_create(name="Administrador")
+
+        # Crear usuario administrador
+        self.admin_user = Usuario(email="admin@test.com", nombre="Admin User")
+        self.admin_user.set_password("testpass123")
+        self.admin_user.save()
+        self.admin_user.groups.add(admin_group)
+
+        # Autenticar para todas las pruebas
+        client.force_login(self.admin_user)
+
+        # Crear tipos de cliente
         self.minorista, _ = TipoCliente.objects.update_or_create(
-            nombre="Minorista", descuento_sobre_comision=Decimal("0.0")
+            nombre="Minorista", defaults={"descuento_sobre_comision": Decimal("0.0")}
         )
         self.corporativo, _ = TipoCliente.objects.update_or_create(
-            nombre="Corporativo", descuento_sobre_comision=Decimal("5.0")
+            nombre="Corporativo", defaults={"descuento_sobre_comision": Decimal("5.0")}
         )
-        self.vip, _ = TipoCliente.objects.update_or_create(nombre="VIP", descuento_sobre_comision=Decimal("10.0"))
+        self.vip, _ = TipoCliente.objects.update_or_create(
+            nombre="VIP", defaults={"descuento_sobre_comision": Decimal("10.0")}
+        )
 
     def test_configuracion_view_renderiza_inputs_con_valores(self, client):
         """La vista configuracion debe renderizar inputs para cada TipoCliente con su value."""

@@ -1,12 +1,24 @@
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.usuarios.models import Usuario
+from django.contrib.auth.models import Group
 from django.test import Client, TestCase
 from django.urls import reverse
-
-from apps.operaciones.models import Divisa, TasaCambio
 
 
 class TasaCambioCrearTest(TestCase):
     def setUp(self):
         self.client = Client()
+
+        # Crear grupo y usuario administrador
+        admin_group, _ = Group.objects.get_or_create(name="Administrador")
+        self.admin_user = Usuario(email="admin@test.com", nombre="Admin User")
+        self.admin_user.set_password("testpass123")
+        self.admin_user.save()
+        self.admin_user.groups.add(admin_group)
+
+        # Autenticar usuario
+        self.client.force_login(self.admin_user)
+
         Divisa.objects.all().delete()
 
         # Crear PYG como divisa origen (obligatorio según tu formulario)
@@ -30,7 +42,7 @@ class TasaCambioCrearTest(TestCase):
             "activo": True,
         }
 
-        response = self.client.post(reverse("operaciones:crear_tasa"), data)
+        response = self.client.post(reverse("tasa_cambio_crear"), data)
 
         # Verificar que la respuesta sea exitosa (302 = redirección o 200 = OK)
         self.assertIn(response.status_code, [200, 302])
@@ -51,7 +63,7 @@ class TasaCambioCrearTest(TestCase):
             "activo": True,
         }
 
-        response = self.client.post(reverse("operaciones:crear_tasa"), data)
+        response = self.client.post(reverse("tasa_cambio_crear"), data)
 
         # Debe retornar 200 (formulario con errores) no 302 (redirección exitosa)
         self.assertEqual(response.status_code, 200)

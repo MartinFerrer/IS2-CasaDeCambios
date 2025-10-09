@@ -13,10 +13,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
 from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
@@ -1055,6 +1057,7 @@ def eliminar_medio_pago(request: HttpRequest, cliente_id: int, tipo: str, medio_
     return redirect("transacciones:medios_pago_cliente", cliente_id=cliente_id)
 
 
+@client_required
 def vista_transacciones(request):
     """Lista las transacciones del cliente activo si existe.
 
@@ -1088,6 +1091,7 @@ def vista_transacciones(request):
     )
 
 
+@client_required
 def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
     """Página para realizar una transacción real de cambio de divisas.
 
@@ -1222,6 +1226,7 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
 
 
 @require_GET
+@client_required
 def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
     """Crea una nueva transacción basada en parámetros de simulación.
 
@@ -1246,6 +1251,31 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
 
     try:
         params = request.GET.dict()
+
+        # Verificar si el usuario requiere MFA para transacciones ANTES de crear
+        from apps.seguridad.models import PerfilMFA
+
+        mfa_requerido = False
+        try:
+            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+            mfa_requerido = perfil_mfa.mfa_habilitado_transacciones
+        except PerfilMFA.DoesNotExist:
+            pass
+
+        # Si se requiere MFA, verificar si ya fue validado para esta sesión
+        if mfa_requerido:
+            mfa_token = request.GET.get("mfa_token")
+            if not mfa_token or not request.session.get(f"mfa_token_valido_{mfa_token}"):
+                # Guardar los datos de la transacción en la sesión y requerir MFA
+                request.session["datos_transaccion_mfa"] = params
+                return JsonResponse(
+                    {
+                        "error": "MFA_REQUIRED",
+                        "mensaje": "Se requiere verificación MFA para crear transacciones",
+                        "redirect_url": reverse("seguridad:verificar_mfa_transaccion"),
+                    },
+                    status=400,
+                )
 
         # Realizar la simulación para obtener los datos calculados
         simulation_data = _compute_simulation(params, request)
@@ -1334,6 +1364,12 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             medio_pago=metodo_pago,
             medio_cobro=metodo_cobro,
         )
+
+        # Limpiar token MFA si se usó
+        mfa_token = request.GET.get("mfa_token")
+        if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
+            del request.session[f"mfa_token_valido_{mfa_token}"]
+
         print(f"Transacción creada: {transaccion}")
         return JsonResponse(
             {
@@ -1395,7 +1431,7 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
                 return redirect("transacciones:vista_transacciones")
 
             except Exception as e:
-                messages.error(request, f"Error al confirmar transacción: {e!s}")
+                messages.error(request, f"Error al procesar transacción: {e!s}")
                 return redirect("transacciones:procesar_transaccion", transaccion_id=transaccion_id)
 
         # GET: mostrar detalles de la transacción

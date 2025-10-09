@@ -38,15 +38,14 @@
                        class="hover:bg-blue-700 rounded-md">Asociar Cliente a Usuario</a>
                 </li>
                 <li>
-                    <a href="{% url 'operaciones:divisa_list' %}"
-                       class="hover:bg-blue-700 rounded-md">Divisas</a>
+                    <a href="{% url 'divisa_list' %}" class="hover:bg-blue-700 rounded-md">Divisas</a>
                 </li>
                 <li>
-                    <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                    <a href="{% url 'tasa_cambio_listar' %}"
                        class="hover:bg-blue-700 rounded-md">Tasas de Cambio</a>
                 </li>
                 <li>
-                    <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+                    <a href="{% url 'tasa_cambio_historial_listar' %}"
                        class="hover:bg-blue-700 rounded-md">Historial de Tasas de Cambio</a>
                 </li>
                 <li>
@@ -70,6 +69,19 @@
                     class="menu dropdown-content z-[1] p-2 shadow bg-base-100 text-neutral rounded-box w-52">
                     <li>
                         <a>Perfil</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'presentacion:home' %}"
+                           class="text-green-600 font-semibold">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="w-4 h-4 mr-2"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                            </svg>
+                            Volver a Vista de Usuario
+                        </a>
                     </li>
                     <li class="border-t border-neutral-content mt-2 pt-2">
                         <a href="{% url 'seguridad:logout' %}">Cerrar Sesión</a>
@@ -98,11 +110,11 @@
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Clientes</a>
             <a href="{% url 'asociar_cliente_usuario_form' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Asociar Cliente a Usuario</a>
-            <a href="{% url 'operaciones:divisa_list' %}"
+            <a href="{% url 'divisa_list' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Divisas</a>
-            <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+            <a href="{% url 'tasa_cambio_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Tasas de Cambio</a>
-            <a href="{% url 'operaciones:tasa_cambio_historial_listar' %}"
+            <a href="{% url 'tasa_cambio_historial_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Historial de Tasas de Cambio</a>
             <a href="{% url 'configuracion' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Configuración</a>
@@ -118,6 +130,19 @@
             </div>
             <a href="#"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Mi Perfil</a>
+            <a href="{% url 'presentacion:home' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-green-100 transition text-green-600 font-semibold">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="w-4 h-4 mr-2"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                    </svg>
+                    Volver a Vista de Usuario
+                </div>
+            </a>
             <a href="{% url 'seguridad:logout' %}"
                class="block py-2 px-3 rounded text-red-500 hover:bg-red-100 transition">Cerrar Sesión</a>
         </nav>

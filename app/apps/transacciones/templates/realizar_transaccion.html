@@ -303,8 +303,7 @@
                 </div>
             </div>
         </div>
-    </div>
-    <script>
+        <script>
     (function() {
         // Elementos del DOM
         const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
@@ -685,6 +684,9 @@
                         metodo_cobro: metodoCobroSelect.value
                     });
                     window.location.href = `${data.redirect_url}?${redirectParams.toString()}`;
+                } else if (data.error === 'MFA_REQUIRED') {
+                    // Se requiere verificación MFA - redirigir a la vista Django
+                    window.location.href = data.redirect_url;
                 } else {
                     showError('Error al crear la transacción: ' + (data.error || 'Error desconocido'));
                 }
@@ -806,6 +808,8 @@
             }
         });
 
+
+
         // Inicialización
         updateLabels();
         loadDivisas();
@@ -813,5 +817,5 @@
             loadMediosPago();
         }
     })();
-    </script>
-{% endblock content %}
+        </script>
+    {% endblock content %}
