@@ -112,6 +112,14 @@ PERM_DELETE_TASACAMBIOHISTORIAL = "delete_tasacambiohistorial"
 PERM_VIEW_TASACAMBIOHISTORIAL = "view_tasacambiohistorial"
 
 # ============================================================================
+# PERMISOS DE TAUSER
+# ============================================================================
+PERM_ADD_TAUSER = "add_tauser"
+PERM_CHANGE_TAUSER = "change_tauser"
+PERM_DELETE_TAUSER = "delete_tauser"
+PERM_VIEW_TAUSER = "view_tauser"
+
+# ============================================================================
 # PERMISOS DE MEDIOS FINANCIEROS
 # ============================================================================
 PERM_ADD_BILLETERAELECTRONICA = "add_billeteraelectronica"
@@ -230,6 +238,11 @@ def get_permission_display_name(codename: str) -> str:
         PERM_CHANGE_TASACAMBIOHISTORIAL: "Modificar historial de tasa de cambio",
         PERM_DELETE_TASACAMBIOHISTORIAL: "Eliminar historial de tasa de cambio",
         PERM_VIEW_TASACAMBIOHISTORIAL: "Ver historial de tasa de cambio",
+        # Tauser
+        PERM_ADD_TAUSER: "Crear tauser",
+        PERM_CHANGE_TAUSER: "Modificar tauser",
+        PERM_DELETE_TAUSER: "Eliminar tauser",
+        PERM_VIEW_TAUSER: "Ver tauser",
         # Medios financieros
         PERM_ADD_BILLETERAELECTRONICA: "Crear billetera electrónica",
         PERM_CHANGE_BILLETERAELECTRONICA: "Modificar billetera electrónica",

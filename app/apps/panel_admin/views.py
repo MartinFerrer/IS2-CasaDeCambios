@@ -20,12 +20,14 @@ from forex_python.converter import CurrencyCodes
 
 from apps.operaciones.forms import DivisaForm, TasaCambioForm
 from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.seguridad.decorators import admin_required, permission_required
 from apps.seguridad.permissions import (
     PERM_ADD_CLIENTE,
     PERM_ADD_DIVISA,
     PERM_ADD_ENTIDADFINANCIERA,
     PERM_ADD_TASACAMBIO,
+    PERM_ADD_TAUSER,
     PERM_ADD_USUARIO,
     PERM_ASIGNAR_PERMISO_ROL,
     PERM_ASOCIAR_CLIENTE,
@@ -35,10 +37,12 @@ from apps.seguridad.permissions import (
     PERM_CHANGE_ENTIDADFINANCIERA,
     PERM_CHANGE_LIMITETRANSACCIONES,
     PERM_CHANGE_TASACAMBIO,
+    PERM_CHANGE_TAUSER,
     PERM_CHANGE_USUARIO,
     PERM_DELETE_CLIENTE,
     PERM_DELETE_DIVISA,
     PERM_DELETE_ENTIDADFINANCIERA,
+    PERM_DELETE_TAUSER,
     PERM_DELETE_USUARIO,
     PERM_DESASIGNAR_PERMISO_ROL,
     PERM_DESASOCIAR_CLIENTE,
@@ -47,14 +51,15 @@ from apps.seguridad.permissions import (
     PERM_VIEW_ROL,
     PERM_VIEW_TASACAMBIO,
     PERM_VIEW_TASACAMBIOHISTORIAL,
+    PERM_VIEW_TAUSER,
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.tauser.models import Tauser
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
-from .forms import ClienteForm, UsuarioForm
+from .forms import ClienteForm, TauserForm, UsuarioForm
 
 
 @admin_required
@@ -1148,3 +1153,91 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
     }
 
     return render(request, "tasa_cambio_historial_list.html", context)
+
+# ============================
+# Vistas CRUD para Tauser
+# ============================
+
+
+@permission_required(PERM_VIEW_TAUSER)
+def tauser_list(request: HttpRequest) -> HttpResponse:
+    """Renderiza la lista de tausers en el panel de administración.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers})
+
+
+@permission_required(PERM_ADD_TAUSER)
+def tauser_create(request: HttpRequest) -> HttpResponse:
+    """Valida el formulario de creación de tauser y renderiza la lista de tausers con el nuevo tauser.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    if request.method == "POST":
+        form = TauserForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tauser creado exitosamente.")
+            return redirect("tauser_listar")
+    else:
+        form = TauserForm()
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers, "form": form})
+
+
+@permission_required(PERM_CHANGE_TAUSER)
+def tauser_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    """Valida el formulario de edición de tauser y renderiza la lista de tausers con el tauser editado.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario del tauser a editar.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tauser = get_object_or_404(Tauser, pk=pk)
+    if request.method == "POST":
+        form = TauserForm(request.POST, instance=tauser)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tauser actualizado exitosamente.")
+            return redirect("tauser_listar")
+    else:
+        form = TauserForm(instance=tauser)
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers, "form": form, "editing": True})
+
+
+@permission_required(PERM_DELETE_TAUSER)
+def tauser_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Elimina el tauser y renderiza la lista de tausers actualizada.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario del tauser a eliminar.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tauser = get_object_or_404(Tauser, pk=pk)
+    if request.method == "POST":
+        tauser.delete()
+        messages.success(request, "Tauser eliminado exitosamente.")
+        return redirect("tauser_listar")
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers})
