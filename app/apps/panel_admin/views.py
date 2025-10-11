@@ -36,6 +36,7 @@ from apps.seguridad.permissions import (
     PERM_CHANGE_DIVISA,
     PERM_CHANGE_ENTIDADFINANCIERA,
     PERM_CHANGE_LIMITETRANSACCIONES,
+    PERM_CHANGE_STOCKDIVISATAUSER,
     PERM_CHANGE_TASACAMBIO,
     PERM_CHANGE_TAUSER,
     PERM_CHANGE_USUARIO,
@@ -55,6 +56,7 @@ from apps.seguridad.permissions import (
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
+from apps.stock.services import depositar_divisas, extraer_divisas
 from apps.tauser.models import Tauser
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
@@ -1241,3 +1243,125 @@ def tauser_delete(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("tauser_listar")
     tausers = Tauser.objects.all()
     return render(request, "tauser_list.html", {"tausers": tausers})
+
+
+@permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
+@require_POST
+def tauser_depositar(request: HttpRequest) -> HttpResponse:
+    """Realiza un depósito de divisas en el stock de un tauser.
+
+    Args:
+        request: HttpRequest object con datos JSON del depósito.
+
+    Retorna:
+        HttpResponse: Redirect a lista de tausers con mensaje de éxito.
+
+    """
+    import json
+
+    try:
+        # Leer datos del formulario POST (campo payload) o del body JSON
+        payload = request.POST.get('payload')
+        if payload:
+            data = json.loads(payload)
+        else:
+            data = json.loads(request.body)
+
+        # Validar campos requeridos
+        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        for field in required_fields:
+            if field not in data:
+                messages.error(request, f'Campo requerido: {field}')
+                return redirect('tauser_listar')
+
+        # Validar denominaciones
+        denominaciones = data['denominaciones']
+        if not isinstance(denominaciones, list) or not denominaciones:
+            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
+            return redirect('tauser_listar')
+
+        for item in denominaciones:
+            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
+                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
+                return redirect('tauser_listar')
+        print(denominaciones)
+        # Realizar el depósito
+        movimiento = depositar_divisas(
+            tauser_id=data['tauser_id'],
+            divisa_id=data['divisa_id'],
+            denominaciones_cantidades=denominaciones
+        )
+
+        messages.success(request, '¡Depósito realizado exitosamente!')
+        return redirect('tauser_listar')
+
+    except ValidationError as e:
+        messages.error(request, str(e))
+        return redirect('tauser_listar')
+    except json.JSONDecodeError:
+        messages.error(request, 'JSON inválido')
+        return redirect('tauser_listar')
+    except Exception as e:
+        messages.error(request, f'Error interno: {e!s}')
+        return redirect('tauser_listar')
+
+
+@permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
+@require_POST
+def tauser_extraer(request: HttpRequest) -> HttpResponse:
+    """Realiza una extracción de divisas del stock de un tauser.
+
+    Args:
+        request: HttpRequest object con datos JSON de la extracción.
+
+    Retorna:
+        HttpResponse: Redirect a lista de tausers con mensaje de éxito.
+
+    """
+    import json
+
+    try:
+        # Leer datos del formulario POST (campo payload) o del body JSON
+        payload = request.POST.get('payload')
+        if payload:
+            data = json.loads(payload)
+        else:
+            data = json.loads(request.body)
+
+        # Validar campos requeridos
+        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        for field in required_fields:
+            if field not in data:
+                messages.error(request, f'Campo requerido: {field}')
+                return redirect('tauser_listar')
+
+        # Validar denominaciones
+        denominaciones = data['denominaciones']
+        if not isinstance(denominaciones, list) or not denominaciones:
+            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
+            return redirect('tauser_listar')
+
+        for item in denominaciones:
+            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
+                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
+                return redirect('tauser_listar')
+
+        # Realizar la extracción
+        movimiento = extraer_divisas(
+            tauser_id=data['tauser_id'],
+            divisa_id=data['divisa_id'],
+            denominaciones_cantidades=denominaciones
+        )
+
+        messages.success(request, '¡Extracción realizada exitosamente!')
+        return redirect('tauser_listar')
+
+    except ValidationError as e:
+        messages.error(request, str(e))
+        return redirect('tauser_listar')
+    except json.JSONDecodeError:
+        messages.error(request, 'JSON inválido')
+        return redirect('tauser_listar')
+    except Exception as e:
+        messages.error(request, f'Error interno: {e!s}')
+        return redirect('tauser_listar')

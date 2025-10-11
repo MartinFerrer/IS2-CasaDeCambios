@@ -52,10 +52,13 @@ urlpatterns = [
     path("tasas/<str:pk>/activar/", views.tasa_cambio_activar, name="tasa_cambio_activar"),
     # URLs para historial de tasas de cambio
     path("tasas/historial/", views.tasa_cambio_historial_listar, name="tasa_cambio_historial_listar"),
-        # URLs para el CRUD de Tauser
+    # URLs para el CRUD de Tauser
     path("tauser/", views.tauser_list, name="tauser_listar"),
     path("tauser/crear/", views.tauser_create, name="tauser_crear"),
     path("tauser/<int:pk>/editar/", views.tauser_edit, name="tauser_editar"),
     path("tauser/<int:pk>/eliminar/", views.tauser_delete, name="tauser_eliminar"),
+    # URLs para operaciones de stock
+    path("tauser/depositar/", views.tauser_depositar, name="tauser_depositar"),
+    path("tauser/extraer/", views.tauser_extraer, name="tauser_extraer"),
 
 ]

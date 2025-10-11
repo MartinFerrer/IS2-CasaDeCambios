@@ -1,4 +1,4 @@
-{# apps/panel_admin/templates/panel_admin/tauser_list.html #}
+{# apps/admin/templates/admin/tauser_list.html #}
 {% extends "base.html" %}
 {% block title %}Gestión de Tausers{% endblock %}
 {% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
@@ -63,25 +63,6 @@
                 </div>
             </dialog>
         </div>
-        {% if form.errors %}
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                <ul class="list-disc">
-                    {% for field, errors in form.errors.items %}
-                        {% for error in errors %}
-                            <div role="alert" class="alert alert-error mb-2">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     class="h-6 w-6 shrink-0 stroke-current"
-                                     fill="none"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span><strong>{{ field }}:</strong> {{ error }}</span>
-                            </div>
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
         <div class="h-180">
             <div class="card bg-white shadow-xl overflow-auto">
                 <div class="card-body">
@@ -101,6 +82,44 @@
                                     <td>{{ tauser.nombre }}</td>
                                     <td>{{ tauser.ubicacion|default:"-" }}</td>
                                     <td class="flex justify-center space-x-2">
+                                        <!-- Botones de Stock -->
+                                        <button class="btn btn-sm {% if perms.stock.view_stockdivisatauser %}btn-secondary{% else %}btn-disabled{% endif %}"
+                                                {% if perms.stock.view_stockdivisatauser %}onclick="mostrarStockTauser({{ tauser.id }}, '{{ tauser.nombre }}')"{% else %}disabled{% endif %}
+                                                title="{% if perms.stock.view_stockdivisatauser %}Ver stock disponible{% else %}Sin permisos para ver stock{% endif %}">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-4 w-4"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                            </svg>
+                                            <span class="ml-1">Stock</span>
+                                        </button>
+                                        <button class="btn btn-sm {% if perms.stock.change_stockdivisatauser %}btn-success{% else %}btn-disabled{% endif %}"
+                                                {% if perms.stock.change_stockdivisatauser %}onclick="abrirModalDeposito({{ tauser.id }}, '{{ tauser.nombre }}')"{% else %}disabled{% endif %}
+                                                title="{% if perms.stock.change_stockdivisatauser %}Depositar divisas{% else %}Sin permisos para depositar{% endif %}">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-4 w-4"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                            </svg>
+                                            <span class="ml-1">Depositar</span>
+                                        </button>
+                                        <button class="btn btn-sm {% if perms.stock.change_stockdivisatauser %}btn-warning{% else %}btn-disabled{% endif %}"
+                                                {% if perms.stock.change_stockdivisatauser %}onclick="abrirModalExtraccion({{ tauser.id }}, '{{ tauser.nombre }}')"{% else %}disabled{% endif %}
+                                                title="{% if perms.stock.change_stockdivisatauser %}Extraer divisas{% else %}Sin permisos para extraer{% endif %}">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="h-4 w-4"
+                                                 fill="none"
+                                                 viewBox="0 0 24 24"
+                                                 stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                            </svg>
+                                            <span class="ml-1">Extraer</span>
+                                        </button>
+                                        <!-- Botones CRUD existentes -->
                                         <a class="btn btn-sm btn-info"
                                            onclick="document.getElementById('modal_editar_tauser_{{ tauser.id }}').showModal()">
                                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -211,4 +230,499 @@
             </div>
         </div>
     </div>
+    <!-- Modal para mostrar stock -->
+    <dialog id="modal_stock" class="modal">
+        <div class="modal-box w-11/12 max-w-6xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-blue-700 mb-4" id="titulo_stock">Stock de Tauser</h3>
+            <!-- Filtro por divisa -->
+            <div class="mb-4">
+                <select id="filtro_divisa"
+                        class="select select-bordered"
+                        onchange="filtrarStockPorDivisa()">
+                    <option value="">Todas las divisas</option>
+                </select>
+            </div>
+            <!-- Tabla de stock -->
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Divisa</th>
+                            <th>Denominación</th>
+                            <th>Stock Total</th>
+                            <th>Stock Reservado</th>
+                            <th>Stock Libre</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla_stock_body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </dialog>
+    <!-- Modal para depósito -->
+    <dialog id="modal_deposito" class="modal">
+        <div class="modal-box w-11/12 max-w-4xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-green-700 mb-4" id="titulo_deposito">Depositar Divisas</h3>
+            <form id="form_deposito"
+                  class="space-y-4"
+                  method="post"
+                  action="{% url 'tauser_depositar' %}">
+                {% csrf_token %}
+                <input type="hidden" id="deposito_payload" name="payload" />
+                <input type="hidden" id="deposito_tauser_id" name="tauser_id">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Divisa</span>
+                    </label>
+                    <select id="select_divisa_deposito"
+                            class="select select-bordered"
+                            onchange="cargarDenominacionesDeposito()"
+                            required>
+                        <option value="">Seleccionar divisa</option>
+                    </select>
+                </div>
+                <div id="denominaciones_deposito" class="space-y-3" style="display: none;">
+                    <h4 class="font-semibold">Denominaciones:</h4>
+                    <div id="lista_denominaciones_deposito" class="grid grid-cols-2 gap-3">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+                <div class="modal-action">
+                    <button type="button" class="btn btn-success" onclick="realizarDeposito()">Depositar</button>
+                    <button type="button" class="btn" onclick="cerrarModalDeposito()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+    <!-- Modal para extracción -->
+    <dialog id="modal_extraccion" class="modal">
+        <div class="modal-box w-11/12 max-w-4xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-orange-700 mb-4" id="titulo_extraccion">Extraer Divisas</h3>
+            <form id="form_extraccion"
+                  class="space-y-4"
+                  method="post"
+                  action="{% url 'tauser_extraer' %}">
+                {% csrf_token %}
+                <input type="hidden" id="extraccion_payload" name="payload" />
+                <input type="hidden" id="extraccion_tauser_id" name="tauser_id">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Divisa</span>
+                    </label>
+                    <select id="select_divisa_extraccion"
+                            class="select select-bordered"
+                            onchange="cargarDenominacionesExtraccion()"
+                            required>
+                        <option value="">Seleccionar divisa</option>
+                    </select>
+                </div>
+                <div id="denominaciones_extraccion"
+                     class="space-y-3"
+                     style="display: none">
+                    <h4 class="font-semibold">Denominaciones disponibles:</h4>
+                    <div id="lista_denominaciones_extraccion" class="grid grid-cols-2 gap-3">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+                <div class="modal-action">
+                    <button type="button" class="btn btn-warning" onclick="realizarExtraccion()">Extraer</button>
+                    <button type="button" class="btn" onclick="cerrarModalExtraccion()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+    <script>
+        // Variables globales
+        let stockData = [];
+        let stockDataOriginal = [];
+        let divisasDisponibles = [];
+
+        // Funciones para mostrar stock
+        async function mostrarStockTauser(tauserId, tauserNombre) {
+            document.getElementById('titulo_stock').textContent = `Stock de ${tauserNombre}`;
+            
+            try {
+                const response = await fetch(`/stock/api/stock/${tauserId}/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    stockData = data.data;
+                    stockDataOriginal = [...data.data];
+                    llenarTablaStock(stockData);
+                    llenarFiltrosDivisas(stockData);
+                    document.getElementById('modal_stock').showModal();
+                } else {
+                    mostrarError('Error al cargar stock: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error de conexión');
+            }
+        }
+
+        function llenarTablaStock(data) {
+            const tbody = document.getElementById('tabla_stock_body');
+            tbody.innerHTML = '';
+            
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.divisa_codigo} (${item.divisa_simbolo || ''})</td>
+                    <td>${item.denominacion} ${item.divisa_simbolo || ''}</td>
+                    <td>${item.stock}</td>
+                    <td>${item.stock_reservado}</td>
+                    <td>${item.stock_libre}</td>
+                    <td>${item.valor_total} ${item.divisa_simbolo || ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function llenarFiltrosDivisas(data) {
+            const select = document.getElementById('filtro_divisa');
+            select.innerHTML = '<option value="">Todas las divisas</option>';
+            
+            const divisas = [...new Set(data.map(item => item.divisa_codigo))];
+            divisas.forEach(divisa => {
+                const option = document.createElement('option');
+                option.value = divisa;
+                option.textContent = divisa;
+                select.appendChild(option);
+            });
+        }
+
+        function filtrarStockPorDivisa() {
+            const filtro = document.getElementById('filtro_divisa').value;
+            
+            if (filtro === '') {
+                llenarTablaStock(stockDataOriginal);
+            } else {
+                const dataFiltrada = stockDataOriginal.filter(item => item.divisa_codigo === filtro);
+                llenarTablaStock(dataFiltrada);
+            }
+        }
+
+        // Funciones para depósito
+        async function abrirModalDeposito(tauserId, tauserNombre) {
+            document.getElementById('titulo_deposito').textContent = `Depositar en ${tauserNombre}`;
+            document.getElementById('deposito_tauser_id').value = tauserId;
+            
+            await cargarDivisasDisponibles();
+            document.getElementById('modal_deposito').showModal();
+        }
+
+        async function cargarDivisasDisponibles() {
+            try {
+                console.log('Cargando divisas disponibles...');
+                const response = await fetch('/stock/api/divisas/');
+                console.log('Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    divisasDisponibles = data.data;
+                    const select = document.getElementById('select_divisa_deposito');
+                    select.innerHTML = '<option value="">Seleccionar divisa</option>';
+                    
+                    console.log('Divisas cargadas:', data.data.length);
+                    
+                    data.data.forEach(divisa => {
+                        const option = document.createElement('option');
+                        option.value = divisa.id;
+                        option.textContent = `${divisa.codigo} - ${divisa.nombre}`;
+                        option.dataset.denominaciones = JSON.stringify(divisa.denominaciones);
+                        select.appendChild(option);
+                    });
+                } else {
+                    console.error('Error en respuesta:', data.error);
+                    mostrarError('Error al cargar divisas: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error completo:', error);
+                mostrarError('Error al cargar divisas: ' + error.message);
+            }
+        }
+
+        function cargarDenominacionesDeposito() {
+            const select = document.getElementById('select_divisa_deposito');
+            const divisaId = select.value;
+            
+            if (!divisaId) {
+                document.getElementById('denominaciones_deposito').style.display = 'none';
+                return;
+            }
+            
+            const selectedOption = select.selectedOptions[0];
+            const denominaciones = JSON.parse(selectedOption.dataset.denominaciones || '[]');
+            const divisaTexto = selectedOption.textContent;
+            const divisaSimbolo = getDivisaSimbolo(divisaId);
+            
+            const container = document.getElementById('lista_denominaciones_deposito');
+            container.innerHTML = '';
+            
+            denominaciones.forEach(denom => {
+                const div = document.createElement('div');
+                div.className = 'form-control';
+                div.innerHTML = `
+                    <label class="label">
+                        <span class="label-text">Billetes de ${denom} ${divisaSimbolo}</span>
+                    </label>
+                    <input type="number" class="input input-bordered" min="0" step="1" value="0" data-denominacion="${denom}" placeholder="Cantidad de billetes" oninput="this.value = Math.floor(Math.abs(this.value))">
+                `;
+                container.appendChild(div);
+            });
+            
+            document.getElementById('denominaciones_deposito').style.display = 'block';
+        }
+
+        async function realizarDeposito() {
+            const tauserId = document.getElementById('deposito_tauser_id').value;
+            const divisaId = document.getElementById('select_divisa_deposito').value;
+            
+            if (!tauserId || !divisaId) {
+                mostrarError('Debe seleccionar una divisa');
+                return;
+            }
+            
+            const denominaciones = [];
+            const inputs = document.querySelectorAll('#lista_denominaciones_deposito input[data-denominacion]');
+            
+            inputs.forEach(input => {
+                const cantidad = parseInt(input.value) || 0;
+                if (cantidad > 0) {
+                    denominaciones.push({
+                        denominacion: input.dataset.denominacion,
+                        cantidad: cantidad
+                    });
+                }
+            });
+            
+            if (denominaciones.length === 0) {
+                mostrarError('Debe ingresar al menos una cantidad mayor a 0');
+                return;
+            }
+            
+            try {
+                // Crear JSON payload y enviarlo como form POST normal
+                const payload = {
+                    tauser_id: tauserId,
+                    divisa_id: divisaId,
+                    denominaciones: denominaciones
+                };
+                document.getElementById('deposito_payload').value = JSON.stringify(payload);
+                document.getElementById('form_deposito').submit();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error de conexión');
+            }
+        }
+
+        function cerrarModalDeposito() {
+            document.getElementById('modal_deposito').close();
+            limpiarFormularioDeposito();
+        }
+
+        function limpiarFormularioDeposito() {
+            document.getElementById('form_deposito').reset();
+            document.getElementById('denominaciones_deposito').style.display = 'none';
+            document.getElementById('lista_denominaciones_deposito').innerHTML = '';
+            document.getElementById('select_divisa_deposito').value = '';
+        }
+
+        // Funciones para extracción
+        async function abrirModalExtraccion(tauserId, tauserNombre) {
+            document.getElementById('titulo_extraccion').textContent = `Extraer de ${tauserNombre}`;
+            document.getElementById('extraccion_tauser_id').value = tauserId;
+            
+            await cargarDivisasConStock(tauserId);
+            document.getElementById('modal_extraccion').showModal();
+        }
+
+        async function cargarDivisasConStock(tauserId) {
+            try {
+                const response = await fetch(`/stock/api/divisas-con-stock/${tauserId}/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('select_divisa_extraccion');
+                    select.innerHTML = '<option value="">Seleccionar divisa</option>';
+                    
+                    data.data.forEach(divisa => {
+                        const option = document.createElement('option');
+                        option.value = divisa.id;
+                        option.textContent = `${divisa.codigo} - ${divisa.nombre}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al cargar divisas con stock');
+            }
+        }
+
+        async function cargarDenominacionesExtraccion() {
+            const select = document.getElementById('select_divisa_extraccion');
+            const divisaId = select.value;
+            const tauserId = document.getElementById('extraccion_tauser_id').value;
+            
+            if (!divisaId) {
+                document.getElementById('denominaciones_extraccion').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/stock/api/denominaciones/${tauserId}/${divisaId}/`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const selectedOption = select.selectedOptions[0];
+                    const divisaSimbolo = getDivisaSimbolo(divisaId);
+                    
+                    const container = document.getElementById('lista_denominaciones_extraccion');
+                    container.innerHTML = '';
+                    
+                    data.data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'form-control';
+                        div.innerHTML = `
+                            <label class="label">
+                                <span class="label-text">Billetes de ${item.denominacion} ${divisaSimbolo} (Disponible: ${item.stock_disponible})</span>
+                            </label>
+                            <input type="number" class="input input-bordered" min="0" step="1" max="${item.stock_disponible}" value="0" data-denominacion="${item.denominacion}" placeholder="Cantidad a extraer" oninput="this.value = Math.floor(Math.abs(this.value)); if(this.value > ${item.stock_disponible}) this.value = ${item.stock_disponible};">
+                        `;
+                        container.appendChild(div);
+                    });
+                    
+                    document.getElementById('denominaciones_extraccion').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al cargar denominaciones');
+            }
+        }
+
+        async function realizarExtraccion() {
+            const tauserId = document.getElementById('extraccion_tauser_id').value;
+            const divisaId = document.getElementById('select_divisa_extraccion').value;
+            
+            if (!tauserId || !divisaId) {
+                mostrarError('Debe seleccionar una divisa');
+                return;
+            }
+            
+            const denominaciones = [];
+            const inputs = document.querySelectorAll('#lista_denominaciones_extraccion input[data-denominacion]');
+            
+            inputs.forEach(input => {
+                const cantidad = parseInt(input.value) || 0;
+                if (cantidad > 0) {
+                    denominaciones.push({
+                        denominacion: input.dataset.denominacion,
+                        cantidad: cantidad
+                    });
+                }
+            });
+            
+            if (denominaciones.length === 0) {
+                mostrarError('Debe ingresar al menos una cantidad mayor a 0');
+                return;
+            }
+            
+            try {
+                // Crear JSON payload y enviarlo como form POST normal
+                const payload = {
+                    tauser_id: tauserId,
+                    divisa_id: divisaId,
+                    denominaciones: denominaciones
+                };
+                document.getElementById('extraccion_payload').value = JSON.stringify(payload);
+                document.getElementById('form_extraccion').submit();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error de conexión');
+            }
+        }
+
+        function cerrarModalExtraccion() {
+            document.getElementById('modal_extraccion').close();
+            limpiarFormularioExtraccion();
+        }
+
+        function limpiarFormularioExtraccion() {
+            document.getElementById('form_extraccion').reset();
+            document.getElementById('denominaciones_extraccion').style.display = 'none';
+            document.getElementById('lista_denominaciones_extraccion').innerHTML = '';
+            document.getElementById('select_divisa_extraccion').value = '';
+        }
+
+        // Funciones utilitarias
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function mostrarError(mensaje) {
+            // Implementar notificación de error
+            alert('Error: ' + mensaje);
+        }
+
+        function mostrarExito(mensaje) {
+            // Implementar notificación de éxito
+            alert('Éxito: ' + mensaje);
+        }
+
+        function getDivisaSimbolo(divisaId) {
+            // Buscar el símbolo de la divisa en los datos disponibles
+            const divisa = divisasDisponibles.find(d => d.id === divisaId);
+            if (divisa && divisa.simbolo) {
+                return divisa.simbolo;
+            }
+            
+            // Si no encuentra la divisa, buscar en stockData
+            const stockItem = stockData.find(item => item.divisa_codigo === divisaId);
+            if (stockItem && stockItem.divisa_simbolo) {
+                return stockItem.divisa_simbolo;
+            }
+            
+            // Valor por defecto
+            return '$';
+        }
+
+        // Event listeners para limpiar formularios al cerrar modales
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalDeposito = document.getElementById('modal_deposito');
+            const modalExtraccion = document.getElementById('modal_extraccion');
+
+            modalDeposito.addEventListener('close', function() {
+                limpiarFormularioDeposito();
+            });
+
+            modalExtraccion.addEventListener('close', function() {
+                limpiarFormularioExtraccion();
+            });
+        });
+    </script>
 {% endblock %}
