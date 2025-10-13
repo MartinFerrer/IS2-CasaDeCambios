@@ -673,7 +673,7 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
-                numero_tarjeta=request.POST.get("numero_tarjeta"),
+                numero_tarjeta=request.POST.get("numero_tarjeta", "").replace(" ", ""),
                 nombre_titular=request.POST.get("nombre_titular"),
                 fecha_expiracion=request.POST.get("fecha_expiracion"),
                 cvv=request.POST.get("cvv"),
