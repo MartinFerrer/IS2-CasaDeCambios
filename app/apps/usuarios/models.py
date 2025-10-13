@@ -104,9 +104,9 @@ class Cliente(models.Model):
 # Modelo relacionado a Notificaciones-tasas
 class PreferenciaNotificacion(models.Model):
     FRECUENCIA_CHOICES = [
-        ("daily", "Diario"),
-        ("weekly", "Semanal"),
-        ("monthly", "Mensual"),
+        ("diario", "Diario"),
+        ("semanal", "Semanal"),
+        ("mensual", "Mensual"),
     ]
 
     cliente = models.OneToOneField(

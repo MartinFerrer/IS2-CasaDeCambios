@@ -137,7 +137,7 @@ USE_THOUSAND_SEPARATOR = True
 
 # Forzar localización incluso en DEBUG=True
 FORMAT_MODULE_PATH = [
-    'global_exchange_django.locale',
+    "global_exchange_django.locale",
 ]
 
 # Directorio de locales personalizados
@@ -188,7 +188,7 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
 # Custom error views for CSRF failures
-CSRF_FAILURE_VIEW = 'global_exchange_django.views.csrf_failure'
+CSRF_FAILURE_VIEW = "global_exchange_django.views.csrf_failure"
 
 # Configuration for session cookie name (customizable via .env)
 _session_cookie_from_env = env.str("SESSION_COOKIE_NAME", default=None)
@@ -213,3 +213,12 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+
+# Celery
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+TIME_ZONE = env.str("TIME_ZONE", default="America/Argentina/Buenos_Aires")
+CELERY_TIMEZONE = TIME_ZONE

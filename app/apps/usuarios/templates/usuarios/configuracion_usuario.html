@@ -399,11 +399,9 @@
                 return;
             }
             
-            // Redirigir a la página de medios de pago del cliente seleccionado
             window.location.href = `/transacciones/configuracion/cliente/${clienteId}/`;
         }
 
-        // Actualizar estado del botón según la selección
         document.addEventListener('DOMContentLoaded', function() {
             const clienteSelect = document.getElementById('clienteMediosPago');
             const btnGestionar = document.getElementById('btnGestionarMedios');
@@ -420,15 +418,105 @@
                 }
                 
                 clienteSelect.addEventListener('change', updateButtonState);
-                updateButtonState(); // Inicializar estado
+                updateButtonState();
             }
         });
 
-        // Cerrar modal al hacer clic fuera de él
         document.getElementById('editProfileModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeEditProfileModal();
             }
         });
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+  const btn = document.getElementById('btnConfigNotif');
+  const selCliente = document.getElementById('clienteNotif');
+  const modal = document.getElementById('notifModal');
+  const form = document.getElementById('notifForm');
+  const inputClienteId = document.getElementById('notif_cliente_id');
+  const chkHabilitado = document.getElementById('notif_habilitado');
+  const selFrecuencia = document.getElementById('notif_frecuencia');
+
+  const FRECUENCIAS_VALIDAS = ['diario', 'semanal', 'mensual'];
+
+  function openNotifModalForCliente(clienteId){
+    if(!clienteId){
+      alert('Selecciona un cliente.');
+      return;
+    }
+    inputClienteId.value = clienteId;
+    chkHabilitado.checked = false;
+    selFrecuencia.value = 'diario';
+    // Mostrar modal según tu CSS (daisyUI usa "modal-open")
+    if (modal) modal.classList.add('modal-open');
+  }
+
+  function closeNotifModal(){
+    if (modal) modal.classList.remove('modal-open');
+  }
+
+  if (btn) {
+    btn.addEventListener('click', function(){
+      const clienteId = selCliente ? selCliente.value : null;
+      openNotifModalForCliente(clienteId);
+    });
+  }
+
+  if (!form) return;
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+
+    const clienteId = inputClienteId ? inputClienteId.value : '';
+    const habilitadoVal = chkHabilitado ? (chkHabilitado.checked ? 'true' : 'false') : 'false';
+    const frecuenciaVal = selFrecuencia ? (selFrecuencia.value || '').toString().trim().toLowerCase() : '';
+
+    console.log('Enviar preferencia - cliente_id:', clienteId, 'habilitado:', habilitadoVal, 'frecuencia:', frecuenciaVal);
+
+    // Validación cliente-side rápida
+    if (!clienteId) { alert('cliente_id faltante'); return; }
+    if (!FRECUENCIAS_VALIDAS.includes(frecuenciaVal)) {
+      alert('Frecuencia inválida en cliente (valores válidos: ' + FRECUENCIAS_VALIDAS.join(', ') + '). Valor actual: ' + frecuenciaVal);
+      return;
+    }
+
+    const data = new FormData();
+    data.append('cliente_id', clienteId);
+    data.append('habilitado', habilitadoVal);
+    data.append('frecuencia', frecuenciaVal);
+
+    // CSRF
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+    const headers = {};
+    if (csrf && csrf.value) headers['X-CSRFToken'] = csrf.value;
+
+    try {
+      const resp = await fetch("{% url 'usuarios:actualizar_preferencia_notificacion' %}", {
+        method: 'POST',
+        headers,
+        body: data
+      });
+      const json = await resp.json();
+      console.log('Respuesta servidor:', json, 'status:', resp.status);
+      if (json.success) {
+        closeNotifModal();
+        alert('Preferencia guardada correctamente.');
+        location.reload();
+      } else {
+        alert(json.error || 'Error guardando preferencia. Revisa la consola para más detalles.');
+      }
+    } catch (err) {
+      console.error('Error en fetch:', err);
+      alert('Error de red. Revisa la consola.');
+    }
+  });
+
+  if (modal) {
+    modal.addEventListener('click', function(e){
+      if (e.target === modal) closeNotifModal();
+    });
+  }
+});
+</script>
 {% endblock %}

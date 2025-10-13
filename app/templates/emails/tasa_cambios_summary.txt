@@ -1,0 +1,22 @@
+Hola {{ cliente.nombre|default:cliente }} ,
+
+Este es el resumen de cambios en las tasas de cambio (frecuencia: {{ frecuencia|capfirst }}).
+Periodo: desde {{ since }} hasta {{ until }}.
+
+{% if changes %}
+Se han registrado los siguientes cambios:
+{% for h in changes %}
+- Par: {% if h.tasa %}{{ h.tasa }}{% else %}{{ h.tasa_origen|default:"?" }} / {{ h.tasa_destino|default:"?" }}{% endif %}
+  Fecha: {{ h.updated_at|default:h.timestamp|default:"(fecha no disponible)" }}
+  Valor anterior: {{ h.old_value|default:"-" }}
+  Valor nuevo: {{ h.new_value|default:"-" }}
+
+{% endfor %}
+{% else %}
+No se registraron cambios en el periodo indicado.
+{% endif %}
+
+Si deseas más información accede a tu panel de administración.
+
+Saludos,
+El equipo de Global Exchange

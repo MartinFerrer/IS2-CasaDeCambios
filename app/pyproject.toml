@@ -26,6 +26,10 @@ dependencies = [
     "whitenoise>=6.8.2",
     "pyotp>=2.9.0",
     "qrcode[pil]>=7.4.2",
+    "celery>=5.2",
+    "redis>=4.0",
+    "python-dotenv>=1.0",
+    "django-crontab>=0.7.1",
 ]
 
 [project.optional-dependencies]
