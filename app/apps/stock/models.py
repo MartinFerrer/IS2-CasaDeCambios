@@ -150,6 +150,9 @@ class StockDivisaTauser(models.Model):
     def seleccionar_denominaciones_optimas(cls, tauser, divisa, monto_objetivo):
         """Selecciona las denominaciones óptimas para cubrir un monto objetivo.
         
+        Utiliza programación dinámica para encontrar una solución que permita
+        cubrir exactamente el monto objetivo respetando el stock disponible.
+        
         Args:
             tauser: Instancia del tauser
             divisa: Instancia de la divisa
@@ -157,39 +160,84 @@ class StockDivisaTauser(models.Model):
             
         Returns:
             list: Lista de diccionarios con denominación y cantidad necesaria
+            None: Si no es posible cubrir el monto con el stock disponible
 
         """
+        # Obtener stocks disponibles
         stocks = cls.objects.filter(
             tauser=tauser,
             divisa=divisa,
             stock__gt=0
-        ).order_by('-denominacion')  # Empezar por denominaciones más grandes
+        ).order_by('-denominacion')
 
-        resultado = []
-        monto_restante = monto_objetivo
+        if not stocks.exists():
+            return None
+
+        # Crear estructura de datos para el algoritmo
+        denominaciones = []
+        stock_info = {}
 
         for stock in stocks:
-            if monto_restante <= 0:
-                break
+            denom = stock.denominacion
+            denominaciones.append(denom)
+            stock_info[denom] = {
+                'cantidad_disponible': stock.stock_libre,
+                'stock_id': stock.pk
+            }
 
-            denominacion = stock.denominacion
-            cantidad_necesaria = min(
-                monto_restante // denominacion,  # Cuántos billetes de esta denominación necesito
-                stock.stock_libre  # Cuántos tengo disponibles
-            )
+        # Algoritmo de programación dinámica
+        # dp[i][j] = True si es posible formar monto i usando solo las primeras j denominaciones
+        dp = [[False for _ in range(len(denominaciones) + 1)] for _ in range(monto_objetivo + 1)]
 
-            if cantidad_necesaria > 0:
-                resultado.append({
-                    'stock_id': stock.pk,
-                    'denominacion': denominacion,
-                    'cantidad': cantidad_necesaria,
-                    'valor_total': denominacion * cantidad_necesaria
-                })
-                monto_restante -= denominacion * cantidad_necesaria
+        # Caso base: siempre es posible formar monto 0
+        for j in range(len(denominaciones) + 1):
+            dp[0][j] = True
 
-        # Verificar si se pudo cubrir el monto completo
-        if monto_restante > 0:
-            return None  # No hay suficiente stock
+        # Llenar la tabla dp
+        for i in range(1, monto_objetivo + 1):
+            for j in range(1, len(denominaciones) + 1):
+                denom = denominaciones[j-1]
+                max_uso = min(i // denom, stock_info[denom]['cantidad_disponible'])
+
+                # No usar esta denominación
+                dp[i][j] = dp[i][j-1]
+
+                # Probar usar k unidades de esta denominación
+                for k in range(1, max_uso + 1):
+                    if i >= denom * k and dp[i - denom * k][j-1]:
+                        dp[i][j] = True
+                        break
+
+        # Si no es posible formar el monto objetivo
+        if not dp[monto_objetivo][len(denominaciones)]:
+            return None
+
+        # Reconstruir la solución
+        resultado = []
+        i = monto_objetivo
+        j = len(denominaciones)
+
+        while i > 0 and j > 0:
+            # Si dp[i][j-1] es False, entonces usamos la denominación j
+            if not dp[i][j-1]:
+                denom = denominaciones[j-1]
+                max_uso = min(i // denom, stock_info[denom]['cantidad_disponible'])
+
+                # Encontrar cuántas unidades usamos de esta denominación
+                for k in range(1, max_uso + 1):
+                    if i >= denom * k and dp[i - denom * k][j-1]:
+                        resultado.append({
+                            'stock_id': stock_info[denom]['stock_id'],
+                            'denominacion': denom,
+                            'cantidad': k,
+                            'valor_total': denom * k
+                        })
+                        i -= denom * k
+                        break
+            j -= 1
+
+        # Ordenar por denominación descendente
+        resultado.sort(key=lambda x: x['denominacion'], reverse=True)
 
         return resultado
 
