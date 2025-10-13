@@ -49,6 +49,7 @@ from apps.seguridad.permissions import (
     PERM_DESASOCIAR_CLIENTE,
     PERM_VIEW_CLIENTE,
     PERM_VIEW_DIVISA,
+    PERM_VIEW_MOVIMIENTOSTOCK,
     PERM_VIEW_ROL,
     PERM_VIEW_TASACAMBIO,
     PERM_VIEW_TASACAMBIOHISTORIAL,
@@ -56,6 +57,7 @@ from apps.seguridad.permissions import (
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
+from apps.stock.models import MovimientoStock
 from apps.stock.services import depositar_divisas, extraer_divisas
 from apps.tauser.models import Tauser
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
@@ -1156,11 +1158,7 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
 
     return render(request, "tasa_cambio_historial_list.html", context)
 
-# ============================
-# Vistas CRUD para Tauser
-# ============================
-
-
+# CRUD de Tausers
 @permission_required(PERM_VIEW_TAUSER)
 def tauser_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de tausers en el panel de administración.
@@ -1365,3 +1363,58 @@ def tauser_extraer(request: HttpRequest) -> HttpResponse:
     except Exception as e:
         messages.error(request, f'Error interno: {e!s}')
         return redirect('tauser_listar')
+
+
+@permission_required(PERM_VIEW_MOVIMIENTOSTOCK)
+def movimientos_stock_listar(request: HttpRequest) -> HttpResponse:
+    """Renderiza la página de listado de movimientos de stock con filtros.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Returns:
+        HttpResponse: Renderiza el template movimientos_stock_list.html con el contexto de movimientos filtrados.
+
+    """
+    from datetime import datetime
+
+    movimientos = MovimientoStock.objects.select_related(
+        'tauser', 'divisa', 'transaccion'
+    ).prefetch_related('detalles').order_by('-fecha_creacion')
+
+    # Filtros
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    tauser_id = request.GET.get('tauser')
+    divisa_codigo = request.GET.get('divisa')
+    tipo_movimiento = request.GET.get('tipo_movimiento')
+    estado = request.GET.get('estado')
+
+    if fecha_inicio:
+        movimientos = movimientos.filter(fecha_creacion__gte=fecha_inicio)
+    if fecha_fin:
+        # Hacer que la fecha de fin sea inclusiva hasta el final del día
+        try:
+            fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+            movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin_dt)
+        except Exception:
+            movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin)
+    if tauser_id:
+        movimientos = movimientos.filter(tauser_id=tauser_id)
+    if divisa_codigo:
+        movimientos = movimientos.filter(divisa__codigo=divisa_codigo)
+    if tipo_movimiento:
+        movimientos = movimientos.filter(tipo_movimiento=tipo_movimiento)
+    if estado:
+        movimientos = movimientos.filter(estado=estado)
+
+    context = {
+        'movimientos': movimientos,
+        'tausers': Tauser.objects.all().order_by('nombre'),
+        'divisas': Divisa.objects.all().order_by('codigo'),
+        'tipos_movimiento': MovimientoStock.TIPOS_MOVIMIENTO,
+        'estados_movimiento': MovimientoStock.ESTADOS_MOVIMIENTO,
+    }
+
+    return render(request, 'movimientos_stock_list.html', context)

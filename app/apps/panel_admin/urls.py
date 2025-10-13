@@ -60,5 +60,7 @@ urlpatterns = [
     # URLs para operaciones de stock
     path("tauser/depositar/", views.tauser_depositar, name="tauser_depositar"),
     path("tauser/extraer/", views.tauser_extraer, name="tauser_extraer"),
+    # URLs para historial de movimientos de stock
+    path("movimientos/", views.movimientos_stock_listar, name="movimientos_stock_listar"),
 
 ]

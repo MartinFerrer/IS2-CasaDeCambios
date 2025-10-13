@@ -1,4 +1,8 @@
-"""Servicios para la aplicación de stock."""
+"""Servicios para la aplicación de stock.
+
+Este módulo expone funciones de alto nivel que implementan la lógica de
+negocio relacionada con la gestión del stock por tauser. 
+"""
 
 import json
 import os
@@ -11,7 +15,12 @@ from .models import MovimientoStock, MovimientoStockDetalle, StockDivisaTauser
 
 
 def cargar_denominaciones_divisa():
-    """Carga las denominaciones disponibles desde currency_denominations.json."""
+    """Carga denominaciones desde `staticfiles/currency_denominations.json`.
+
+    Returns:
+        dict: {ISO: [denominaciones_int]} o {} en caso de error.
+
+    """
     json_path = os.path.join(settings.BASE_DIR, 'staticfiles', 'currency_denominations.json')
 
     try:
@@ -34,7 +43,16 @@ def cargar_denominaciones_divisa():
 
 
 def obtener_stock_tauser(tauser_id):
-    """Obtiene todo el stock de un tauser agrupado por divisa."""
+    """Obtiene el stock de un tauser agrupado por divisa.
+
+    Args:
+        tauser_id (int): ID del tauser.
+
+    Returns:
+        list[dict]: Lista con campos como 'divisa_codigo', 'denominacion',
+                    'stock', 'stock_libre' y 'valor_total'.
+
+    """
     stocks = StockDivisaTauser.objects.filter(
         tauser_id=tauser_id
     ).select_related('divisa').order_by('divisa__codigo', '-denominacion')
@@ -57,7 +75,15 @@ def obtener_stock_tauser(tauser_id):
 
 
 def obtener_divisas_con_stock(tauser_id):
-    """Obtiene las divisas que tienen stock disponible para un tauser."""
+    """Obtiene las divisas que tienen stock disponible para un tauser.
+
+    Args:
+        tauser_id (int): ID del tauser
+
+    Returns:
+        QuerySet[Divisa]: Queryset de objetos `Divisa` ordenados por código.
+
+    """
     from apps.operaciones.models import Divisa
 
     divisas_con_stock = StockDivisaTauser.objects.filter(
@@ -69,7 +95,16 @@ def obtener_divisas_con_stock(tauser_id):
 
 
 def obtener_denominaciones_disponibles(tauser_id, divisa_id):
-    """Obtiene las denominaciones disponibles en stock para un tauser y divisa."""
+    """Obtiene las denominaciones disponibles en stock para un tauser y divisa.
+
+    Args:
+        tauser_id (int): ID del tauser
+        divisa_id (str): Código de la divisa (ej. 'USD')
+
+    Returns:
+        list: Lista de dicts con claves: denominacion, stock_disponible, stock_total, stock_reservado
+
+    """
     stocks = StockDivisaTauser.objects.filter(
         tauser_id=tauser_id,
         divisa__codigo=divisa_id,

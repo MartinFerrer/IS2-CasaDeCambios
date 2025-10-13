@@ -21,7 +21,16 @@ from .services import (
 @login_required
 @require_http_methods(["GET"])
 def obtener_stock_api(request, tauser_id):
-    """API para obtener el stock de un tauser."""
+    """Obtiene el stock de un tauser.
+
+    Args:
+        request (HttpRequest): petición HTTP
+        tauser_id (int): ID del tauser
+
+    Returns:
+        JsonResponse: {'success': True, 'data': [...] } o {'success': False, 'error': ...}
+
+    """
     try:
         stock_data = obtener_stock_tauser(tauser_id)
         return JsonResponse({
@@ -38,7 +47,15 @@ def obtener_stock_api(request, tauser_id):
 @login_required
 @require_http_methods(["GET"])
 def obtener_divisas_api(request):
-    """API para obtener todas las divisas con sus denominaciones disponibles."""
+    """Devuelve las divisas activas y sus denominaciones (desde JSON).
+
+    Args:
+        request (HttpRequest): petición HTTP.
+
+    Returns:
+        JsonResponse: {'success': True, 'data': [...] }.
+
+    """
     try:
         from apps.operaciones.models import Divisa
 
@@ -73,7 +90,16 @@ def obtener_divisas_api(request):
 @login_required
 @require_http_methods(["GET"])
 def obtener_divisas_con_stock_api(request, tauser_id):
-    """API para obtener divisas que tienen stock para un tauser."""
+    """Devuelve las divisas que tienen stock>0 para un tauser.
+
+    Args:
+        request (HttpRequest): petición HTTP.
+        tauser_id (int): ID del tauser.
+
+    Returns:
+        JsonResponse: lista de divisas en 'data'.
+
+    """
     try:
         divisas = obtener_divisas_con_stock(tauser_id)
 
@@ -100,7 +126,17 @@ def obtener_divisas_con_stock_api(request, tauser_id):
 @login_required
 @require_http_methods(["GET"])
 def obtener_denominaciones_api(request, tauser_id, divisa_id):
-    """API para obtener denominaciones disponibles para un tauser y divisa."""
+    """Devuelve las denominaciones disponibles para una divisa y tauser.
+
+    Args:
+        request (HttpRequest): petición HTTP.
+        tauser_id (int): ID del tauser.
+        divisa_id (str): Código ISO de la divisa.
+
+    Returns:
+        JsonResponse: lista de denominaciones en 'data'.
+
+    """
     try:
         denominaciones = obtener_denominaciones_disponibles(tauser_id, divisa_id)
         return JsonResponse({
@@ -118,7 +154,15 @@ def obtener_denominaciones_api(request, tauser_id, divisa_id):
 @csrf_exempt
 @require_http_methods(["POST"])
 def depositar_divisas_api(request):
-    """API para depositar divisas en el stock de un tauser."""
+    """Endpoint POST para depositar denominaciones en un tauser.
+
+    Args:
+        request (HttpRequest): petición HTTP.
+
+    Returns:
+        JsonResponse con 'movimiento_id' en caso de éxito o error y código HTTP.
+
+    """
     try:
         data = json.loads(request.body)
 
@@ -182,7 +226,15 @@ def depositar_divisas_api(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def extraer_divisas_api(request):
-    """API para extraer divisas del stock de un tauser."""
+    """Endpoint POST para extraer denominaciones de un tauser.
+
+    Args:
+        request (HttpRequest): petición HTTP.
+
+    Returns:
+        JsonResponse con 'movimiento_id' en caso de éxito o error y código HTTP.
+
+    """
     try:
         data = json.loads(request.body)
 
