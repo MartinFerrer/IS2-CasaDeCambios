@@ -4,11 +4,14 @@ Este módulo contiene las vistas relacionadas con la gestión de usuarios,
 configuración de perfiles y gestión de información personal.
 """
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from apps.seguridad.models import PerfilMFA
+
+from .forms import CustomUserCreationForm
 
 
 def ejemplo(request: HttpRequest) -> HttpResponse:
@@ -74,3 +77,16 @@ def configuracion_usuario(request):
     }
 
     return render(request, "usuarios/configuracion_usuario.html", context)
+
+
+def registro(request):
+    """Vista de registro de usuario"""
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Usuario registrado con éxito.")
+            return redirect("usuarios:configuracion_usuario")
+    else:
+        form = CustomUserCreationForm()
+    return render(request, "usuarios/registro.html", {"form": form})

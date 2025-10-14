@@ -27,11 +27,11 @@ env.read_env()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = env.str("SECRET_KEY")
+SECRET_KEY = env.str("SECRET_KEY", default="test-secret-key")
 
 DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -137,7 +137,7 @@ USE_THOUSAND_SEPARATOR = True
 
 # Forzar localización incluso en DEBUG=True
 FORMAT_MODULE_PATH = [
-    'global_exchange_django.locale',
+    "global_exchange_django.locale",
 ]
 
 # Directorio de locales personalizados
@@ -188,7 +188,7 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
 # Custom error views for CSRF failures
-CSRF_FAILURE_VIEW = 'global_exchange_django.views.csrf_failure'
+CSRF_FAILURE_VIEW = "global_exchange_django.views.csrf_failure"
 
 # Configuration for session cookie name (customizable via .env)
 _session_cookie_from_env = env.str("SESSION_COOKIE_NAME", default=None)
