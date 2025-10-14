@@ -82,17 +82,17 @@ services:
     build:
       context: ./api_externo_simulador
     ports:
-      - 5002:5002
+      - 5002:5001
     environment:
       - FLASK_ENV=development
       - PYTHONUNBUFFERED=1
       - HOST=0.0.0.0
-      - PUERTO=5002
+      - PUERTO=5001
       - PROBABILIDAD_EXITO=0.7
       - TIEMPO_PROCESAMIENTO_MIN=2
       - TIEMPO_PROCESAMIENTO_MAX=5
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5002/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
