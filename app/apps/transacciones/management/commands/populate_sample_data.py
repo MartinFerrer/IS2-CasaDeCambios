@@ -13,13 +13,14 @@ Este comando crea datos de ejemplo para:
 from datetime import date, timedelta
 from decimal import Decimal
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
-from apps.usuarios.models import Cliente, TipoCliente
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
+from apps.usuarios.models import Cliente, TipoCliente
 
 Usuario = get_user_model()
 
@@ -353,18 +354,35 @@ class Command(BaseCommand):
         for i, cliente in enumerate(clientes):
             self.stdout.write(f"  Creando medios para cliente: {cliente.nombre}")
 
+            # Crear tarjetas específicas para pruebas del banco externo
+            if i == 0:  # Primer cliente: tarjeta que siempre tiene éxito
+                numero_tarjeta = "4000000000000077"
+                alias_extra = " (EXITO)"
+            elif i == 1:  # Segundo cliente: tarjeta que siempre falla
+                numero_tarjeta = "1111111111111111"
+                alias_extra = " (FALLO)"
+            elif i == 2:  # Tercer cliente: otra tarjeta exitosa
+                numero_tarjeta = "5555555555555557"
+                alias_extra = " (EXITO)"
+            elif i == 3:  # Cuarto cliente: otra tarjeta que falla
+                numero_tarjeta = "4000000000000002"
+                alias_extra = " (FALLO)"
+            else:
+                numero_tarjeta = f"424242424242{4240 + i:04d}"
+                alias_extra = ""
+
             # Crear una tarjeta de crédito para cada cliente
             emisor = emisores[i % len(emisores)] if emisores else None
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
-                numero_tarjeta=f"424242424242{4240 + i:04d}",
+                numero_tarjeta=numero_tarjeta,
                 nombre_titular=cliente.nombre,
                 fecha_expiracion=date.today() + timedelta(days=365 * 2),
                 cvv="123",
                 entidad=emisor,
                 habilitado_para_pago=True,
                 habilitado_para_cobro=False,
-                alias=f"Tarjeta {emisor.nombre if emisor else 'Principal'} {cliente.nombre}",
+                alias=f"Tarjeta {emisor.nombre if emisor else 'Principal'} {cliente.nombre}{alias_extra}",
             )
             self.stdout.write(f"    Creada tarjeta: {tarjeta.alias}")
 

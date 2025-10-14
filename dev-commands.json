@@ -59,7 +59,8 @@
         "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
-        "down"
+        "down",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
@@ -72,7 +73,8 @@
         "-f",
         "docker-compose.dev.yml",
         "down",
-        "-v"
+        "-v",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
@@ -343,7 +345,8 @@
         "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
-        "down"
+        "down",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
@@ -356,7 +359,8 @@
         "-f",
         "docker-compose.prod.yml",
         "down",
-        "-v"
+        "-v",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
