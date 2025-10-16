@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from apps.transacciones.views import _compute_simulation
-from django.contrib.auth.models import User
+from apps.usuarios.models import Usuario
 from django.test import RequestFactory
 
 
@@ -18,7 +18,7 @@ class TestComputeSimulation:
         """Fixture para crear un request mock."""
         factory = RequestFactory()
         request = factory.post("/test/")
-        request.user = User.objects.create_user("testuser", "test@test.com", "pass")
+        request.user = Usuario.objects.create_user("test@test.com", "Test User", "pass")
         return request
 
     @patch("apps.transacciones.views.TasaCambio.objects.filter")
