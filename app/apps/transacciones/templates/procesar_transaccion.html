@@ -336,6 +336,42 @@
                             <li>Realizar el pago correspondiente</li>
                         </ul>
                     </div>
+                {% elif 'stripe' in metodo_pago %}
+                    <div class="steps steps-vertical lg:steps-horizontal w-full">
+                        <div class="step step-primary">Transacción Creada</div>
+                        <div class="step step-primary">Pago Stripe Procesado</div>
+                        <div class="step">Verificación Internacional</div>
+                        <div class="step">Transacción Completada</div>
+                    </div>
+                    <div class="mt-4 p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border border-purple-200">
+                        <div class="font-semibold mb-2 flex items-center">
+                            <span class="text-2xl mr-2">💳</span>
+                            Pago Internacional con Stripe:
+                        </div>
+                        <ul class="list-disc list-inside text-sm space-y-1">
+                            <li class="text-green-700 font-medium">✅ Pago procesado exitosamente</li>
+                            <li>Procesamiento internacional seguro</li>
+                            <li>Verificación bancaria en curso</li>
+                            <li>Tiempo estimado: 2-5 minutos</li>
+                            <li>Recibirá confirmación por email</li>
+                            <li>
+                                Comisión aplicada: <span class="font-bold text-purple-600">2.9%</span>
+                            </li>
+                        </ul>
+                        <!-- Estado del pago Stripe -->
+                        {% if transaccion.stripe_payment %}
+                            <div class="mt-3 p-3 bg-white rounded border-l-4 border-purple-400">
+                                <div class="text-xs text-gray-600 mb-1">Estado del Pago:</div>
+                                {% if transaccion.stripe_payment.paid %}
+                                    <div class="text-green-600 font-bold">✅ Pago Confirmado</div>
+                                {% elif transaccion.stripe_payment.status == 'pending' %}
+                                    <div class="text-yellow-600 font-bold">⏳ Pago Pendiente</div>
+                                {% else %}
+                                    <div class="text-gray-600 font-bold">📋 {{ transaccion.stripe_payment.status|title }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
                 {% elif 'tarjeta' in metodo_pago or 'tarjeta' in metodo_cobro %}
                     <div class="steps steps-vertical lg:steps-horizontal w-full">
                         <div class="step step-primary">Transacción Creada</div>

@@ -26,6 +26,7 @@ dependencies = [
     "whitenoise>=6.8.2",
     "pyotp>=2.9.0",
     "qrcode[pil]>=7.4.2",
+    "stripe>=8.0.0",
 ]
 
 [project.optional-dependencies]
