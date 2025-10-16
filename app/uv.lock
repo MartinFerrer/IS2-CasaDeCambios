@@ -27,6 +27,7 @@ dependencies = [
     { name = "pycountry" },
     { name = "pyotp" },
     { name = "qrcode", extra = ["pil"] },
+    { name = "sqlparse" },
     { name = "stripe" },
     { name = "whitenoise" },
 ]
@@ -70,6 +71,7 @@ requires-dist = [
     { name = "sphinx", marker = "extra == 'dev'", specifier = ">=8.2.3" },
     { name = "sphinx-autodoc-typehints", marker = "extra == 'dev'", specifier = ">=3.2.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'", specifier = ">=3.0.2" },
+    { name = "sqlparse", specifier = ">=0.4.4" },
     { name = "stripe", specifier = ">=8.0.0" },
     { name = "whitenoise", specifier = ">=6.8.2" },
 ]
