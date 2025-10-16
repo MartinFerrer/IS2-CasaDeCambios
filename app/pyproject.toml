@@ -28,6 +28,7 @@ dependencies = [
     "qrcode[pil]>=7.4.2",
     "sqlparse>=0.4.4",
     "stripe>=8.0.0",
+    "sqlparse>=0.4.4",
 ]
 
 [project.optional-dependencies]

@@ -73,6 +73,7 @@ requires-dist = [
     { name = "sphinx-rtd-theme", marker = "extra == 'dev'", specifier = ">=3.0.2" },
     { name = "sqlparse", specifier = ">=0.4.4" },
     { name = "stripe", specifier = ">=8.0.0" },
+    { name = "sqlparse", specifier = ">=0.4.4" },
     { name = "whitenoise", specifier = ">=6.8.2" },
 ]
 provides-extras = ["dev"]

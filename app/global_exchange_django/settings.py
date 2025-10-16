@@ -221,9 +221,9 @@ if not DEBUG:
 # STRIPE CONFIGURATION
 # =============================================================================
 
-# Stripe API Keys
-STRIPE_PUBLISHABLE_KEY = env.str("STRIPE_PUBLISHABLE_KEY")
-STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")
+# Stripe API Keys (con valores por defecto para CI/documentación)
+STRIPE_PUBLISHABLE_KEY = env.str("STRIPE_PUBLISHABLE_KEY", default="pk_test_fake_key_for_ci")
+STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="sk_test_fake_key_for_ci")
 STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET", default="")
 
 # Configuración de comisiones Stripe
