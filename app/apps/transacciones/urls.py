@@ -85,7 +85,6 @@ urlpatterns = [
     # URLs para Stripe
     path("api/stripe/create-payment-intent/", views.create_stripe_payment_intent, name="stripe_create_payment_intent"),
     path("api/stripe/confirm-payment/", views.confirm_stripe_payment, name="stripe_confirm_payment"),
-    path("api/stripe/saved-cards/", views.api_stripe_saved_cards, name="stripe_saved_cards"),
     path("stripe/webhook/", views.stripe_webhook_handler, name="stripe_webhook"),
     path("", views.vista_transacciones, name="lista"),
 ]

@@ -360,15 +360,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Opción de guardar tarjeta -->
-                    <div class="form-control mb-4">
-                        <label class="label cursor-pointer">
-                            <span class="label-text">💾 Guardar esta tarjeta para uso futuro</span>
-                            <input id="save-card-checkbox"
-                                   type="checkbox"
-                                   class="checkbox checkbox-primary" />
-                        </label>
-                    </div>
                     <!-- Botones -->
                     <div class="modal-action">
                         <button type="button" id="cancel-stripe-payment" class="btn btn-outline">Cancelar</button>
@@ -441,7 +432,6 @@
         const stripeModalFixedFee = document.getElementById('stripe-modal-fixed-fee');
         const stripeModalTotalFees = document.getElementById('stripe-modal-total-fees');
         const stripeModalGrandTotal = document.getElementById('stripe-modal-grand-total');
-        const saveCardCheckbox = document.getElementById('save-card-checkbox');
 
         let currentTransactionId = null;
 
@@ -1035,8 +1025,7 @@
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     body: JSON.stringify({
-                        payment_intent_id: intentData.payment_intent_id,
-                        save_card: saveCardCheckbox.checked
+                        payment_intent_id: intentData.payment_intent_id
                     })
                 });
 

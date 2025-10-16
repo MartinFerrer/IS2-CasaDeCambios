@@ -232,4 +232,3 @@ STRIPE_FIXED_FEE_USD = Decimal("0.30")  # 0.30 USD comisión fija por transacci�
 
 # Configuración adicional de Stripe
 STRIPE_CURRENCY_DEFAULT = "USD"  # Moneda por defecto para pagos internacionales
-STRIPE_SAVE_CARDS_ENABLED = True  # Permitir guardar tarjetas extranjeras

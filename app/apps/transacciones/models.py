@@ -920,9 +920,6 @@ class StripePayment(models.Model):
         max_length=2, blank=True, null=True, help_text="País emisor de la tarjeta (código ISO)"
     )
 
-    # Control de guardado de tarjeta
-    save_payment_method = models.BooleanField(default=False, help_text="Si el cliente solicitó guardar la tarjeta")
-
     # Auditoría completa
     fecha_creacion = models.DateTimeField(auto_now_add=True, help_text="Fecha de creación del pago")
     fecha_actualizacion = models.DateTimeField(auto_now=True, help_text="Fecha de última actualización")

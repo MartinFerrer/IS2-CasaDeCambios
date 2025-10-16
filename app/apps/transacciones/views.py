@@ -39,13 +39,16 @@ def obtener_nombre_medio(medio_id, cliente):
         return "Tarjeta Internacional (Stripe)"
 
     try:
-        if medio_id.startswith("stripe_"):
-            # Para tarjetas extranjeras guardadas
-            stripe_id = medio_id.replace("stripe_", "")
-            from .models import TarjetaExtranjera
+        # Funcionalidad de tarjetas guardadas deshabilitada
+        # if medio_id.startswith("stripe_"):
+        #     # Para tarjetas extranjeras guardadas
+        #     stripe_id = medio_id.replace("stripe_", "")
+        #     from .models import TarjetaExtranjera
+        #     tarjeta = TarjetaExtranjera.objects.get(pk=stripe_id, cliente=cliente)
+        #     return tarjeta.get_display_name()
 
-            tarjeta = TarjetaExtranjera.objects.get(pk=stripe_id, cliente=cliente)
-            return tarjeta.get_display_name()
+        if medio_id.startswith("stripe_"):
+            return "Tarjeta Internacional (Stripe) - Guardada"
         elif medio_id.startswith("tarjeta_"):
             medio_pk = medio_id.replace("tarjeta_", "")
             tarjeta = TarjetaCredito.objects.get(pk=medio_pk, cliente=cliente)
@@ -499,22 +502,19 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 }
             )
 
-            # Agregar tarjetas Stripe guardadas
-            from .models import TarjetaExtranjera
-
-            for tarjeta in TarjetaExtranjera.objects.filter(cliente=cliente).order_by("-fecha_creacion"):
-                medios_pago.append(
-                    {
-                        "id": f"stripe_{tarjeta.id}",
-                        "tipo": "stripe",
-                        "nombre": tarjeta.get_display_name(),
-                        "descripcion": f"**** **** **** {tarjeta.last4}",
-                        "comision": float(settings.STRIPE_COMMISSION_RATE),
-                        "entidad": "Stripe",
-                        "brand": tarjeta.card_brand,
-                        "last4": tarjeta.last4,
-                    }
-                )
+            # Funcionalidad de tarjetas guardadas deshabilitada
+            # from .models import TarjetaExtranjera
+            # for tarjeta in TarjetaExtranjera.objects.filter(cliente=cliente).order_by("-fecha_creacion"):
+            #     medios_pago.append({
+            #         "id": f"stripe_{tarjeta.id}",
+            #         "tipo": "stripe",
+            #         "nombre": tarjeta.get_display_name(),
+            #         "descripcion": f"**** **** **** {tarjeta.last4}",
+            #         "comision": float(settings.STRIPE_COMMISSION_RATE),
+            #         "entidad": "Stripe",
+            #         "brand": tarjeta.card_brand,
+            #         "last4": tarjeta.last4,
+            #     })
 
             # Agregar billeteras electrónicas habilitadas para pago
             for billetera in BilleteraElectronica.objects.filter(cliente=cliente, habilitado_para_pago=True):
@@ -2228,12 +2228,6 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
             transaccion.estado = "completada"
             mensaje = "Pago procesado exitosamente con Stripe"
 
-            # Si es una nueva tarjeta, opcionalmente guardarla para uso futuro
-            if transaccion.medio_pago == "stripe_new" and data.get("save_card", False):
-                # Aquí podrías implementar lógica para guardar la tarjeta
-                # usando Stripe Customer y Setup Intents
-                pass
-
         elif intent.status in ["requires_payment_method", "requires_confirmation"]:
             print("[STRIPE DEBUG] Pago requiere acción adicional")
             # Pago requiere acción adicional
@@ -2403,47 +2397,3 @@ def _handle_payment_intent_canceled(payment_intent):
         print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")
     except Exception as e:
         print(f"Error manejando payment_intent.canceled: {e}")
-
-
-@require_GET
-def api_stripe_saved_cards(request: HttpRequest) -> JsonResponse:
-    """API para obtener las tarjetas Stripe guardadas del cliente.
-
-    Returns:
-        JsonResponse con la lista de tarjetas guardadas
-
-    """
-    if not request.user.is_authenticated:
-        return JsonResponse({"error": "Usuario no autenticado"}, status=401)
-
-    cliente = getattr(request, "cliente", None)
-    if not cliente:
-        return JsonResponse({"error": "No hay cliente asociado"}, status=400)
-
-    try:
-        from .models import TarjetaExtranjera
-
-        # Obtener tarjetas extranjeras guardadas del cliente
-        tarjetas = TarjetaExtranjera.objects.filter(cliente=cliente).order_by("-fecha_creacion")
-
-        tarjetas_data = []
-        for tarjeta in tarjetas:
-            tarjetas_data.append(
-                {
-                    "id": f"stripe_{tarjeta.id}",
-                    "tipo": "stripe",
-                    "nombre": tarjeta.get_display_name(),
-                    "descripcion": f"**** **** **** {tarjeta.last4}",
-                    "brand": tarjeta.card_brand,
-                    "last4": tarjeta.last4,
-                    "exp_month": tarjeta.exp_month,
-                    "exp_year": tarjeta.exp_year,
-                    "comision": float(settings.STRIPE_COMMISSION_RATE),
-                }
-            )
-
-        return JsonResponse({"success": True, "tarjetas": tarjetas_data})
-
-    except Exception as e:
-        print(f"Error al obtener tarjetas Stripe: {e}")
-        return JsonResponse({"error": "Error interno del servidor"}, status=500)
