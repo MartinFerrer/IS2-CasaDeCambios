@@ -83,7 +83,7 @@ def _get_stripe_fixed_fee_pyg() -> Decimal:
     try:
         # Obtener tasa USD/PYG vigente
         tasa_cambio = TasaCambio.objects.filter(
-            divisa_origen__codigo="PYG", divisa_destino__codigo="USD", estado="activo"
+            divisa_origen__codigo="PYG", divisa_destino__codigo="USD", activo=True
         ).first()
 
         if tasa_cambio:
@@ -345,10 +345,13 @@ def simular_cambio_view(request: HttpRequest) -> HttpResponse:
         incluye las divisas disponibles y el cliente asociado (si existe).
     :rtype: django.http.HttpResponse
     """
+    from django.conf import settings
+
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
 
     context = {
         "divisas": divisas,
+        "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
         # El cliente se obtiene automáticamente del middleware en request.cliente
     }
     return render(request, "simular_cambio.html", context)

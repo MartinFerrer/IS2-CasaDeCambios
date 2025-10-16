@@ -27,9 +27,13 @@ class TestComputeSimulation:
         """Test cálculo de simulación con comisiones duales de Stripe."""
         # Mock tasa de cambio
         mock_tasa = MagicMock()
-        mock_tasa.tasa_compra = Decimal("7400.00")
-        mock_tasa.tasa_venta = Decimal("7500.00")
-        mock_tasa.divisa_base.codigo = "USD"
+        mock_tasa.precio_base = Decimal("7450.00")
+        mock_tasa.comision_compra = Decimal("50.00")
+        mock_tasa.comision_venta = Decimal("50.00")
+        mock_tasa.tasa_compra = Decimal("7500.00")
+        mock_tasa.tasa_venta = Decimal("7400.00")
+        mock_tasa.divisa_origen.codigo = "PYG"
+        mock_tasa.divisa_destino.codigo = "USD"
         mock_tasa_filter.return_value.first.return_value = mock_tasa
 
         # Mock comisión fija de Stripe en PYG
@@ -53,15 +57,19 @@ class TestComputeSimulation:
             # Verificar estructura de comisiones duales
             assert any(key in str(result).lower() for key in ["comision", "fee", "stripe"])
 
-    @patch("apps.transacciones.views.TasaCambio.objects.filter")
     @patch("apps.transacciones.views._get_stripe_fixed_fee_pyg")
-    def test_compute_simulation_stripe_commission_calculation(self, mock_stripe_fee, mock_tasa_filter, mock_request):
+    @patch("apps.transacciones.views.TasaCambio.objects.filter")
+    def test_compute_simulation_stripe_commission_calculation(self, mock_tasa_filter, mock_stripe_fee, mock_request):
         """Test cálculo específico de comisiones de Stripe."""
         # Mock tasa de cambio USD
         mock_tasa = MagicMock()
-        mock_tasa.tasa_compra = Decimal("7400.00")
-        mock_tasa.tasa_venta = Decimal("7500.00")
-        mock_tasa.divisa_base.codigo = "USD"
+        mock_tasa.precio_base = Decimal("7450.00")
+        mock_tasa.comision_compra = Decimal("50.00")
+        mock_tasa.comision_venta = Decimal("50.00")
+        mock_tasa.tasa_compra = Decimal("7500.00")  # precio_base + comision_compra
+        mock_tasa.tasa_venta = Decimal("7400.00")  # precio_base - comision_venta
+        mock_tasa.divisa_origen.codigo = "PYG"
+        mock_tasa.divisa_destino.codigo = "USD"
         mock_tasa_filter.return_value.first.return_value = mock_tasa
 
         # Mock comisión fija convertida a PYG
@@ -87,9 +95,13 @@ class TestComputeSimulation:
         """Test simulación con medio de pago que no es Stripe."""
         # Mock tasa de cambio
         mock_tasa = MagicMock()
-        mock_tasa.tasa_compra = Decimal("7400.00")
-        mock_tasa.tasa_venta = Decimal("7500.00")
-        mock_tasa.divisa_base.codigo = "USD"
+        mock_tasa.precio_base = Decimal("7450.00")
+        mock_tasa.comision_compra = Decimal("50.00")
+        mock_tasa.comision_venta = Decimal("50.00")
+        mock_tasa.tasa_compra = Decimal("7500.00")
+        mock_tasa.tasa_venta = Decimal("7400.00")
+        mock_tasa.divisa_origen.codigo = "PYG"
+        mock_tasa.divisa_destino.codigo = "USD"
         mock_tasa_filter.return_value.first.return_value = mock_tasa
 
         params = {

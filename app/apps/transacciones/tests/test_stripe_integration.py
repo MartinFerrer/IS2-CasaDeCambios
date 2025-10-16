@@ -25,7 +25,7 @@ class TestStripeIntegration:
 
         # 0.30 USD * 7500 PYG/USD = 2250 PYG
         assert resultado == Decimal("2250.00")
-        mock_filter.assert_called_once_with(divisa_origen__codigo="PYG", divisa_destino__codigo="USD", estado="activo")
+        mock_filter.assert_called_once_with(divisa_origen__codigo="PYG", divisa_destino__codigo="USD", activo=True)
 
     @patch("apps.transacciones.views.TasaCambio.objects.filter")
     def test_get_stripe_fixed_fee_pyg_no_rate(self, mock_filter):
