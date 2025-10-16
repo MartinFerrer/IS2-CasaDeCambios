@@ -1,59 +1,69 @@
 """Módulo de pruebas para la funcionalidad de envío de correos electrónicos.
 
 Este módulo contiene las pruebas relacionadas con el envío de correos de verificación
-durante el proceso de registro de usuarios. Verifica:
-- El envío correcto de correos después de un registro exitoso
-- La no emisión de correos cuando el registro falla
-- El contenido y destinatario correctos en los correos enviados
+durante el proceso de registro de usuarios.
 
-Las pruebas utilizan el backend de pruebas de correo de Django (mail.outbox)
+Verifica:
+    * El envío correcto de correos después de un registro exitoso.
+    * La no emisión de correos cuando el registro falla.
+    * El contenido y destinatario correctos en los correos enviados.
+
+Las pruebas utilizan el backend de pruebas de correo de Django (:mod:`django.core.mail`)
 para verificar el envío sin necesidad de un servidor SMTP real.
 """
 
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
-from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 
-# Obtener el modelo de usuario personalizado configurado en settings.AUTH_USER_MODEL
 User = get_user_model()
 
 
 class EnvioCorreoTests(TestCase):
     """Suite de pruebas para la verificación del sistema de correos.
 
-    Esta clase prueba el flujo completo de envío de correos durante el registro,
-    asegurando que:
-    1. Se envíen correos solo para registros válidos
-    2. No se envíen correos para datos inválidos
-    3. El contenido del correo sea el esperado
-    4. El correo se envíe al destinatario correcto
-
-    Attributes:
-        url_registro (str): URL de la vista de registro obtenida mediante reverse()
-
+    Esta clase agrupa las pruebas relacionadas con el envío de correos durante
+    el registro de nuevos usuarios. Se enfoca en validar que el sistema invoque
+    correctamente el método :func:`django.core.mail.send_mail` y que los datos
+    enviados sean coherentes con la información del usuario registrado.
     """
 
     def setUp(self):
         """Configura el ambiente de pruebas antes de cada test.
 
-        Inicializa:
-            - URL de registro usando la vista de seguridad:registro
+        Inicializa la URL de registro obtenida mediante :func:`django.urls.reverse`.
+
+        Attributes
+        ----------
+        url_registro : str
+            URL de la vista de registro de usuarios.
+
         """
         self.url_registro = reverse("seguridad:registro")
 
-    def test_envio_correo_despues_registro(self):
+    @patch("apps.seguridad.views.send_mail")
+    def test_envio_correo_despues_registro(self, mock_send_mail):
         """Verifica el envío del correo de verificación post-registro.
 
-        Este test verifica que:
-        1. El registro exitoso redirija al usuario
-        2. Se envíe exactamente un correo
-        3. El correo se envíe al email registrado
-        4. El asunto contenga "verifica"
-        5. El cuerpo incluya el nombre del usuario
+        Este test comprueba que, al realizar un registro exitoso, se envíe un
+        correo de verificación al nuevo usuario.
 
-        El test utiliza datos válidos de registro y verifica
-        la respuesta HTTP y el contenido del correo enviado.
+        Pasos verificados:
+            1. El registro exitoso redirige correctamente al usuario.
+            2. Se llama al método :func:`django.core.mail.send_mail` desde la vista.
+            3. Se envía exactamente un correo.
+            4. El correo se dirige al email registrado.
+            5. El asunto contiene la palabra ``verifica``.
+            6. El cuerpo incluye el nombre del usuario.
+
+        Parameters
+        ----------
+        mock_send_mail : MagicMock
+            Mock del método :func:`django.core.mail.send_mail` utilizado para
+            interceptar y verificar la llamada de envío.
+
         """
         datos = {
             "nombre": "Usuario Prueba",
@@ -62,39 +72,48 @@ class EnvioCorreoTests(TestCase):
             "password2": "segura12345",
         }
 
+        # Ejecutar registro
         response = self.client.post(self.url_registro, datos)
 
-        # Se espera redirección al confirmar registro
+        # 1. Verificar redirección (registro exitoso)
         self.assertEqual(response.status_code, 302)
 
-        # Verificar que se haya enviado un correo
-        self.assertEqual(len(mail.outbox), 1)
+        # 2. Verificar que se llamó al método send_mail desde la vista
+        mock_send_mail.assert_called_once()
 
-        correo = mail.outbox[0]
-        self.assertIn("correo@example.com", correo.to)
-        self.assertIn("verifica", correo.subject.lower())
-        self.assertIn("Usuario Prueba", correo.body)
+        # 3. Verificar que el correo se envió al usuario correcto
+        args = mock_send_mail.call_args[0]
+        self.assertIn(datos["email"], args[3])  # recipients
+        self.assertIn("verifica", args[0].lower())  # subject
+        self.assertIn(datos["nombre"], args[1])  # message body
 
-    def test_no_envia_correo_con_datos_invalidos(self):
+    @patch("apps.seguridad.views.send_mail")
+    def test_no_envia_correo_con_datos_invalidos(self, mock_send_mail):
         """Verifica que no se envíen correos con datos de registro inválidos.
 
-        Este test asegura que el sistema no envíe correos de verificación
-        cuando el formulario de registro contiene errores, específicamente:
-        1. Email con formato inválido
-        2. Contraseñas que no coinciden
-        3. Contraseñas demasiado cortas
+        Este test asegura que el sistema **no intente enviar correos de verificación**
+        cuando el formulario de registro contiene errores de validación, tales como:
 
-        Se espera que el sistema valide los datos antes de intentar
-        cualquier envío de correo.
+            * Email con formato inválido.
+            * Contraseñas que no coinciden.
+            * Contraseñas demasiado cortas.
+
+        Parameters
+        ----------
+        mock_send_mail : MagicMock
+            Mock del método :func:`django.core.mail.send_mail` utilizado para
+            comprobar que no haya sido invocado.
+
         """
         datos = {
             "nombre": "Usuario Fallo",
             "email": "correo_invalido",  # Email con formato inválido
             "password1": "abc",  # Contraseña muy corta
-            "password2": "xyz",  # No coincide con password1
+            "password2": "xyz",  # No coincide
         }
 
+        # Ejecutar intento de registro con datos inválidos
         self.client.post(self.url_registro, datos)
 
-        # Verifica que no se haya enviado ningún correo
-        self.assertEqual(len(mail.outbox), 0)
+        # No debe haberse llamado a send_mail con datos inválidos
+        mock_send_mail.assert_not_called()
