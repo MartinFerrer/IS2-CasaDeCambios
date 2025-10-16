@@ -79,7 +79,7 @@ class TestComputeSimulation:
             "tipo_operacion": "compra",
             "divisa_deseada": "USD",
             "monto": Decimal("100.00"),
-            "medio_pago": "stripe",
+            "metodo_pago": "stripe_new",
         }
 
         result = _compute_simulation(params, mock_request)
