@@ -30,6 +30,11 @@ dependencies = [
     "redis>=4.0",
     "python-dotenv>=1.0",
     "django-crontab>=0.7.1",
+    "stripe>=8.0.0",
+    "sqlparse>=0.4.4",
+    # Simulador externo/API externa
+    "flask>=2.3.3",
+    "flask-cors>=4.0.0",
 ]
 
 [project.optional-dependencies]

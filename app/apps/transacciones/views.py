@@ -4,10 +4,13 @@ Este módulo proporciona vistas para simular el cambio de divisas y para comprar
 También incluye el CRUD de medios de pago para los clientes.
 """
 
+import json
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
+import stripe
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -24,6 +27,43 @@ from apps.usuarios.models import Cliente
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 
 
+def obtener_medio_financiero_por_identificador(identificador, cliente):
+    """Obtiene el objeto de medio financiero basado en el identificador.
+    
+    Args:
+        identificador: String como 'tarjeta_1', 'cuenta_2', 'billetera_3', etc.
+        cliente: Objeto Cliente al que pertenece el medio
+        
+    Returns:
+        Objeto del medio financiero (TarjetaCredito, CuentaBancaria, BilleteraElectronica) o None
+        
+    """
+    if not identificador or identificador == "efectivo":
+        return None
+
+    try:
+        # Separar tipo y ID del identificador
+        partes = identificador.split('_')
+        if len(partes) != 2:
+            return None
+
+        tipo_medio, id_medio = partes
+        id_medio = int(id_medio)
+
+        # Buscar según el tipo
+        if tipo_medio == "tarjeta":
+            return TarjetaCredito.objects.get(id=id_medio, cliente=cliente)
+        elif tipo_medio == "cuenta":
+            return CuentaBancaria.objects.get(id=id_medio, cliente=cliente)
+        elif tipo_medio == "billetera":
+            return BilleteraElectronica.objects.get(id=id_medio, cliente=cliente)
+
+    except (ValueError, TarjetaCredito.DoesNotExist, CuentaBancaria.DoesNotExist, BilleteraElectronica.DoesNotExist):
+        pass
+
+    return None
+
+
 def obtener_nombre_medio(medio_id, cliente):
     """Obtiene el nombre legible de un medio de pago/cobro con su alias real.
 
@@ -33,9 +73,13 @@ def obtener_nombre_medio(medio_id, cliente):
     """
     if medio_id == "efectivo":
         return "Efectivo"
+    elif medio_id == "stripe_new":
+        return "Tarjeta Internacional (Stripe)"
 
     try:
-        if medio_id.startswith("tarjeta_"):
+        if medio_id.startswith("stripe_"):
+            return "Tarjeta Internacional (Stripe) - Guardada"
+        elif medio_id.startswith("tarjeta_"):
             medio_pk = medio_id.replace("tarjeta_", "")
             tarjeta = TarjetaCredito.objects.get(pk=medio_pk, cliente=cliente)
             return "TC - " + tarjeta.alias
@@ -49,7 +93,9 @@ def obtener_nombre_medio(medio_id, cliente):
             return "Billetera - " + billetera.alias
     except Exception:
         # Si no se encuentra el medio, mostrar nombre genérico
-        if medio_id.startswith("tarjeta_"):
+        if medio_id.startswith("stripe_"):
+            return "Tarjeta Internacional"
+        elif medio_id.startswith("tarjeta_"):
             return "Tarjeta de Crédito"
         elif medio_id.startswith("cuenta_"):
             return "Cuenta Bancaria"
@@ -59,8 +105,39 @@ def obtener_nombre_medio(medio_id, cliente):
     return "Método desconocido"
 
 
+def _get_stripe_fixed_fee_pyg() -> Decimal:
+    """Calcula la comisión fija de Stripe (0.30 USD) convertida a PYG usando la tasa vigente."""
+    from django.conf import settings
+
+    from apps.operaciones.models import TasaCambio
+
+    try:
+        # Obtener tasa USD/PYG vigente
+        tasa_cambio = TasaCambio.objects.filter(
+            divisa_origen__codigo="PYG", divisa_destino__codigo="USD", activo=True
+        ).first()
+
+        if tasa_cambio:
+            # Convertir 0.30 USD a PYG
+            tasa_venta = tasa_cambio.tasa_venta
+            fee_pyg = settings.STRIPE_FIXED_FEE_USD * tasa_venta
+            return fee_pyg
+        else:
+            # Fallback: usar tasa aproximada si no hay tasa activa
+            return settings.STRIPE_FIXED_FEE_USD * Decimal("7000")  # ~7000 PYG/USD
+    except Exception:
+        # Fallback en caso de error
+        return settings.STRIPE_FIXED_FEE_USD * Decimal("7000")
+
+
 def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
     """Calcula la comisión del medio de pago."""
+    from django.conf import settings
+
+    # Stripe (tarjetas internacionales)
+    if metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
+        return settings.STRIPE_COMMISSION_RATE
+
     if metodo_pago.startswith("tarjeta_") and cliente:
         try:
             tarjeta_id = int(metodo_pago.split("_")[1])
@@ -94,6 +171,7 @@ def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
             "cuenta": Decimal("0.0"),
             "tarjeta": Decimal("5.0"),
             "billetera": Decimal("3.0"),
+            "stripe": settings.STRIPE_COMMISSION_RATE,
         }
         if metodo_pago.startswith("tarjeta"):
             return comisiones_medios["tarjeta"]
@@ -101,6 +179,8 @@ def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
             return comisiones_medios["cuenta"]
         elif metodo_pago.startswith("billetera"):
             return comisiones_medios["billetera"]
+        elif metodo_pago.startswith("stripe"):
+            return comisiones_medios["stripe"]
         return comisiones_medios["efectivo"]
 
 
@@ -166,6 +246,10 @@ def _compute_simulation(params: Dict, request) -> Dict:
     metodo_pago = params.get("metodo_pago") or "efectivo"
     metodo_cobro = params.get("metodo_cobro") or "efectivo"
 
+    # Validación: No permitir compra de divisas con medio de pago en efectivo
+    if tipo == "compra" and metodo_pago == "efectivo":
+        raise ValueError("No se permite comprar divisas usando efectivo como medio de pago")
+
     # Obtener cliente del middleware para descuentos
     cliente = getattr(request, "cliente", None)
 
@@ -202,6 +286,11 @@ def _compute_simulation(params: Dict, request) -> Dict:
     comision_medio_pago_valor = _get_payment_commission(metodo_pago, cliente, tipo)
     comision_medio_cobro_valor = _get_collection_commission(metodo_cobro, cliente, tipo)
 
+    # Comisión fija adicional para Stripe (solo para pagos)
+    stripe_fixed_fee = Decimal("0.0")
+    if metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
+        stripe_fixed_fee = _get_stripe_fixed_fee_pyg()
+
     # Calcular según las fórmulas corregidas
     if tipo == "compra":
         # Para compra: el usuario especifica cuánta divisa extranjera desea
@@ -213,7 +302,10 @@ def _compute_simulation(params: Dict, request) -> Dict:
         # converted = cantidad de guaraníes necesarios (sin comisión de medio)
         converted = monto * float(tc_efectiva)
         comision_medio_pago = Decimal(str(converted)) * comision_medio_pago_valor / Decimal("100")
-        total = converted + float(comision_medio_pago)  # Total en guaraníes a pagar
+
+        # Para Stripe: agregar comisión fija además de la comisión porcentual
+        total_comision_medio = comision_medio_pago + stripe_fixed_fee
+        total = converted + float(total_comision_medio)  # Total en guaraníes a pagar
 
         comision_final = float(comision_efectiva)
         total_antes_comision_medio = converted
@@ -229,6 +321,7 @@ def _compute_simulation(params: Dict, request) -> Dict:
         comision_medio_cobro = Decimal(str(total_antes_comision_medio)) * comision_medio_cobro_valor / Decimal("100")
         total = total_antes_comision_medio - float(comision_medio_cobro)
         tasa_display = float(tc_efectiva)
+        stripe_fixed_fee = Decimal("0.0")  # Para venta no se aplica Stripe
 
     # Determinar tipos de medios para display
     tipo_medio_pago = "efectivo"
@@ -238,6 +331,8 @@ def _compute_simulation(params: Dict, request) -> Dict:
         tipo_medio_pago = "cuenta"
     elif metodo_pago.startswith("billetera"):
         tipo_medio_pago = "billetera"
+    elif metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
+        tipo_medio_pago = "stripe"
 
     tipo_medio_cobro = "efectivo"
     if metodo_cobro.startswith("tarjeta"):
@@ -267,6 +362,9 @@ def _compute_simulation(params: Dict, request) -> Dict:
         "tipo_operacion": tipo,
         "metodo_pago": metodo_pago,
         "metodo_cobro": metodo_cobro,
+        # Campos específicos para Stripe
+        "stripe_fixed_fee": round(float(stripe_fixed_fee), 6),
+        "stripe_fixed_fee_usd": float(settings.STRIPE_FIXED_FEE_USD) if stripe_fixed_fee > 0 else 0.0,
     }
 
 
@@ -282,10 +380,13 @@ def simular_cambio_view(request: HttpRequest) -> HttpResponse:
         incluye las divisas disponibles y el cliente asociado (si existe).
     :rtype: django.http.HttpResponse
     """
+    from django.conf import settings
+
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
 
     context = {
         "divisas": divisas,
+        "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
         # El cliente se obtiene automáticamente del middleware en request.cliente
     }
     return render(request, "simular_cambio.html", context)
@@ -307,9 +408,12 @@ def api_simular_cambio(request: HttpRequest) -> JsonResponse:
     :return: JsonResponse con los detalles de la simulación (tasas, comisiones, totales).
     :rtype: django.http.JsonResponse
     """
-    params = request.GET.dict()
-    result = _compute_simulation(params, request)
-    return JsonResponse(result)
+    try:
+        params = request.GET.dict()
+        result = _compute_simulation(params, request)
+        return JsonResponse(result)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @require_GET
@@ -371,17 +475,8 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 }
             )
         else:
-            # Para compra: todos los medios de pago disponibles
-            # Agregar efectivo por defecto para pago
-            medios_pago.append(
-                {
-                    "id": "efectivo",
-                    "tipo": "efectivo",
-                    "nombre": "Efectivo",
-                    "descripcion": "Pago en efectivo",
-                    "comision": 0,  # 0%
-                }
-            )
+            # Para compra: todos los medios de pago disponibles EXCEPTO efectivo
+            # No agregar efectivo para operaciones de compra (restricción de negocio)
 
             # Agregar tarjetas de crédito habilitadas para pago
             for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_pago=True):
@@ -426,6 +521,18 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                         "entidad": cuenta.entidad.nombre if cuenta.entidad else "Sin entidad",
                     }
                 )
+
+            # Agregar tarjetas extranjeras (Stripe) - solo para compra
+            medios_pago.append(
+                {
+                    "id": "stripe_new",
+                    "tipo": "stripe",
+                    "nombre": "💳 Tarjeta Internacional (Stripe)",
+                    "descripcion": "Nueva tarjeta internacional",
+                    "comision": float(settings.STRIPE_COMMISSION_RATE),
+                    "entidad": "Stripe",
+                }
+            )
 
             # Agregar billeteras electrónicas habilitadas para pago
             for billetera in BilleteraElectronica.objects.filter(cliente=cliente, habilitado_para_pago=True):
@@ -673,7 +780,7 @@ def crear_tarjeta(request: HttpRequest, cliente_id: int) -> HttpResponse:
 
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
-                numero_tarjeta=request.POST.get("numero_tarjeta"),
+                numero_tarjeta=request.POST.get("numero_tarjeta", "").replace(" ", ""),
                 nombre_titular=request.POST.get("nombre_titular"),
                 fecha_expiracion=request.POST.get("fecha_expiracion"),
                 cvv=request.POST.get("cvv"),
@@ -1108,6 +1215,7 @@ def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
 
     context = {
         "divisas": divisas,
+        "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY,
         # El cliente se obtiene automáticamente del middleware en request.cliente
     }
     return render(request, "realizar_transaccion.html", context)
@@ -1219,9 +1327,8 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
             },
         }
 
-    except Exception as e:
+    except Exception:
         # En caso de error, registrar pero permitir la transacción para no bloquear el sistema
-        print(f"Error verificando límites de transacción: {e}")
         return {"valid": True, "error_message": None, "limits_info": None}
 
 
@@ -1251,6 +1358,15 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
 
     try:
         params = request.GET.dict()
+
+        # Validación: No permitir compra de divisas con medio de pago en efectivo
+        tipo_operacion = params.get("tipo_operacion", "compra")
+        metodo_pago = params.get("metodo_pago", "efectivo")
+
+        if tipo_operacion == "compra" and metodo_pago == "efectivo":
+            return JsonResponse(
+                {"error": "No se permite comprar divisas usando PYG en efectivo como medio de pago"}, status=400
+            )
 
         # Verificar si el usuario requiere MFA para transacciones ANTES de crear
         from apps.seguridad.models import PerfilMFA
@@ -1370,7 +1486,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
             del request.session[f"mfa_token_valido_{mfa_token}"]
 
-        print(f"Transacción creada: {transaccion}")
         return JsonResponse(
             {
                 "success": True,
@@ -1396,10 +1511,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         )
 
     except Exception as e:
-        import traceback
-
-        print(f"Error en api_crear_transaccion: {e}")
-        print(traceback.format_exc())
         return JsonResponse({"error": f"Error al crear transacción: {e!s}"}, status=500)
 
 
@@ -1509,8 +1620,7 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al cancelar transacción: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
@@ -1539,7 +1649,6 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         data = json.loads(request.body)
         transaccion_id = data.get("transaccion_id")
         exito = data.get("exito", False)
-        codigo_autorizacion = data.get("codigo_autorizacion")
         mensaje_error = data.get("mensaje_error")
 
         if not transaccion_id:
@@ -1567,24 +1676,14 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
             # Pago exitoso
             transaccion.estado = "completada"
             transaccion.fecha_pago = datetime.now()
-
-            # Agregar información del código de autorización si está disponible
-            if codigo_autorizacion:
-                # Aquí podrías agregar un campo para el código de autorización si lo tienes en el modelo
-                pass
-
-            mensaje_log = f"Pago procesado exitosamente. Código: {codigo_autorizacion}"
+            mensaje_log = "Pago procesado exitosamente"
 
         else:
             # Pago fallido
             transaccion.estado = "pendiente"
-            mensaje_log = f"Pago rechazado por el banco. Error: {mensaje_error}"
 
         # Guardar cambios
         transaccion.save()
-
-        # Log del resultado
-        print(f"Transacción {transaccion_id}: {mensaje_log}")
 
         return JsonResponse(
             {
@@ -1602,8 +1701,7 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"success": False, "message": "Datos JSON inválidos"}, status=400)
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al procesar pago bancario: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
@@ -1677,16 +1775,28 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
             return render(request, "popup_codigo_tauser.html", context)
 
         # Para tarjetas y cuentas bancarias, usar el popup bancario primero
+
+        # Obtener los medios financieros reales basados en los identificadores
+        medio_pago_obj = None
+        medio_cobro_obj = None
+
+        if medio_pago and medio_pago != "efectivo":
+            medio_pago_obj = obtener_medio_financiero_por_identificador(medio_pago, cliente)
+
+        if medio_cobro and medio_cobro != "efectivo":
+            medio_cobro_obj = obtener_medio_financiero_por_identificador(medio_cobro, cliente)
+
         context = {
             "transaccion": transaccion,
             "cliente": cliente,
             "es_efectivo": False,
+            "medio_pago_obj": medio_pago_obj,
+            "medio_cobro_obj": medio_cobro_obj,
         }
 
         return render(request, "popup_banco_simulado.html", context)
 
-    except Exception as e:
-        print(f"Error en popup banco simulado: {e}")
+    except Exception:
         context = {
             "error": "Error interno del servidor",
             "transaccion": None,
@@ -1758,8 +1868,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
 
         return render(request, "popup_codigo_tauser.html", context)
 
-    except Exception as e:
-        print(f"Error en popup código TAUSER retiro: {e}")
+    except Exception:
         context = {
             "error": "Error interno del servidor",
             "transaccion": None,
@@ -1770,7 +1879,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
 
 @require_GET
 def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """API para verificar si la cotización de una transacción ha cambiado significativamente.
+    """Verificasi la cotización de una transacción ha cambiado significativamente.
 
     Args:
         request: HttpRequest object
@@ -1822,14 +1931,13 @@ def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonR
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al verificar cotización: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
 @require_POST
 def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """API para cancelar una transacción por cambio de cotización.
+    """Cancela una transacción por cambio de cotización.
 
     Args:
         request: HttpRequest object
@@ -1875,14 +1983,13 @@ def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> Js
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al cancelar por cotización: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
 @require_POST
 def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """API para aceptar la nueva cotización y continuar con la transacción.
+    """Acepta la nueva cotización y continuar con la transacción.
 
     Args:
         request: HttpRequest object
@@ -1931,7 +2038,344 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception:
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+# =================
+# VISTAS DE STRIPE
+# =================
+
+
+@require_POST
+def create_stripe_payment_intent(request: HttpRequest) -> JsonResponse:
+    """Crear un Payment Intent de Stripe para procesar el pago.
+
+    Esta vista crea un Payment Intent en Stripe para una transacción específica,
+    aplicando la comisión configurada.
+
+    Args:
+        request: HttpRequest con datos JSON de la transacción
+
+    Returns:
+        JsonResponse con el client_secret del Payment Intent o error
+
+    """
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Usuario no autenticado"}, status=401)
+
+    cliente = getattr(request, "cliente", None)
+    if not cliente:
+        return JsonResponse({"error": "No hay cliente asociado"}, status=400)
+
+    try:
+        # Parsear datos JSON
+        data = json.loads(request.body)
+        transaccion_id = data.get("transaccion_id")
+
+        if not transaccion_id:
+            return JsonResponse({"error": "ID de transacción requerido"}, status=400)
+
+        # Obtener la transacción
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
+
+        # Verificar que la transacción esté pendiente
+        if transaccion.estado != "pendiente":
+            return JsonResponse(
+                {"error": f"La transacción está en estado '{transaccion.estado}' y no puede ser procesada"}, status=400
+            )
+
+        # Verificar que sea un pago con Stripe
+        if not (transaccion.medio_pago == "stripe_new" or transaccion.medio_pago.startswith("stripe_")):
+            return JsonResponse({"error": "Esta transacción no es para pago con Stripe"}, status=400)
+
+        # Calcular el monto a cobrar en centavos
+        # Para compra: el cliente paga en PYG (monto_origen)
+        # Para venta: esto no debería usar Stripe, pero por seguridad verificamos
+        if transaccion.tipo_operacion != "compra":
+            return JsonResponse({"error": "Stripe solo se usa para operaciones de compra"}, status=400)
+
+        # Convertir PYG a USD para Stripe (aproximadamente 1 USD = 7000 PYG)
+        # Stripe requiere montos en centavos de USD
+        monto_pyg = float(transaccion.monto_origen)
+        monto_usd = monto_pyg / 7000.0  # Conversión aproximada
+        monto_centavos = int(monto_usd * 100)  # Convertir a centavos
+
+        # Monto mínimo de Stripe: 50 centavos USD
+        if monto_centavos < 50:
+            return JsonResponse({"error": "El monto es demasiado pequeño para procesar con Stripe"}, status=400)
+
+        # Crear el Payment Intent
+        intent = stripe.PaymentIntent.create(
+            amount=monto_centavos,
+            currency="usd",
+            metadata={
+                "transaccion_id": str(transaccion.id_transaccion),
+                "cliente_id": str(cliente.id),
+                "usuario_id": str(request.user.id),
+                "tipo_operacion": transaccion.tipo_operacion,
+                "monto_pyg": str(monto_pyg),
+            },
+            description=f"Compra de {transaccion.divisa_destino.codigo} - Global Exchange",
+        )
+
+        # Crear registro de pago Stripe
+        from .models import StripePayment
+
+        stripe_payment = StripePayment.objects.create(
+            cliente=cliente,
+            stripe_payment_intent_id=intent.id,
+            amount=Decimal(str(monto_usd)),  # Monto en USD, no centavos
+            currency="USD",
+            status="requires_payment_method",
+            metadata=intent.metadata,
+        )
+
+        # Actualizar la transacción con el stripe_payment
+        transaccion.stripe_payment = stripe_payment
+        transaccion.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "client_secret": intent.client_secret,
+                "payment_intent_id": intent.id,
+                "amount_usd": monto_usd,
+                "amount_cents": monto_centavos,
+                "stripe_payment_id": stripe_payment.id,
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Datos JSON inválidos"}, status=400)
+    except stripe.error.StripeError as e:
+        print(f"Error de Stripe: {e}")
+        return JsonResponse({"error": f"Error de Stripe: {e!s}"}, status=400)
     except Exception as e:
-        print(f"Error al aceptar nueva cotización: {e}")
-        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
-        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+        print(f"Error al crear Payment Intent: {e}")
+        return JsonResponse({"error": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
+    """Confirmar el pago de Stripe y actualizar la transacción.
+
+    Esta vista se llama después de que el cliente complete el pago
+    en el frontend para confirmar el estado y actualizar la transacción.
+
+    Args:
+        request: HttpRequest con datos del Payment Intent
+
+    Returns:
+        JsonResponse con el resultado de la confirmación
+
+    """
+    import json
+
+    import stripe
+    from django.conf import settings
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Usuario no autenticado"}, status=401)
+
+    cliente = getattr(request, "cliente", None)
+    if not cliente:
+        return JsonResponse({"error": "No hay cliente asociado"}, status=400)
+
+    try:
+        # Parsear datos JSON
+        data = json.loads(request.body)
+        payment_intent_id = data.get("payment_intent_id")
+
+        if not payment_intent_id:
+            return JsonResponse({"error": "ID del Payment Intent requerido"}, status=400)
+
+        # Obtener el Payment Intent de Stripe
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+
+        # Buscar el registro de pago en la base de datos
+        from .models import StripePayment
+
+        stripe_payment = get_object_or_404(StripePayment, stripe_payment_intent_id=payment_intent_id)
+
+        # Buscar la transacción asociada a este StripePayment
+        from .models import Transaccion
+
+        transaccion = get_object_or_404(Transaccion, stripe_payment=stripe_payment)
+
+        # Verificar que la transacción pertenece al cliente
+        if transaccion.cliente != cliente:
+            return JsonResponse({"error": "No tienes permiso para confirmar este pago"}, status=403)
+
+        # Actualizar el estado del pago según Stripe
+        stripe_payment.status = intent.status
+
+        if intent.status == "succeeded":
+            # Pago exitoso
+            transaccion.estado = "completada"
+            mensaje = "Pago procesado exitosamente con Stripe"
+
+        elif intent.status in ["requires_payment_method", "requires_confirmation"]:
+            # Pago requiere acción adicional
+            transaccion.estado = "pendiente"
+            mensaje = "El pago requiere confirmación adicional"
+
+        else:
+            # Pago fallido o cancelado
+            transaccion.estado = "pendiente"
+            mensaje = f"Pago no completado. Estado: {intent.status}"
+
+        # Guardar cambios
+        stripe_payment.save()
+        transaccion.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": mensaje,
+                "payment_status": intent.status,
+                "transaccion_status": transaccion.estado,
+                "transaccion_id": str(transaccion.id_transaccion),
+                "payment_intent_id": payment_intent_id,
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Datos JSON inválidos"}, status=400)
+    except stripe.error.StripeError as e:
+        print(f"Error de Stripe: {e}")
+        return JsonResponse({"error": f"Error de Stripe: {e!s}"}, status=400)
+    except Exception as e:
+        print(f"Error al confirmar pago Stripe: {e}")
+        return JsonResponse({"error": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+def stripe_webhook_handler(request: HttpRequest) -> HttpResponse:
+    """Webhook handler para eventos de Stripe.
+
+    Maneja eventos enviados por Stripe para mantener sincronizado
+    el estado de los pagos.
+
+    Args:
+        request: HttpRequest con el evento de Stripe
+
+    Returns:
+        HttpResponse con código 200 si se procesó exitosamente
+
+    """
+    import stripe
+    from django.conf import settings
+    from django.http import HttpResponse
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    # Obtener la clave del webhook endpoint (configurar en settings)
+    endpoint_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", None)
+
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+
+    try:
+        # Verificar la firma del webhook si está configurada
+        if endpoint_secret:
+            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        else:
+            # En desarrollo, parsear directamente sin verificar firma
+            import json
+
+            event = json.loads(payload)
+
+        # Manejar el evento
+        if event["type"] == "payment_intent.succeeded":
+            payment_intent = event["data"]["object"]
+            _handle_payment_intent_succeeded(payment_intent)
+
+        elif event["type"] == "payment_intent.payment_failed":
+            payment_intent = event["data"]["object"]
+            _handle_payment_intent_failed(payment_intent)
+
+        elif event["type"] == "payment_intent.canceled":
+            payment_intent = event["data"]["object"]
+            _handle_payment_intent_canceled(payment_intent)
+
+        else:
+            pass  # Evento no manejado
+
+        return HttpResponse(status=200)
+
+    except ValueError as e:
+        print(f"Payload inválido del webhook: {e}")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        print(f"Firma inválida del webhook: {e}")
+        return HttpResponse(status=400)
+    except Exception as e:
+        print(f"Error en webhook Stripe: {e}")
+        return HttpResponse(status=500)
+
+
+def _handle_payment_intent_succeeded(payment_intent):
+    """Manejar evento de pago exitoso."""
+    try:
+        from .models import StripePayment
+
+        stripe_payment = StripePayment.objects.get(stripe_payment_intent_id=payment_intent["id"])
+        stripe_payment.status = "succeeded"
+        stripe_payment.paid = True
+        stripe_payment.stripe_charge_id = payment_intent.get("latest_charge")
+        stripe_payment.save()
+
+        # Actualizar transacción
+        transaccion = stripe_payment.transaccion
+        transaccion.estado = "completada"
+        transaccion.save()
+
+    except StripePayment.DoesNotExist:
+        print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")
+    except Exception as e:
+        print(f"Error manejando payment_intent.succeeded: {e}")
+
+
+def _handle_payment_intent_failed(payment_intent):
+    """Manejar evento de pago fallido."""
+    try:
+        from .models import StripePayment
+
+        stripe_payment = StripePayment.objects.get(stripe_payment_intent_id=payment_intent["id"])
+        stripe_payment.status = "failed"
+        stripe_payment.paid = False
+        stripe_payment.save()
+
+        # La transacción permanece en pendiente para permitir reintentos
+
+    except StripePayment.DoesNotExist:
+        pass  # StripePayment no encontrado
+    except Exception as e:
+        print(f"Error manejando payment_intent.failed: {e}")
+
+
+def _handle_payment_intent_canceled(payment_intent):
+    """Manejar evento de pago cancelado."""
+    try:
+        from .models import StripePayment
+
+        stripe_payment = StripePayment.objects.get(stripe_payment_intent_id=payment_intent["id"])
+        stripe_payment.status = "canceled"
+        stripe_payment.paid = False
+        stripe_payment.save()
+
+        # Cancelar la transacción también
+        transaccion = stripe_payment.transaccion
+        transaccion.estado = "cancelada"
+        transaccion.motivo_cancelacion = "Pago cancelado en Stripe"
+        transaccion.save()
+
+    except StripePayment.DoesNotExist:
+        pass  # StripePayment no encontrado
+    except Exception as e:
+        print(f"Error manejando payment_intent.canceled: {e}")

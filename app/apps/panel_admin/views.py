@@ -20,12 +20,14 @@ from forex_python.converter import CurrencyCodes
 
 from apps.operaciones.forms import DivisaForm, TasaCambioForm
 from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.seguridad.decorators import admin_required, permission_required
 from apps.seguridad.permissions import (
     PERM_ADD_CLIENTE,
     PERM_ADD_DIVISA,
     PERM_ADD_ENTIDADFINANCIERA,
     PERM_ADD_TASACAMBIO,
+    PERM_ADD_TAUSER,
     PERM_ADD_USUARIO,
     PERM_ASIGNAR_PERMISO_ROL,
     PERM_ASOCIAR_CLIENTE,
@@ -34,27 +36,34 @@ from apps.seguridad.permissions import (
     PERM_CHANGE_DIVISA,
     PERM_CHANGE_ENTIDADFINANCIERA,
     PERM_CHANGE_LIMITETRANSACCIONES,
+    PERM_CHANGE_STOCKDIVISATAUSER,
     PERM_CHANGE_TASACAMBIO,
+    PERM_CHANGE_TAUSER,
     PERM_CHANGE_USUARIO,
     PERM_DELETE_CLIENTE,
     PERM_DELETE_DIVISA,
     PERM_DELETE_ENTIDADFINANCIERA,
+    PERM_DELETE_TAUSER,
     PERM_DELETE_USUARIO,
     PERM_DESASIGNAR_PERMISO_ROL,
     PERM_DESASOCIAR_CLIENTE,
     PERM_VIEW_CLIENTE,
     PERM_VIEW_DIVISA,
+    PERM_VIEW_MOVIMIENTOSTOCK,
     PERM_VIEW_ROL,
     PERM_VIEW_TASACAMBIO,
     PERM_VIEW_TASACAMBIOHISTORIAL,
+    PERM_VIEW_TAUSER,
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.stock.models import MovimientoStock
+from apps.stock.services import depositar_divisas, extraer_divisas
+from apps.tauser.models import Tauser
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
-from .forms import ClienteForm, UsuarioForm
+from .forms import ClienteForm, TauserForm, UsuarioForm
 
 
 @admin_required
@@ -193,9 +202,12 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
             limite.full_clean()  # Usa las validaciones del modelo
             limite.save()
 
-        messages.success(request, f"Límites actualizados exitosamente. "
-                       f"Diario: ₲{strip_trailing_zeros(limite.limite_diario, 0)}, "
-                       f"Mensual: ₲{strip_trailing_zeros(limite.limite_mensual, 0)}")
+        messages.success(
+            request,
+            f"Límites actualizados exitosamente. "
+            f"Diario: ₲{strip_trailing_zeros(limite.limite_diario, 0)}, "
+            f"Mensual: ₲{strip_trailing_zeros(limite.limite_mensual, 0)}",
+        )
     except ValidationError as e:
         for error in e.messages:
             messages.error(request, error)
@@ -752,9 +764,6 @@ def divisa_listar(request: HttpRequest) -> object:
         HttpResponse: La página HTML con la lista de divisas.
     """
     divisas = Divisa.objects.all().order_by("codigo")
-    print(f"DEBUG divisa_listar: Found {divisas.count()} currencies in database")
-    for divisa in divisas:
-        print(f"DEBUG: {divisa.pk} - {divisa.codigo} - {divisa.nombre}")
     return render(request, "divisa_list.html", {"object_list": divisas})
 
 
@@ -998,11 +1007,17 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
             # Verificar si hubo cambios reales
             cambios = []
             if tasa.precio_base != valores_originales["precio_base"]:
-                cambios.append(f"Precio base: {strip_trailing_zeros(valores_originales['precio_base'])} → {strip_trailing_zeros(tasa.precio_base)}")
+                cambios.append(
+                    f"Precio base: {strip_trailing_zeros(valores_originales['precio_base'])} → {strip_trailing_zeros(tasa.precio_base)}"
+                )
             if tasa.comision_compra != valores_originales["comision_compra"]:
-                cambios.append(f"Comisión compra: {strip_trailing_zeros(valores_originales['comision_compra'])} → {strip_trailing_zeros(tasa.comision_compra)}")
+                cambios.append(
+                    f"Comisión compra: {strip_trailing_zeros(valores_originales['comision_compra'])} → {strip_trailing_zeros(tasa.comision_compra)}"
+                )
             if tasa.comision_venta != valores_originales["comision_venta"]:
-                cambios.append(f"Comisión venta: {strip_trailing_zeros(valores_originales['comision_venta'])} → {strip_trailing_zeros(tasa.comision_venta)}")
+                cambios.append(
+                    f"Comisión venta: {strip_trailing_zeros(valores_originales['comision_venta'])} → {strip_trailing_zeros(tasa.comision_venta)}"
+                )
             if tasa.activo != valores_originales["activo"]:
                 cambios.append(
                     "Estado: "
@@ -1148,3 +1163,264 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
     }
 
     return render(request, "tasa_cambio_historial_list.html", context)
+
+# CRUD de Tausers
+@permission_required(PERM_VIEW_TAUSER)
+def tauser_list(request: HttpRequest) -> HttpResponse:
+    """Renderiza la lista de tausers en el panel de administración.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers})
+
+
+@permission_required(PERM_ADD_TAUSER)
+def tauser_create(request: HttpRequest) -> HttpResponse:
+    """Valida el formulario de creación de tauser y renderiza la lista de tausers con el nuevo tauser.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    if request.method == "POST":
+        form = TauserForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tauser creado exitosamente.")
+            return redirect("tauser_listar")
+    else:
+        form = TauserForm()
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers, "form": form})
+
+
+@permission_required(PERM_CHANGE_TAUSER)
+def tauser_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    """Valida el formulario de edición de tauser y renderiza la lista de tausers con el tauser editado.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario del tauser a editar.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tauser = get_object_or_404(Tauser, pk=pk)
+    if request.method == "POST":
+        form = TauserForm(request.POST, instance=tauser)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tauser actualizado exitosamente.")
+            return redirect("tauser_listar")
+    else:
+        form = TauserForm(instance=tauser)
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers, "form": form, "editing": True})
+
+
+@permission_required(PERM_DELETE_TAUSER)
+def tauser_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Elimina el tauser y renderiza la lista de tausers actualizada.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario del tauser a eliminar.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tauser = get_object_or_404(Tauser, pk=pk)
+    if request.method == "POST":
+        tauser.delete()
+        messages.success(request, "Tauser eliminado exitosamente.")
+        return redirect("tauser_listar")
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers})
+
+
+@permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
+@require_POST
+def tauser_depositar(request: HttpRequest) -> HttpResponse:
+    """Realiza un depósito de divisas en el stock de un tauser.
+
+    Args:
+        request: HttpRequest object con datos JSON del depósito.
+
+    Retorna:
+        HttpResponse: Redirect a lista de tausers con mensaje de éxito.
+
+    """
+    import json
+
+    try:
+        # Leer datos del formulario POST (campo payload) o del body JSON
+        payload = request.POST.get('payload')
+        if payload:
+            data = json.loads(payload)
+        else:
+            data = json.loads(request.body)
+
+        # Validar campos requeridos
+        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        for field in required_fields:
+            if field not in data:
+                messages.error(request, f'Campo requerido: {field}')
+                return redirect('tauser_listar')
+
+        # Validar denominaciones
+        denominaciones = data['denominaciones']
+        if not isinstance(denominaciones, list) or not denominaciones:
+            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
+            return redirect('tauser_listar')
+
+        for item in denominaciones:
+            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
+                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
+                return redirect('tauser_listar')
+        print(denominaciones)
+        # Realizar el depósito
+        movimiento = depositar_divisas(
+            tauser_id=data['tauser_id'],
+            divisa_id=data['divisa_id'],
+            denominaciones_cantidades=denominaciones
+        )
+
+        messages.success(request, '¡Depósito realizado exitosamente!')
+        return redirect('tauser_listar')
+
+    except ValidationError as e:
+        messages.error(request, str(e))
+        return redirect('tauser_listar')
+    except json.JSONDecodeError:
+        messages.error(request, 'JSON inválido')
+        return redirect('tauser_listar')
+    except Exception as e:
+        messages.error(request, f'Error interno: {e!s}')
+        return redirect('tauser_listar')
+
+
+@permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
+@require_POST
+def tauser_extraer(request: HttpRequest) -> HttpResponse:
+    """Realiza una extracción de divisas del stock de un tauser.
+
+    Args:
+        request: HttpRequest object con datos JSON de la extracción.
+
+    Retorna:
+        HttpResponse: Redirect a lista de tausers con mensaje de éxito.
+
+    """
+    import json
+
+    try:
+        # Leer datos del formulario POST (campo payload) o del body JSON
+        payload = request.POST.get('payload')
+        if payload:
+            data = json.loads(payload)
+        else:
+            data = json.loads(request.body)
+
+        # Validar campos requeridos
+        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        for field in required_fields:
+            if field not in data:
+                messages.error(request, f'Campo requerido: {field}')
+                return redirect('tauser_listar')
+
+        # Validar denominaciones
+        denominaciones = data['denominaciones']
+        if not isinstance(denominaciones, list) or not denominaciones:
+            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
+            return redirect('tauser_listar')
+
+        for item in denominaciones:
+            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
+                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
+                return redirect('tauser_listar')
+
+        # Realizar la extracción
+        movimiento = extraer_divisas(
+            tauser_id=data['tauser_id'],
+            divisa_id=data['divisa_id'],
+            denominaciones_cantidades=denominaciones
+        )
+
+        messages.success(request, '¡Extracción realizada exitosamente!')
+        return redirect('tauser_listar')
+
+    except ValidationError as e:
+        messages.error(request, str(e))
+        return redirect('tauser_listar')
+    except json.JSONDecodeError:
+        messages.error(request, 'JSON inválido')
+        return redirect('tauser_listar')
+    except Exception as e:
+        messages.error(request, f'Error interno: {e!s}')
+        return redirect('tauser_listar')
+
+
+@permission_required(PERM_VIEW_MOVIMIENTOSTOCK)
+def movimientos_stock_listar(request: HttpRequest) -> HttpResponse:
+    """Renderiza la página de listado de movimientos de stock con filtros.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Returns:
+        HttpResponse: Renderiza el template movimientos_stock_list.html con el contexto de movimientos filtrados.
+
+    """
+    from datetime import datetime
+
+    movimientos = MovimientoStock.objects.select_related(
+        'tauser', 'divisa', 'transaccion'
+    ).prefetch_related('detalles').order_by('-fecha_creacion')
+
+    # Filtros
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    tauser_id = request.GET.get('tauser')
+    divisa_codigo = request.GET.get('divisa')
+    tipo_movimiento = request.GET.get('tipo_movimiento')
+    estado = request.GET.get('estado')
+
+    if fecha_inicio:
+        movimientos = movimientos.filter(fecha_creacion__gte=fecha_inicio)
+    if fecha_fin:
+        # Hacer que la fecha de fin sea inclusiva hasta el final del día
+        try:
+            fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+            movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin_dt)
+        except Exception:
+            movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin)
+    if tauser_id:
+        movimientos = movimientos.filter(tauser_id=tauser_id)
+    if divisa_codigo:
+        movimientos = movimientos.filter(divisa__codigo=divisa_codigo)
+    if tipo_movimiento:
+        movimientos = movimientos.filter(tipo_movimiento=tipo_movimiento)
+    if estado:
+        movimientos = movimientos.filter(estado=estado)
+
+    context = {
+        'movimientos': movimientos,
+        'tausers': Tauser.objects.all().order_by('nombre'),
+        'divisas': Divisa.objects.all().order_by('codigo'),
+        'tipos_movimiento': MovimientoStock.TIPOS_MOVIMIENTO,
+        'estados_movimiento': MovimientoStock.ESTADOS_MOVIMIENTO,
+    }
+
+    return render(request, 'movimientos_stock_list.html', context)

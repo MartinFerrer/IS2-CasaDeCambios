@@ -4,9 +4,10 @@ Este módulo contiene las vistas relacionadas con la gestión de usuarios,
 configuración de perfiles y gestión de información personal.
 """
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.seguridad.models import PerfilMFA
@@ -115,3 +116,38 @@ def actualizar_preferencia_notificacion(request):
     pref.save(update_fields=["habilitado", "frecuencia"])
 
     return JsonResponse({"success": True})
+
+
+@login_required
+def editar_perfil(request):
+    """Vista para editar el perfil del usuario.
+
+    Permite al usuario actualizar únicamente su nombre, manteniendo el correo electrónico intacto.
+    Procesa tanto la visualización del formulario como la recepción de los datos enviados.
+
+    Métodos HTTP soportados:
+        - GET: Muestra el formulario de edición del perfil con los datos actuales del usuario.
+        - POST: Procesa la solicitud de actualización del nombre del usuario.
+
+    Args:
+        request (HttpRequest): Objeto que contiene la información de la solicitud HTTP.
+
+    Returns:
+        HttpResponse: Renderiza la plantilla 'editar_perfil.html' en GET, o redirige a la configuración
+                      de usuario en caso de POST exitoso.
+
+    """
+    usuario = request.user
+    if request.method == "POST":
+        nuevo_nombre = request.POST.get("nombre", "").strip()
+        if not nuevo_nombre:
+            messages.error(request, "El nombre no puede estar vacío.")
+        else:
+            usuario.nombre = nuevo_nombre
+            usuario.save()
+
+            messages.success(request, "Tu nombre fue actualizado correctamente.")
+
+            return redirect("usuarios:configuracion_usuario")
+
+    return render(request, "usuarios/editar_perfil.html", {"usuario": usuario})

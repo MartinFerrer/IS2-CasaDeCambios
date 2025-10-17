@@ -17,6 +17,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import dj_database_url
@@ -24,7 +25,6 @@ from celery.schedules import crontab
 from environ import Env
 
 env = Env()
-env.read_env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.presentacion",
     "apps.reportes",
     "apps.seguridad",
+    "apps.stock",
     "apps.tauser",
     "apps.transacciones",
     "apps.usuarios",
@@ -76,6 +77,7 @@ TEMPLATES = [
             BASE_DIR / "apps" / "presentacion" / "templates",
             BASE_DIR / "apps" / "reportes" / "templates",
             BASE_DIR / "apps" / "seguridad" / "templates",
+            BASE_DIR / "apps" / "stock" / "templates",
             BASE_DIR / "apps" / "tauser" / "templates",
             BASE_DIR / "apps" / "transacciones" / "templates",
             BASE_DIR / "apps" / "usuarios" / "templates",
@@ -252,3 +254,19 @@ CELERY_BEAT_SCHEDULE = {
         "args": ("mensual",),
     },
 }
+
+# =============================================================================
+# STRIPE CONFIGURATION
+# =============================================================================
+
+# Stripe API Keys (con valores por defecto para CI/documentación)
+STRIPE_PUBLISHABLE_KEY = env.str("STRIPE_PUBLISHABLE_KEY", default="pk_test_fake_key_for_ci")
+STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="sk_test_fake_key_for_ci")
+STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET", default="")
+
+# Configuración de comisiones Stripe
+STRIPE_COMMISSION_RATE = Decimal("2.9")  # 2.9% comisión variable para pagos internacionales
+STRIPE_FIXED_FEE_USD = Decimal("0.30")  # 0.30 USD comisión fija por transacción exitosa
+
+# Configuración adicional de Stripe
+STRIPE_CURRENCY_DEFAULT = "USD"  # Moneda por defecto para pagos internacionales

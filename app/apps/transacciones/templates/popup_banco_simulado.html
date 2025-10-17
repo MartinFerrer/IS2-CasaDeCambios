@@ -1,3 +1,4 @@
+{% load l10n %}
 <!DOCTYPE html>
 <html lang="es">
     <head>
@@ -214,34 +215,195 @@
         {% endif %}
 
         function iniciarProcesamiento() {
-            // Cambiar a estado procesando
-            document.getElementById('estadoConectando').classList.add('hidden');
-            document.getElementById('estadoProcesando').classList.remove('hidden');
+            try {
+                // Cambiar a estado procesando
+                document.getElementById('estadoConectando').classList.add('hidden');
+                document.getElementById('estadoProcesando').classList.remove('hidden');
 
-            // Simular progreso
-            let progreso = 0;
-            const interval = setInterval(() => {
-                progreso += Math.random() * 15;
-                if (progreso > 100) progreso = 100;
-                
-                document.getElementById('progressBar').style.width = progreso + '%';
-                document.getElementById('progressText').textContent = Math.round(progreso) + '%';
-                
-                if (progreso >= 100) {
-                    clearInterval(interval);
-                    setTimeout(finalizarProceso, 1000);
-                }
-            }, 400);
+                // Iniciar progreso visual mientras consultamos al banco externo
+                let progreso = 0;
+                const interval = setInterval(() => {
+                    progreso += Math.random() * 8; 
+                    if (progreso > 90) progreso = 90; // No llegar al 100% hasta que tengamos respuesta
+                    
+                    document.getElementById('progressBar').style.width = progreso + '%';
+                    document.getElementById('progressText').textContent = Math.round(progreso) + '%';
+                }, 600);
+
+                // Llamar al servicio bancario externo
+                consultarBancoExterno(interval);
+            } catch (error) {
+                console.error('Error en iniciarProcesamiento:', error);
+            }
         }
 
-        function finalizarProceso() {
-            // 70% éxito, 30% error
-            const exito = Math.random() > 0.3;
+        function consultarBancoExterno(progressInterval) {
+            try {
+                // Detectar URL del servicio bancario externo
+                let bancoUrl;
+                const hostname = window.location.hostname;
+                const port = window.location.port;
+                const protocol = window.location.protocol;
+                
+                if (hostname === 'localhost' && port === '8000') {
+                    // Desarrollo local (Django dev server)
+                    bancoUrl = 'http://localhost:5002/api/procesar-transaccion';
+                } else if (hostname === 'localhost' && port === '8080') {
+                    // Producción local (puerto 8080)
+                    bancoUrl = 'http://localhost:5001/api/procesar-transaccion';
+                } else if (hostname.includes('herokuapp.com')) {
+                    // Deploy en Heroku - mismo servidor, puerto 5001
+                    bancoUrl = `${protocol}//${hostname}:5001/api/procesar-transaccion`;
+                } else {
+                    // Docker u otros entornos
+                    bancoUrl = `http://${hostname}:5001/api/procesar-transaccion`;
+                }
             
-            if (exito) {
+            // Preparar datos de la transacción para el banco externo
+            const datosTransaccion = {
+                transaccion_id: transaccionId,
+                monto: parseFloat('{{ transaccion.monto_destino|default:0|unlocalize }}'),
+                divisa: '{{ transaccion.divisa_destino.codigo|default:"PYG" }}',
+                medio_pago: '{{ transaccion.medio_pago|default:"efectivo" }}',
+                medio_cobro: '{{ transaccion.medio_cobro|default:"efectivo" }}',
+                numero_cuenta: obtenerNumeroCuenta(),
+                datos_adicionales: {
+                    cliente_id: '{{ transaccion.cliente.id|default:"" }}',
+                    cliente_nombre: '{{ transaccion.cliente.nombre|default:"" }}',
+                    tipo_operacion: '{{ transaccion.tipo_operacion|default:"compra" }}',
+                    monto_origen: parseFloat('{{ transaccion.monto_origen|default:0|unlocalize }}'),
+                    divisa_origen: '{{ transaccion.divisa_origen.codigo|default:"PYG" }}',
+                    tasa_aplicada: parseFloat('{{ transaccion.tasa_aplicada|default:0|unlocalize }}'),
+                    fecha_transaccion: '{{ transaccion.fecha_creacion|date:"c"|default:"" }}',
+                    estado_transaccion: '{{ transaccion.estado|default:"pendiente" }}'
+                }
+            };
+
+            console.log('Datos a enviar:', datosTransaccion);
+            console.log('Realizando fetch a:', bancoUrl);
+
+            fetch(bancoUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datosTransaccion)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error del banco: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Detener progreso visual
+                clearInterval(progressInterval);
+                
+                // Completar barra de progreso
+                document.getElementById('progressBar').style.width = '100%';
+                document.getElementById('progressText').textContent = '100%';
+                
+                // Procesar respuesta del banco externo
+                setTimeout(() => {
+                    procesarRespuestaBanco(data);
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error conectando con banco externo:', error);
+                
+                // Detener progreso visual
+                clearInterval(progressInterval);
+                
+                // Mostrar error de conexión
+                mostrarErrorConexion(error.message);
+            });
+            } catch (error) {
+                console.error('Error en consultarBancoExterno:', error);
+                
+                // Detener progreso visual
+                clearInterval(progressInterval);
+                
+                // Mostrar error de conexión
+                mostrarErrorConexion('Error en consultarBancoExterno: ' + error.message);
+            }
+        }
+
+        function obtenerNumeroCuenta() {
+            // Obtener los objetos de medios de pago reales
+            const medioPago = '{{ transaccion.medio_pago|default:"efectivo" }}';
+            const medioCobro = '{{ transaccion.medio_cobro|default:"efectivo" }}';
+            
+            console.log(`Medios de pago detectados: Pago=${medioPago}, Cobro=${medioCobro}`);
+            
+            // Priorizar el medio de pago sobre el medio de cobro para obtener el número
+            let numeroIdentificador = '';
+            
+            // Si hay medio de pago (no efectivo), usar ese
+            if (medioPago && medioPago !== 'efectivo') {
+                {% if medio_pago_obj %}
+                    {% if medio_pago_obj.numero_tarjeta %}
+                        // Es una tarjeta de crédito
+                        numeroIdentificador = '{{ medio_pago_obj.numero_tarjeta }}';
+                        console.log('Usando número de tarjeta de pago:', numeroIdentificador);
+                    {% elif medio_pago_obj.numero_cuenta %}
+                        // Es una cuenta bancaria
+                        numeroIdentificador = '{{ medio_pago_obj.numero_cuenta }}';
+                        console.log('Usando número de cuenta de pago:', numeroIdentificador);
+                    {% elif medio_pago_obj.identificador %}
+                        // Es una billetera electrónica
+                        numeroIdentificador = '{{ medio_pago_obj.identificador }}';
+                        console.log('Usando identificador de billetera de pago:', numeroIdentificador);
+                    {% endif %}
+                {% endif %}
+            }
+            
+            // Si no se obtuvo del medio de pago, intentar con medio de cobro
+            if (!numeroIdentificador && medioCobro && medioCobro !== 'efectivo') {
+                {% if medio_cobro_obj %}
+                    {% if medio_cobro_obj.numero_tarjeta %}
+                        // Es una tarjeta de crédito
+                        numeroIdentificador = '{{ medio_cobro_obj.numero_tarjeta }}';
+                        console.log('Usando número de tarjeta de cobro:', numeroIdentificador);
+                    {% elif medio_cobro_obj.numero_cuenta %}
+                        // Es una cuenta bancaria
+                        numeroIdentificador = '{{ medio_cobro_obj.numero_cuenta }}';
+                        console.log('Usando número de cuenta de cobro:', numeroIdentificador);
+                    {% elif medio_cobro_obj.identificador %}
+                        // Es una billetera electrónica
+                        numeroIdentificador = '{{ medio_cobro_obj.identificador }}';
+                        console.log('Usando identificador de billetera de cobro:', numeroIdentificador);
+                    {% endif %}
+                {% endif %}
+            }
+            
+            // Si aún no se encontró un número, usar valores por defecto para QA
+            if (!numeroIdentificador) {
+                console.log('No se encontró medio financiero específico, usando valores de prueba para QA');
+                
+                if (medioPago.includes('tarjeta') || medioCobro.includes('tarjeta')) {
+                    // Valores de prueba para tarjetas
+                    numeroIdentificador = '4000000000000077'; // Visa exitosa para QA
+                    console.log('Usando tarjeta de prueba QA:', numeroIdentificador);
+                } else if (medioPago.includes('cuenta') || medioCobro.includes('cuenta')) {
+                    // Valor de prueba para cuentas
+                    numeroIdentificador = '0001234567890';
+                    console.log('Usando cuenta de prueba QA:', numeroIdentificador);
+                } else if (medioPago.includes('billetera') || medioCobro.includes('billetera')) {
+                    // Valor de prueba para billeteras
+                    numeroIdentificador = '+595981234567';
+                    console.log('Usando billetera de prueba QA:', numeroIdentificador);
+                }
+            }
+            
+            console.log('Número final a enviar al banco:', numeroIdentificador);
+            return numeroIdentificador;
+        }
+
+        function procesarRespuestaBanco(respuesta) {
+            if (respuesta.exito) {
                 mostrarExito();
             } else {
-                mostrarError();
+                mostrarError(respuesta.codigo_error, respuesta.mensaje_error);
             }
         }
 
@@ -253,7 +415,7 @@
             procesoCompletado = true;
             
             // Procesar en el backend
-            procesarPagoBackend(true, null, null);
+            procesarPagoBackend(true, null);
             
             // Mostrar mensaje de éxito por 2 segundos y luego abrir popup TAUSER
             setTimeout(() => {
@@ -270,33 +432,41 @@
             }, 2000);
         }
 
-        function mostrarError() {
+        function mostrarError(codigoError, mensajeError) {
             // Ocultar procesando
             document.getElementById('estadoProcesando').classList.add('hidden');
             document.getElementById('estadoError').classList.remove('hidden');
             
-            // Generar error aleatorio
-            const errores = [
-                { codigo: 'ERR-001', mensaje: 'Fondos insuficientes en la cuenta' },
-                { codigo: 'ERR-002', mensaje: 'Tarjeta bloqueada o vencida' },
-                { codigo: 'ERR-003', mensaje: 'Error de conexión con el banco emisor' },
-                { codigo: 'ERR-004', mensaje: 'Transacción rechazada por políticas de seguridad' },
-                { codigo: 'ERR-005', mensaje: 'Límite diario de transacciones excedido' }
-            ];
-            
-            const errorSeleccionado = errores[Math.floor(Math.random() * errores.length)];
-            document.getElementById('codigoError').textContent = errorSeleccionado.codigo;
-            document.getElementById('mensajeError').textContent = errorSeleccionado.mensaje;
+            // Usar datos del banco externo
+            document.getElementById('codigoError').textContent = codigoError || 'ERR-UNKNOWN';
+            document.getElementById('mensajeError').textContent = mensajeError || 'Error desconocido del banco';
             
             // Habilitar botones
             document.getElementById('btnReintentar').classList.remove('hidden');
             document.getElementById('btnCerrar').disabled = false;
             
             // Procesar en el backend
-            procesarPagoBackend(false, null, errorSeleccionado.codigo + ': ' + errorSeleccionado.mensaje);
+            procesarPagoBackend(false, `${codigoError}: ${mensajeError}`);
         }
 
-        function procesarPagoBackend(exito, codigoAutorizacion, mensajeError) {
+        function mostrarErrorConexion(mensajeError) {
+            // Ocultar procesando
+            document.getElementById('estadoProcesando').classList.add('hidden');
+            document.getElementById('estadoError').classList.remove('hidden');
+            
+            // Mostrar error de conexión específico
+            document.getElementById('codigoError').textContent = 'ERR-CONEXION';
+            document.getElementById('mensajeError').textContent = `Error de conexión con el banco: ${mensajeError}`;
+            
+            // Habilitar botones
+            document.getElementById('btnReintentar').classList.remove('hidden');
+            document.getElementById('btnCerrar').disabled = false;
+            
+            // Procesar en el backend
+            procesarPagoBackend(false, `ERR-CONEXION: ${mensajeError}`);
+        }
+
+        function procesarPagoBackend(exito, mensajeError) {
             fetch('/transacciones/api/procesar-pago-bancario/', {
                 method: 'POST',
                 headers: {

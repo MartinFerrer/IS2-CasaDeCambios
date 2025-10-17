@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block title %}
+    Movimientos de Stock
+{% endblock title %}
+{% block body_class %}
+    bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
+{% endblock body_class %}
+{% block header %}
+    {% include "includes/header_admin_conditional.html" %}
+{% endblock header %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold text-blue-800 mb-6">Movimientos de Stock</h1>
+        <div class="card bg-white shadow-xl mb-6">
+            <div class="card-body">
+                <h2 class="card-title text-xl text-blue-700">Filtrar Movimientos</h2>
+                <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Fecha de Inicio</span>
+                        </label>
+                        <input type="date"
+                               name="fecha_inicio"
+                               class="input input-bordered w-full"
+                               value="{{ request.GET.fecha_inicio }}">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Fecha de Fin</span>
+                        </label>
+                        <input type="date"
+                               name="fecha_fin"
+                               class="input input-bordered w-full"
+                               value="{{ request.GET.fecha_fin }}">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tauser</span>
+                        </label>
+                        <select name="tauser" class="select select-bordered w-full">
+                            <option value="">Todos</option>
+                            {% for tauser in tausers %}
+                                <option value="{{ tauser.id }}"
+                                        {% if request.GET.tauser == tauser.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ tauser.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Divisa</span>
+                        </label>
+                        <select name="divisa" class="select select-bordered w-full">
+                            <option value="">Todas</option>
+                            {% for divisa in divisas %}
+                                <option value="{{ divisa.codigo }}"
+                                        {% if request.GET.divisa == divisa.codigo %}selected{% endif %}>
+                                    {{ divisa.codigo }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tipo de Movimiento</span>
+                        </label>
+                        <select name="tipo_movimiento" class="select select-bordered w-full">
+                            <option value="">Todos</option>
+                            {% for tipo_key, tipo_label in tipos_movimiento %}
+                                <option value="{{ tipo_key }}"
+                                        {% if request.GET.tipo_movimiento == tipo_key %}selected{% endif %}>
+                                    {{ tipo_label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Estado</span>
+                        </label>
+                        <select name="estado" class="select select-bordered w-full">
+                            <option value="">Todos</option>
+                            {% for estado_key, estado_label in estados_movimiento %}
+                                <option value="{{ estado_key }}"
+                                        {% if request.GET.estado == estado_key %}selected{% endif %}>
+                                    {{ estado_label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-span-1 md:col-span-3 flex justify-end mt-4">
+                        <button type="submit" class="btn btn-primary px-8">Aplicar Filtros</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card bg-white shadow-xl overflow-auto">
+            <div class="card-body">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th class="bg-blue-100">Fecha y Hora</th>
+                            <th class="bg-blue-100">Tauser</th>
+                            <th class="bg-blue-100">Divisa</th>
+                            <th class="bg-blue-100">Tipo</th>
+                            <th class="bg-blue-100">Estado</th>
+                            <th class="bg-blue-100">Denominaciones</th>
+                            <th class="bg-blue-100">Valor Total</th>
+                            <th class="bg-blue-100">Motivo</th>
+                            <th class="bg-blue-100">Transacción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if movimientos %}
+                            {% for movimiento in movimientos %}
+                                <tr>
+                                    <td>{{ movimiento.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ movimiento.tauser.nombre }}</td>
+                                    <td>{{ movimiento.divisa.codigo }}</td>
+                                    <td>
+                                        {% if movimiento.tipo_movimiento == 'entrada' %}
+                                            <span class="badge badge-success">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                        {% elif movimiento.tipo_movimiento == 'salida' %}
+                                            <span class="badge badge-error">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                        {% elif movimiento.tipo_movimiento == 'reserva' %}
+                                            <span class="badge badge-warning">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                        {% elif movimiento.tipo_movimiento == 'liberacion' %}
+                                            <span class="badge badge-info">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                        {% else %}
+                                            <span class="badge badge-neutral">{{ movimiento.get_tipo_movimiento_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if movimiento.estado == 'confirmado' %}
+                                            <span class="badge badge-success">{{ movimiento.get_estado_display }}</span>
+                                        {% elif movimiento.estado == 'pendiente' %}
+                                            <span class="badge badge-warning">{{ movimiento.get_estado_display }}</span>
+                                        {% else %}
+                                            <span class="badge badge-error">{{ movimiento.get_estado_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-sm">{{ movimiento.resumen_denominaciones }}</td>
+                                    <td class="font-mono">{{ movimiento.valor_total_movimiento|strip_trailing_zeros }} {{ movimiento.divisa.codigo }}</td>
+                                    <td class="max-w-xs truncate">{{ movimiento.motivo|default:"" }}</td>
+                                    <td>
+                                        {% if movimiento.transaccion %}
+                                            <span class="text-blue-600 font-mono text-sm">#{{ movimiento.transaccion.id }}</span>
+                                        {% else %}
+                                            <span class="text-gray-400">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4">No se encontraron movimientos.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
