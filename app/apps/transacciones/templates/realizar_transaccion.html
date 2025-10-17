@@ -7,7 +7,7 @@
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-bold">Realizar Transacción de Cambio de Divisas</h2>
-            <a href="/" class="btn btn-outline">
+            <a href="{% url 'presentacion:inicio' %}" class="btn btn-outline">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5"
                      fill="none"
@@ -133,7 +133,7 @@
                                     <select id="metodo-pago-select"
                                             class="select select-bordered w-full text-left ml-0"
                                             required>
-                                        <option value="efectivo" selected>Efectivo</option>
+                                        <option value="">Seleccione método de pago</option>
                                     </select>
                                 </div>
                                 <div>
@@ -352,13 +352,13 @@
             const dec = isoDecimals[currency] !== undefined ? isoDecimals[currency] : 2;
             const num = Number(value);
             if (!isFinite(num)) return value;
-            
+
             // Separar la parte entera y decimal
             const [integerPart, decimalPart] = num.toFixed(dec).split('.');
-            
+
             // Formatear parte entera con espacios como separadores de miles
             const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-            
+
             // Combinar con coma como separador decimal
             if (dec > 0) {
                 return `${formattedInteger},${decimalPart}`;
@@ -371,16 +371,16 @@
         function formatRate(rate) {
             const num = Number(rate);
             if (!isFinite(num)) return rate;
-            
+
             // Obtener representación con suficientes decimales
             let s = num.toFixed(12);
             // Quitar ceros finales y punto si corresponde
             s = s.replace(/(?:\.0+|(?<=\.[0-9]*?)0+)$/, '');
-            
+
             // Convertir a formato latinoamericano
             const [integerPart, decimalPart] = s.split('.');
             const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-            
+
             if (decimalPart) {
                 return `${formattedInteger},${decimalPart}`;
             } else {
@@ -399,10 +399,10 @@
         // Formatear input en tiempo real
         function formatInputNumber(value) {
             if (!value) return '';
-            
+
             // Limpiar valor: solo números y una coma
             let cleanValue = value.replace(/[^\d,]/g, '');
-            
+
             // Asegurar solo una coma
             const commaIndex = cleanValue.indexOf(',');
             if (commaIndex !== -1) {
@@ -410,13 +410,13 @@
                 const afterComma = cleanValue.substring(commaIndex + 1).replace(/,/g, '');
                 cleanValue = beforeComma + ',' + afterComma;
             }
-            
+
             // Separar parte entera y decimal
             const [integerPart, decimalPart] = cleanValue.split(',');
-            
+
             // Formatear parte entera con espacios
             const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-            
+
             // Limitar decimales a 2 dígitos
             if (decimalPart !== undefined) {
                 const limitedDecimal = decimalPart.substring(0, 2);
@@ -487,12 +487,19 @@
                 // Limpiar y rellenar método de pago
                 metodoPagoSelect.innerHTML = '';
 
-                data.medios_pago.forEach(medio => {
+                let hasEfectivoPago = false;
+                data.medios_pago.forEach((medio, index) => {
                     const optionPago = document.createElement('option');
                     optionPago.value = medio.id;
                     optionPago.textContent = `${medio.nombre} (${medio.comision}%)`;
                     optionPago.dataset.comision = medio.comision;
-                    if (medio.id === 'efectivo') optionPago.selected = true;
+                    if (medio.id === 'efectivo') {
+                        hasEfectivoPago = true;
+                        optionPago.selected = true;
+                    } else if (index === 0 && !hasEfectivoPago) {
+                        // Si no hay efectivo, seleccionar el primer método disponible
+                        optionPago.selected = true;
+                    }
                     metodoPagoSelect.appendChild(optionPago);
                 });
 
@@ -515,7 +522,14 @@
         }
 
         function resetMediosPago() {
-            metodoPagoSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
+            const tipo = getTipoOperacion();
+            if (tipo === 'compra') {
+                // Para compra, no mostrar efectivo por defecto
+                metodoPagoSelect.innerHTML = '<option value="">Seleccione método de pago</option>';
+            } else {
+                // Para venta, sí mostrar efectivo
+                metodoPagoSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
+            }
             metodoCobroSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
         }
 
@@ -626,7 +640,7 @@
             // Actualizar labels dinámicos según el tipo de operación
             const divisaLabel = document.getElementById('modal-divisa-label');
             const totalLabel = document.getElementById('modal-total-label');
-            
+
             if (tipo === 'compra') {
                 divisaLabel.textContent = 'Divisa a Comprar:';
                 totalLabel.textContent = 'Total a Pagar:';
@@ -638,7 +652,7 @@
             // Obtener información de comisiones de los métodos
             const comisionPago = lastSimulationData.comision_medio_pago_porcentaje || 0;
             const comisionCobro = lastSimulationData.comision_medio_cobro_porcentaje || 0;
-            
+
             // Actualizar contenido
             document.getElementById('modal-tipo').textContent = tipoText;
             document.getElementById('modal-divisa').textContent = divisa;
@@ -713,7 +727,7 @@
                 </div>
             `;
             document.body.appendChild(toast);
-            
+
             // Remover el toast después de 5 segundos
             setTimeout(() => {
                 document.body.removeChild(toast);
@@ -733,39 +747,39 @@
         });
 
         divisaSelect.addEventListener('change', performSimulation);
-        
+
         // Event listeners para formateo en tiempo real del input de monto
         montoInput.addEventListener('input', function(e) {
             const cursorPosition = e.target.selectionStart;
             const oldValue = e.target.value;
-            
+
             // Limpiar valor de espacios y formatear solo números y coma
             const cleanValue = oldValue.replace(/[^\d,]/g, '');
             const newValue = formatInputNumber(cleanValue);
-            
+
             if (newValue !== oldValue) {
                 e.target.value = newValue;
-                
+
                 // Calcular nueva posición del cursor de manera más inteligente
                 let newCursorPosition = cursorPosition;
-                
+
                 // Contar espacios antes de la posición del cursor en el valor antiguo
                 const spacesBefore = (oldValue.substring(0, cursorPosition).match(/\s/g) || []).length;
                 // Contar espacios antes de la misma posición en el nuevo valor
                 const spacesBeforeNew = (newValue.substring(0, cursorPosition).match(/\s/g) || []).length;
-                
+
                 // Ajustar posición basado en la diferencia de espacios
                 newCursorPosition = cursorPosition + (spacesBeforeNew - spacesBefore);
-                
+
                 // Asegurar que la posición esté dentro del rango válido
                 newCursorPosition = Math.max(0, Math.min(newCursorPosition, newValue.length));
-                
+
                 e.target.setSelectionRange(newCursorPosition, newCursorPosition);
             }
-            
+
             performSimulation();
         });
-        
+
         // Prevenir caracteres no válidos
         montoInput.addEventListener('keypress', function(e) {
             const char = String.fromCharCode(e.which);
@@ -773,7 +787,7 @@
                 e.preventDefault();
             }
         });
-        
+
         metodoPagoSelect.addEventListener('change', performSimulation);
         metodoCobroSelect.addEventListener('change', performSimulation);
 
@@ -784,12 +798,12 @@
 
         // Event listeners para el modal
         confirmBtn.addEventListener('click', confirmTransaction);
-        
+
         // Función para cerrar modal
         function closeModal() {
             confirmationModal.classList.remove('modal-open');
         }
-        
+
         // Event listeners para cerrar modal
         cancelBtn.addEventListener('click', closeModal);
         closeModalBtn.addEventListener('click', closeModal);
@@ -818,4 +832,5 @@
         }
     })();
         </script>
-    {% endblock content %}
+    </div>
+{% endblock content %}
