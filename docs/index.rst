@@ -11,6 +11,7 @@ Este sitio ofrece una visualización del desarrollo del proyecto Global Exchange
    panel_admin
    reportes
    seguridad
+   stock
    tauser
    transacciones
    usuarios

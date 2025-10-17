@@ -2,6 +2,7 @@
 
 from django import forms
 
+from apps.tauser.models import Tauser
 from apps.usuarios.models import Cliente, Usuario
 
 
@@ -30,3 +31,13 @@ class ClienteForm(forms.ModelForm):
         widgets = {
             "tipo_cliente": forms.Select(),
         }
+
+
+class TauserForm(forms.ModelForm):
+    """Formulario de Tauser."""
+
+    class Meta:
+        """Meta clase conteniendo los campos del formulario de tauser."""
+
+        model = Tauser
+        fields = ["nombre", "ubicacion"]
