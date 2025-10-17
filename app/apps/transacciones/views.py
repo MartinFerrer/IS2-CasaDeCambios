@@ -39,14 +39,6 @@ def obtener_nombre_medio(medio_id, cliente):
         return "Tarjeta Internacional (Stripe)"
 
     try:
-        # Funcionalidad de tarjetas guardadas deshabilitada
-        # if medio_id.startswith("stripe_"):
-        #     # Para tarjetas extranjeras guardadas
-        #     stripe_id = medio_id.replace("stripe_", "")
-        #     from .models import TarjetaExtranjera
-        #     tarjeta = TarjetaExtranjera.objects.get(pk=stripe_id, cliente=cliente)
-        #     return tarjeta.get_display_name()
-
         if medio_id.startswith("stripe_"):
             return "Tarjeta Internacional (Stripe) - Guardada"
         elif medio_id.startswith("tarjeta_"):
@@ -504,20 +496,6 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                     "entidad": "Stripe",
                 }
             )
-
-            # Funcionalidad de tarjetas guardadas deshabilitada
-            # from .models import TarjetaExtranjera
-            # for tarjeta in TarjetaExtranjera.objects.filter(cliente=cliente).order_by("-fecha_creacion"):
-            #     medios_pago.append({
-            #         "id": f"stripe_{tarjeta.id}",
-            #         "tipo": "stripe",
-            #         "nombre": tarjeta.get_display_name(),
-            #         "descripcion": f"**** **** **** {tarjeta.last4}",
-            #         "comision": float(settings.STRIPE_COMMISSION_RATE),
-            #         "entidad": "Stripe",
-            #         "brand": tarjeta.card_brand,
-            #         "last4": tarjeta.last4,
-            #     })
 
             # Agregar billeteras electrónicas habilitadas para pago
             for billetera in BilleteraElectronica.objects.filter(cliente=cliente, habilitado_para_pago=True):
@@ -1312,9 +1290,8 @@ def _verificar_limites_transaccion(cliente, monto_pyg, fecha_transaccion=None):
             },
         }
 
-    except Exception as e:
+    except Exception:
         # En caso de error, registrar pero permitir la transacción para no bloquear el sistema
-        print(f"Error verificando límites de transacción: {e}")
         return {"valid": True, "error_message": None, "limits_info": None}
 
 
@@ -1463,7 +1440,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
             del request.session[f"mfa_token_valido_{mfa_token}"]
 
-        print(f"Transacción creada: {transaccion}")
         return JsonResponse(
             {
                 "success": True,
@@ -1489,10 +1465,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         )
 
     except Exception as e:
-        import traceback
-
-        print(f"Error en api_crear_transaccion: {e}")
-        print(traceback.format_exc())
         return JsonResponse({"error": f"Error al crear transacción: {e!s}"}, status=500)
 
 
@@ -1602,8 +1574,7 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al cancelar transacción: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
@@ -1666,18 +1637,12 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
                 # Aquí podrías agregar un campo para el código de autorización si lo tienes en el modelo
                 pass
 
-            mensaje_log = f"Pago procesado exitosamente. Código: {codigo_autorizacion}"
-
         else:
             # Pago fallido
             transaccion.estado = "pendiente"
-            mensaje_log = f"Pago rechazado por el banco. Error: {mensaje_error}"
 
         # Guardar cambios
         transaccion.save()
-
-        # Log del resultado
-        print(f"Transacción {transaccion_id}: {mensaje_log}")
 
         return JsonResponse(
             {
@@ -1695,8 +1660,7 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"success": False, "message": "Datos JSON inválidos"}, status=400)
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al procesar pago bancario: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
@@ -1778,8 +1742,7 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
 
         return render(request, "popup_banco_simulado.html", context)
 
-    except Exception as e:
-        print(f"Error en popup banco simulado: {e}")
+    except Exception:
         context = {
             "error": "Error interno del servidor",
             "transaccion": None,
@@ -1851,8 +1814,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
 
         return render(request, "popup_codigo_tauser.html", context)
 
-    except Exception as e:
-        print(f"Error en popup código TAUSER retiro: {e}")
+    except Exception:
         context = {
             "error": "Error interno del servidor",
             "transaccion": None,
@@ -1863,7 +1825,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
 
 @require_GET
 def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """API para verificar si la cotización de una transacción ha cambiado significativamente.
+    """Verificasi la cotización de una transacción ha cambiado significativamente.
 
     Args:
         request: HttpRequest object
@@ -1915,14 +1877,13 @@ def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonR
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al verificar cotización: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
 @require_POST
 def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """API para cancelar una transacción por cambio de cotización.
+    """Cancela una transacción por cambio de cotización.
 
     Args:
         request: HttpRequest object
@@ -1968,14 +1929,13 @@ def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> Js
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al cancelar por cotización: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
 @require_POST
 def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """API para aceptar la nueva cotización y continuar con la transacción.
+    """Acepta la nueva cotización y continuar con la transacción.
 
     Args:
         request: HttpRequest object
@@ -2024,8 +1984,7 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al aceptar nueva cotización: {e}")
+    except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
@@ -2039,7 +1998,7 @@ def create_stripe_payment_intent(request: HttpRequest) -> JsonResponse:
     """Crear un Payment Intent de Stripe para procesar el pago.
 
     Esta vista crea un Payment Intent en Stripe para una transacción específica,
-    aplicando la comisión configurada del 2.9%.
+    aplicando la comisión configurada.
 
     Args:
         request: HttpRequest con datos JSON de la transacción
@@ -2058,20 +2017,15 @@ def create_stripe_payment_intent(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "No hay cliente asociado"}, status=400)
 
     try:
-        print("[STRIPE DEBUG] Iniciando create_stripe_payment_intent")
-
         # Parsear datos JSON
         data = json.loads(request.body)
         transaccion_id = data.get("transaccion_id")
-        print(f"[STRIPE DEBUG] Transaccion ID recibido: {transaccion_id}")
 
         if not transaccion_id:
             return JsonResponse({"error": "ID de transacción requerido"}, status=400)
 
         # Obtener la transacción
-        print(f"[STRIPE DEBUG] Buscando transaccion {transaccion_id} para cliente {cliente.id}")
         transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente=cliente)
-        print(f"[STRIPE DEBUG] Transaccion encontrada: {transaccion.id_transaccion}, estado: {transaccion.estado}")
 
         # Verificar que la transacción esté pendiente
         if transaccion.estado != "pendiente":
@@ -2080,7 +2034,6 @@ def create_stripe_payment_intent(request: HttpRequest) -> JsonResponse:
             )
 
         # Verificar que sea un pago con Stripe
-        print(f"[STRIPE DEBUG] Medio de pago: {transaccion.medio_pago}")
         if not (transaccion.medio_pago == "stripe_new" or transaccion.medio_pago.startswith("stripe_")):
             return JsonResponse({"error": "Esta transacción no es para pago con Stripe"}, status=400)
 
@@ -2095,13 +2048,11 @@ def create_stripe_payment_intent(request: HttpRequest) -> JsonResponse:
         monto_pyg = float(transaccion.monto_origen)
         monto_usd = monto_pyg / 7000.0  # Conversión aproximada
         monto_centavos = int(monto_usd * 100)  # Convertir a centavos
-        print(f"[STRIPE DEBUG] Monto PYG: {monto_pyg}, USD: {monto_usd}, centavos: {monto_centavos}")
 
         # Monto mínimo de Stripe: 50 centavos USD
         if monto_centavos < 50:
             return JsonResponse({"error": "El monto es demasiado pequeño para procesar con Stripe"}, status=400)
 
-        print("[STRIPE DEBUG] Creando Payment Intent con Stripe")
         # Crear el Payment Intent
         intent = stripe.PaymentIntent.create(
             amount=monto_centavos,
@@ -2115,13 +2066,10 @@ def create_stripe_payment_intent(request: HttpRequest) -> JsonResponse:
             },
             description=f"Compra de {transaccion.divisa_destino.codigo} - Global Exchange",
         )
-        print(f"[STRIPE DEBUG] Payment Intent creado: {intent.id}")
 
         # Crear registro de pago Stripe
-        print("[STRIPE DEBUG] Importando modelo StripePayment")
         from .models import StripePayment
 
-        print("[STRIPE DEBUG] Creando registro StripePayment")
         stripe_payment = StripePayment.objects.create(
             cliente=cliente,
             stripe_payment_intent_id=intent.id,
@@ -2130,13 +2078,10 @@ def create_stripe_payment_intent(request: HttpRequest) -> JsonResponse:
             status="requires_payment_method",
             metadata=intent.metadata,
         )
-        print(f"[STRIPE DEBUG] StripePayment creado: {stripe_payment.id}")
 
         # Actualizar la transacción con el stripe_payment
-        print("[STRIPE DEBUG] Actualizando transaccion con stripe_payment")
         transaccion.stripe_payment = stripe_payment
         transaccion.save()
-        print("[STRIPE DEBUG] Transaccion actualizada exitosamente")
 
         return JsonResponse(
             {
@@ -2188,66 +2133,51 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "No hay cliente asociado"}, status=400)
 
     try:
-        print("[STRIPE DEBUG] Iniciando confirm_stripe_payment")
-
         # Parsear datos JSON
         data = json.loads(request.body)
         payment_intent_id = data.get("payment_intent_id")
-        print(f"[STRIPE DEBUG] Payment Intent ID: {payment_intent_id}")
 
         if not payment_intent_id:
             return JsonResponse({"error": "ID del Payment Intent requerido"}, status=400)
 
         # Obtener el Payment Intent de Stripe
-        print("[STRIPE DEBUG] Obteniendo Payment Intent de Stripe")
         intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-        print(f"[STRIPE DEBUG] Intent status: {intent.status}")
 
         # Buscar el registro de pago en la base de datos
         from .models import StripePayment
 
-        print("[STRIPE DEBUG] Buscando StripePayment en BD")
         stripe_payment = get_object_or_404(StripePayment, stripe_payment_intent_id=payment_intent_id)
-        print(f"[STRIPE DEBUG] StripePayment encontrado: {stripe_payment.id}")
 
         # Buscar la transacción asociada a este StripePayment
         from .models import Transaccion
 
-        print("[STRIPE DEBUG] Buscando transaccion asociada")
         transaccion = get_object_or_404(Transaccion, stripe_payment=stripe_payment)
-        print(f"[STRIPE DEBUG] Transaccion encontrada: {transaccion.id_transaccion}")
 
         # Verificar que la transacción pertenece al cliente
         if transaccion.cliente != cliente:
             return JsonResponse({"error": "No tienes permiso para confirmar este pago"}, status=403)
 
-        print("[STRIPE DEBUG] Actualizando estado del pago")
         # Actualizar el estado del pago según Stripe
         stripe_payment.status = intent.status
 
         if intent.status == "succeeded":
-            print("[STRIPE DEBUG] Pago exitoso")
             # Pago exitoso
             transaccion.estado = "completada"
             mensaje = "Pago procesado exitosamente con Stripe"
 
         elif intent.status in ["requires_payment_method", "requires_confirmation"]:
-            print("[STRIPE DEBUG] Pago requiere acción adicional")
             # Pago requiere acción adicional
             transaccion.estado = "pendiente"
             mensaje = "El pago requiere confirmación adicional"
 
         else:
-            print("[STRIPE DEBUG] Pago fallido o cancelado")
             # Pago fallido o cancelado
             transaccion.estado = "pendiente"
             mensaje = f"Pago no completado. Estado: {intent.status}"
 
         # Guardar cambios
-        print("[STRIPE DEBUG] Guardando cambios")
         stripe_payment.save()
         transaccion.save()
-        print("[STRIPE DEBUG] Cambios guardados exitosamente")
 
         return JsonResponse(
             {
@@ -2320,7 +2250,7 @@ def stripe_webhook_handler(request: HttpRequest) -> HttpResponse:
             _handle_payment_intent_canceled(payment_intent)
 
         else:
-            print(f"Evento Stripe no manejado: {event['type']}")
+            pass  # Evento no manejado
 
         return HttpResponse(status=200)
 
@@ -2351,8 +2281,6 @@ def _handle_payment_intent_succeeded(payment_intent):
         transaccion.estado = "completada"
         transaccion.save()
 
-        print(f"Pago Stripe completado: {payment_intent['id']}")
-
     except StripePayment.DoesNotExist:
         print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")
     except Exception as e:
@@ -2370,10 +2298,9 @@ def _handle_payment_intent_failed(payment_intent):
         stripe_payment.save()
 
         # La transacción permanece en pendiente para permitir reintentos
-        print(f"Pago Stripe fallido: {payment_intent['id']}")
 
     except StripePayment.DoesNotExist:
-        print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")
+        pass  # StripePayment no encontrado
     except Exception as e:
         print(f"Error manejando payment_intent.failed: {e}")
 
@@ -2394,9 +2321,7 @@ def _handle_payment_intent_canceled(payment_intent):
         transaccion.motivo_cancelacion = "Pago cancelado en Stripe"
         transaccion.save()
 
-        print(f"Pago Stripe cancelado: {payment_intent['id']}")
-
     except StripePayment.DoesNotExist:
-        print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")
+        pass  # StripePayment no encontrado
     except Exception as e:
         print(f"Error manejando payment_intent.canceled: {e}")

@@ -891,7 +891,7 @@ class StripePayment(models.Model):
     # Relaciones
     cliente = models.ForeignKey(
         "usuarios.Cliente",
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="stripe_payments",
         help_text="Cliente que realiza el pago",
     )

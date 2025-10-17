@@ -7,19 +7,9 @@ así como la lógica de asociación entre Cliente y Usuario.
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 import pycountry
-from django.contrib import messages
-from django.contrib.auth.models import Group
-from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.db.models import Q
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
-from django.views.decorators.http import require_POST
-from forex_python.converter import CurrencyCodes
-
 from apps.operaciones.forms import DivisaForm, TasaCambioForm
 from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.seguridad.decorators import admin_required, permission_required
 from apps.seguridad.permissions import (
     PERM_ADD_CLIENTE,
@@ -50,9 +40,18 @@ from apps.seguridad.permissions import (
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
+from django.contrib import messages
+from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import Q
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from forex_python.converter import CurrencyCodes
 
 from .forms import ClienteForm, UsuarioForm
 
@@ -193,9 +192,12 @@ def guardar_limites(request: HttpRequest) -> HttpResponse:
             limite.full_clean()  # Usa las validaciones del modelo
             limite.save()
 
-        messages.success(request, f"Límites actualizados exitosamente. "
-                       f"Diario: ₲{strip_trailing_zeros(limite.limite_diario, 0)}, "
-                       f"Mensual: ₲{strip_trailing_zeros(limite.limite_mensual, 0)}")
+        messages.success(
+            request,
+            f"Límites actualizados exitosamente. "
+            f"Diario: ₲{strip_trailing_zeros(limite.limite_diario, 0)}, "
+            f"Mensual: ₲{strip_trailing_zeros(limite.limite_mensual, 0)}",
+        )
     except ValidationError as e:
         for error in e.messages:
             messages.error(request, error)
@@ -752,9 +754,6 @@ def divisa_listar(request: HttpRequest) -> object:
         HttpResponse: La página HTML con la lista de divisas.
     """
     divisas = Divisa.objects.all().order_by("codigo")
-    print(f"DEBUG divisa_listar: Found {divisas.count()} currencies in database")
-    for divisa in divisas:
-        print(f"DEBUG: {divisa.pk} - {divisa.codigo} - {divisa.nombre}")
     return render(request, "divisa_list.html", {"object_list": divisas})
 
 
@@ -998,11 +997,17 @@ def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
             # Verificar si hubo cambios reales
             cambios = []
             if tasa.precio_base != valores_originales["precio_base"]:
-                cambios.append(f"Precio base: {strip_trailing_zeros(valores_originales['precio_base'])} → {strip_trailing_zeros(tasa.precio_base)}")
+                cambios.append(
+                    f"Precio base: {strip_trailing_zeros(valores_originales['precio_base'])} → {strip_trailing_zeros(tasa.precio_base)}"
+                )
             if tasa.comision_compra != valores_originales["comision_compra"]:
-                cambios.append(f"Comisión compra: {strip_trailing_zeros(valores_originales['comision_compra'])} → {strip_trailing_zeros(tasa.comision_compra)}")
+                cambios.append(
+                    f"Comisión compra: {strip_trailing_zeros(valores_originales['comision_compra'])} → {strip_trailing_zeros(tasa.comision_compra)}"
+                )
             if tasa.comision_venta != valores_originales["comision_venta"]:
-                cambios.append(f"Comisión venta: {strip_trailing_zeros(valores_originales['comision_venta'])} → {strip_trailing_zeros(tasa.comision_venta)}")
+                cambios.append(
+                    f"Comisión venta: {strip_trailing_zeros(valores_originales['comision_venta'])} → {strip_trailing_zeros(tasa.comision_venta)}"
+                )
             if tasa.activo != valores_originales["activo"]:
                 cambios.append(
                     "Estado: "
