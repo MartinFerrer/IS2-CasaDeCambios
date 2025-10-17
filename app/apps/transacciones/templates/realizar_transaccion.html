@@ -119,15 +119,20 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <input type="decimal"
+                                    <input type="number"
                                            id="monto-input"
                                            name="monto"
-                                           pattern="^\d*\,?\d+$"
+                                           pattern="^\d+$"
                                            min="1"
-                                           step="0.01"
-                                           class="input input-bordered w-full text-left ml-0 decimal-input"
-                                           placeholder="Ingrese el monto (mínimo 1)"
+                                           step="1"
+                                           class="input input-bordered w-full text-left ml-0 validator"
+                                           placeholder="Ingrese el monto entero (mínimo 1)"
+                                           title="El monto debe ser un número entero"
                                            required>
+                                    <p id="monto-error"
+                                       class="validator-hint text-error text-sm mt-1 hidden">
+                                        El monto debe ser un número entero
+                                    </p>
                                 </div>
                                 <div>
                                     <select id="metodo-pago-select"
@@ -614,17 +619,28 @@
                 // Limpiar y rellenar método de pago
                 metodoPagoSelect.innerHTML = '';
 
+                // Agregar opción vacía si hay múltiples métodos digitales
+                const metodosDigitales = data.medios_pago.filter(medio => medio.id !== 'efectivo');
+                if (metodosDigitales.length > 1) {
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = 'Seleccione método de pago';
+                    metodoPagoSelect.appendChild(emptyOption);
+                }
+
                 let hasEfectivoPago = false;
                 data.medios_pago.forEach((medio, index) => {
                     const optionPago = document.createElement('option');
                     optionPago.value = medio.id;
                     optionPago.textContent = `${medio.nombre} (${medio.comision}%)`;
                     optionPago.dataset.comision = medio.comision;
+
+                    // Solo autoseleccionar si hay efectivo O si hay solo un método digital
                     if (medio.id === 'efectivo') {
                         hasEfectivoPago = true;
                         optionPago.selected = true;
-                    } else if (index === 0 && !hasEfectivoPago) {
-                        // Si no hay efectivo, seleccionar el primer método disponible
+                    } else if (metodosDigitales.length === 1 && index === 0 && !hasEfectivoPago) {
+                        // Solo autoseleccionar si hay un único método digital disponible
                         optionPago.selected = true;
                     }
                     metodoPagoSelect.appendChild(optionPago);
@@ -633,12 +649,28 @@
                 // Limpiar y rellenar método de cobro
                 metodoCobroSelect.innerHTML = '';
 
-                data.medios_cobro.forEach(medio => {
+                // Agregar opción vacía si hay múltiples métodos digitales
+                const metodosCobroDigitales = data.medios_cobro.filter(medio => medio.id !== 'efectivo');
+                if (metodosCobroDigitales.length > 1) {
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = 'Seleccione método de cobro';
+                    metodoCobroSelect.appendChild(emptyOption);
+                }
+
+                data.medios_cobro.forEach((medio, index) => {
                     const optionCobro = document.createElement('option');
                     optionCobro.value = medio.id;
                     optionCobro.textContent = `${medio.nombre} (${medio.comision}%)`;
                     optionCobro.dataset.comision = medio.comision;
-                    if (medio.id === 'efectivo') optionCobro.selected = true;
+
+                    // Solo autoseleccionar si hay efectivo O si hay solo un método digital
+                    if (medio.id === 'efectivo') {
+                        optionCobro.selected = true;
+                    } else if (metodosCobroDigitales.length === 1 && index === 0) {
+                        // Solo autoseleccionar si hay un único método digital disponible
+                        optionCobro.selected = true;
+                    }
                     metodoCobroSelect.appendChild(optionCobro);
                 });
 
@@ -665,6 +697,12 @@
             const monto = parseInputNumber(montoInput.value);
             const divisa = divisaSelect.value;
             const tipo = getTipoOperacion();
+
+            // Validar que el monto sea un número entero
+            if (montoInput.value && !Number.isInteger(parseFloat(montoInput.value))) {
+                resultsCard.classList.add('hidden');
+                return;
+            }
 
             if (monto < 1 || !divisa) {
                 resultsCard.classList.add('hidden');
@@ -1112,31 +1150,23 @@
 
         // Event listeners para formateo en tiempo real del input de monto
         montoInput.addEventListener('input', function(e) {
-            const cursorPosition = e.target.selectionStart;
-            const oldValue = e.target.value;
+            const value = e.target.value;
+            const montoError = document.getElementById('monto-error');
 
-            // Limpiar valor de espacios y formatear solo números y coma
-            const cleanValue = oldValue.replace(/[^\d,]/g, '');
-            const newValue = formatInputNumber(cleanValue);
+            // Validar si es un número entero
+            if (value && !Number.isInteger(parseFloat(value))) {
+                // Mostrar error y cambiar estilo del input
+                montoError.classList.remove('hidden');
+                e.target.classList.remove('input-bordered');
+                e.target.classList.add('input-error');
 
-            if (newValue !== oldValue) {
-                e.target.value = newValue;
-
-                // Calcular nueva posición del cursor de manera más inteligente
-                let newCursorPosition = cursorPosition;
-
-                // Contar espacios antes de la posición del cursor en el valor antiguo
-                const spacesBefore = (oldValue.substring(0, cursorPosition).match(/\s/g) || []).length;
-                // Contar espacios antes de la misma posición en el nuevo valor
-                const spacesBeforeNew = (newValue.substring(0, cursorPosition).match(/\s/g) || []).length;
-
-                // Ajustar posición basado en la diferencia de espacios
-                newCursorPosition = cursorPosition + (spacesBeforeNew - spacesBefore);
-
-                // Asegurar que la posición esté dentro del rango válido
-                newCursorPosition = Math.max(0, Math.min(newCursorPosition, newValue.length));
-
-                e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+                // No borrar el valor, mantenerlo para que el usuario pueda corregirlo
+                return;
+            } else {
+                // Ocultar error y restaurar estilo normal
+                montoError.classList.add('hidden');
+                e.target.classList.remove('input-error');
+                e.target.classList.add('input-bordered');
             }
 
             performSimulation();
