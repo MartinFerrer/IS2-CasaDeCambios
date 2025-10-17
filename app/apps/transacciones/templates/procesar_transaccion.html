@@ -9,8 +9,13 @@
         <div class="flex items-center justify-center mb-8">
             <div class="text-center">
                 <div class="text-6xl mb-4">✅</div>
-                <h2 class="text-3xl font-bold text-success">¡Transacción Creada Exitosamente!</h2>
-                <p class="text-gray-600 mt-2">Tu transacción ha sido registrada y está lista para procesar</p>
+                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                    <h2 class="text-3xl font-bold text-success">¡Transacción Completada Exitosamente!</h2>
+                    <p class="text-gray-600 mt-2">Tu pago con Stripe ha sido procesado y la transacción está completada</p>
+                {% else %}
+                    <h2 class="text-3xl font-bold text-success">¡Transacción Creada Exitosamente!</h2>
+                    <p class="text-gray-600 mt-2">Tu transacción ha sido registrada y está lista para procesar</p>
+                {% endif %}
             </div>
         </div>
         <!-- Información de la transacción -->
@@ -70,7 +75,11 @@
                             </div>
                             <div>
                                 <span class="font-semibold">Estado:</span>
-                                <span class="badge badge-warning ml-2">Pendiente</span>
+                                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                    <span class="badge badge-success ml-2">Completada</span>
+                                {% else %}
+                                    <span class="badge badge-warning ml-2">Pendiente</span>
+                                {% endif %}
                             </div>
                             <div>
                                 <span class="font-semibold">Fecha de Creación:</span>
@@ -340,8 +349,13 @@
                         <div class="steps steps-vertical lg:steps-horizontal w-full">
                             <div class="step step-primary">Transacción Creada</div>
                             <div class="step step-primary">Pago Stripe Procesado</div>
-                            <div class="step">Verificación Internacional</div>
-                            <div class="step">Transacción Completada</div>
+                            {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                <div class="step step-primary">Verificación Internacional</div>
+                                <div class="step step-primary">Transacción Completada</div>
+                            {% else %}
+                                <div class="step">Verificación Internacional</div>
+                                <div class="step">Transacción Completada</div>
+                            {% endif %}
                         </div>
                         <div class="mt-4 p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border border-purple-200">
                             <div class="font-semibold mb-2 flex items-center">
@@ -476,21 +490,39 @@
                             <div class="text-xs opacity-60">Realizar otra</div>
                         </div>
                     </a>
-                    <button id="btnPagarTransaccion"
-                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
-                            class="btn btn-success btn-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <div class="text-left">
-                            <div class="font-semibold">Pagar Transacción</div>
-                            <div class="text-xs opacity-60">Procesar pago</div>
-                        </div>
-                    </button>
+                    {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                        <button id="btnPagarTransaccion"
+                                class="btn btn-success btn-lg btn-disabled"
+                                disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Pago Completado</div>
+                                <div class="text-xs opacity-60">Transacción pagada</div>
+                            </div>
+                        </button>
+                    {% else %}
+                        <button id="btnPagarTransaccion"
+                                onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
+                                class="btn btn-success btn-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Pagar Transacción</div>
+                                <div class="text-xs opacity-60">Procesar pago</div>
+                            </div>
+                        </button>
+                    {% endif %}
                     <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
                             class="btn btn-error btn-outline btn-lg">
                         <svg xmlns="http://www.w3.org/2000/svg"
