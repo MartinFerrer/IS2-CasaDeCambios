@@ -57,6 +57,9 @@ from apps.seguridad.permissions import (
     PERM_VIEW_USUARIO,
     get_permission_display_name,
 )
+from apps.stock.models import MovimientoStock
+from apps.stock.services import depositar_divisas, extraer_divisas
+from apps.tauser.models import Tauser
 from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
