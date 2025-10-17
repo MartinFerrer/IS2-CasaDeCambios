@@ -112,6 +112,32 @@ PERM_DELETE_TASACAMBIOHISTORIAL = "delete_tasacambiohistorial"
 PERM_VIEW_TASACAMBIOHISTORIAL = "view_tasacambiohistorial"
 
 # ============================================================================
+# PERMISOS DE TAUSER
+# ============================================================================
+PERM_ADD_TAUSER = "add_tauser"
+PERM_CHANGE_TAUSER = "change_tauser"
+PERM_DELETE_TAUSER = "delete_tauser"
+PERM_VIEW_TAUSER = "view_tauser"
+
+# ============================================================================
+# PERMISOS DE STOCK
+# ============================================================================
+PERM_ADD_STOCKDIVISATAUSER = "add_stockdivisatauser"
+PERM_CHANGE_STOCKDIVISATAUSER = "change_stockdivisatauser"
+PERM_DELETE_STOCKDIVISATAUSER = "delete_stockdivisatauser"
+PERM_VIEW_STOCKDIVISATAUSER = "view_stockdivisatauser"
+
+PERM_ADD_MOVIMIENTOSTOCK = "add_movimientostock"
+PERM_CHANGE_MOVIMIENTOSTOCK = "change_movimientostock"
+PERM_DELETE_MOVIMIENTOSTOCK = "delete_movimientostock"
+PERM_VIEW_MOVIMIENTOSTOCK = "view_movimientostock"
+
+PERM_ADD_MOVIMIENTOSTOCKDETALLE = "add_movimientostockdetalle"
+PERM_CHANGE_MOVIMIENTOSTOCKDETALLE = "change_movimientostockdetalle"
+PERM_DELETE_MOVIMIENTOSTOCKDETALLE = "delete_movimientostockdetalle"
+PERM_VIEW_MOVIMIENTOSTOCKDETALLE = "view_movimientostockdetalle"
+
+# ============================================================================
 # PERMISOS DE MEDIOS FINANCIEROS
 # ============================================================================
 PERM_ADD_BILLETERAELECTRONICA = "add_billeteraelectronica"
@@ -230,6 +256,24 @@ def get_permission_display_name(codename: str) -> str:
         PERM_CHANGE_TASACAMBIOHISTORIAL: "Modificar historial de tasa de cambio",
         PERM_DELETE_TASACAMBIOHISTORIAL: "Eliminar historial de tasa de cambio",
         PERM_VIEW_TASACAMBIOHISTORIAL: "Ver historial de tasa de cambio",
+        # Tauser
+        PERM_ADD_TAUSER: "Crear tauser",
+        PERM_CHANGE_TAUSER: "Modificar tauser",
+        PERM_DELETE_TAUSER: "Eliminar tauser",
+        PERM_VIEW_TAUSER: "Ver tauser",
+        # Stock
+        PERM_ADD_STOCKDIVISATAUSER: "Crear stock de divisa",
+        PERM_CHANGE_STOCKDIVISATAUSER: "Modificar stock de divisa",
+        PERM_DELETE_STOCKDIVISATAUSER: "Eliminar stock de divisa",
+        PERM_VIEW_STOCKDIVISATAUSER: "Ver stock de divisa",
+        PERM_ADD_MOVIMIENTOSTOCK: "Crear movimiento de stock",
+        PERM_CHANGE_MOVIMIENTOSTOCK: "Modificar movimiento de stock",
+        PERM_DELETE_MOVIMIENTOSTOCK: "Eliminar movimiento de stock",
+        PERM_VIEW_MOVIMIENTOSTOCK: "Ver movimiento de stock",
+        PERM_ADD_MOVIMIENTOSTOCKDETALLE: "Crear detalle de movimiento",
+        PERM_CHANGE_MOVIMIENTOSTOCKDETALLE: "Modificar detalle de movimiento",
+        PERM_DELETE_MOVIMIENTOSTOCKDETALLE: "Eliminar detalle de movimiento",
+        PERM_VIEW_MOVIMIENTOSTOCKDETALLE: "Ver detalle de movimiento",
         # Medios financieros
         PERM_ADD_BILLETERAELECTRONICA: "Crear billetera electrónica",
         PERM_CHANGE_BILLETERAELECTRONICA: "Modificar billetera electrónica",

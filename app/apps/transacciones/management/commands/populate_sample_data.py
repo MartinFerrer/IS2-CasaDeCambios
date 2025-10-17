@@ -13,13 +13,16 @@ Este comando crea datos de ejemplo para:
 from datetime import date, timedelta
 from decimal import Decimal
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
-from apps.usuarios.models import Cliente, TipoCliente
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.stock.models import StockDivisaTauser
+from apps.tauser.models import Tauser
+from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito
+from apps.usuarios.models import Cliente, TipoCliente
 
 Usuario = get_user_model()
 
@@ -47,9 +50,12 @@ class Command(BaseCommand):
             with transaction.atomic():
                 self.create_divisas()
                 self.create_tasas_cambio()
+                self.create_tipos_cliente()
                 self.create_usuarios()
                 self.create_clientes()
+                self.create_tausers()
                 self.create_medios_financieros()
+                self.create_stock_divisas()
 
             self.stdout.write(self.style.SUCCESS("Se ha poblado la base de datos con datos de ejemplo"))
         except Exception as e:
@@ -57,6 +63,8 @@ class Command(BaseCommand):
 
     def clear_data(self):
         """Limpiar datos."""
+        StockDivisaTauser.objects.all().delete()
+        Tauser.objects.all().delete()
         TarjetaCredito.objects.all().delete()
         CuentaBancaria.objects.all().delete()
         BilleteraElectronica.objects.all().delete()
@@ -264,83 +272,6 @@ class Command(BaseCommand):
                 cliente.usuarios.set(usuarios[:2])  # Asociar con los primeros 2 usuarios
                 self.stdout.write(f"  Creado cliente: {cliente.nombre}")
 
-    def create_entidades_financieras(self):
-        """Crear entidades financieras de ejemplo."""
-        self.stdout.write("Creando entidades financieras...")
-
-        entidades_data = [
-            # Bancos
-            {
-                "nombre": "Banco Nacional de Fomento",
-                "tipo": "banco",
-                "comision_compra": Decimal("1.5"),
-                "comision_venta": Decimal("2.0"),
-            },
-            {
-                "nombre": "Itaú Paraguay",
-                "tipo": "banco",
-                "comision_compra": Decimal("1.8"),
-                "comision_venta": Decimal("2.2"),
-            },
-            {
-                "nombre": "Banco Continental",
-                "tipo": "banco",
-                "comision_compra": Decimal("1.6"),
-                "comision_venta": Decimal("2.1"),
-            },
-            # Emisores de tarjeta
-            {
-                "nombre": "Visa",
-                "tipo": "emisor_tarjeta",
-                "comision_compra": Decimal("2.5"),
-                "comision_venta": Decimal("2.8"),
-            },
-            {
-                "nombre": "Mastercard",
-                "tipo": "emisor_tarjeta",
-                "comision_compra": Decimal("2.4"),
-                "comision_venta": Decimal("2.7"),
-            },
-            {
-                "nombre": "American Express",
-                "tipo": "emisor_tarjeta",
-                "comision_compra": Decimal("3.0"),
-                "comision_venta": Decimal("3.5"),
-            },
-            # Proveedores de billetera
-            {
-                "nombre": "Personal Pay",
-                "tipo": "proveedor_billetera",
-                "comision_compra": Decimal("1.0"),
-                "comision_venta": Decimal("1.2"),
-            },
-            {
-                "nombre": "Tigo Money",
-                "tipo": "proveedor_billetera",
-                "comision_compra": Decimal("0.8"),
-                "comision_venta": Decimal("1.0"),
-            },
-            {
-                "nombre": "Billetera Claro",
-                "tipo": "proveedor_billetera",
-                "comision_compra": Decimal("0.9"),
-                "comision_venta": Decimal("1.1"),
-            },
-        ]
-
-        for entidad_data in entidades_data:
-            entidad, created = EntidadFinanciera.objects.get_or_create(
-                nombre=entidad_data["nombre"],
-                defaults={
-                    "tipo": entidad_data["tipo"],
-                    "comision_compra": entidad_data["comision_compra"],
-                    "comision_venta": entidad_data["comision_venta"],
-                    "activo": True,
-                },
-            )
-            if created:
-                self.stdout.write(f"  Creada entidad: {entidad.nombre}")
-
     def create_medios_financieros(self):
         """Crear medios financieros de ejemplo para cada cliente."""
         self.stdout.write("Creando medios financieros...")
@@ -353,18 +284,35 @@ class Command(BaseCommand):
         for i, cliente in enumerate(clientes):
             self.stdout.write(f"  Creando medios para cliente: {cliente.nombre}")
 
+            # Crear tarjetas específicas para pruebas del banco externo
+            if i == 0:  # Primer cliente: tarjeta que siempre tiene éxito
+                numero_tarjeta = "4000000000000077"
+                alias_extra = " (EXITO)"
+            elif i == 1:  # Segundo cliente: tarjeta que siempre falla
+                numero_tarjeta = "1111111111111111"
+                alias_extra = " (FALLO)"
+            elif i == 2:  # Tercer cliente: otra tarjeta exitosa
+                numero_tarjeta = "5555555555555557"
+                alias_extra = " (EXITO)"
+            elif i == 3:  # Cuarto cliente: otra tarjeta que falla
+                numero_tarjeta = "4000000000000002"
+                alias_extra = " (FALLO)"
+            else:
+                numero_tarjeta = f"424242424242{4240 + i:04d}"
+                alias_extra = ""
+
             # Crear una tarjeta de crédito para cada cliente
             emisor = emisores[i % len(emisores)] if emisores else None
             tarjeta = TarjetaCredito.objects.create(
                 cliente=cliente,
-                numero_tarjeta=f"424242424242{4240 + i:04d}",
+                numero_tarjeta=numero_tarjeta,
                 nombre_titular=cliente.nombre,
                 fecha_expiracion=date.today() + timedelta(days=365 * 2),
                 cvv="123",
                 entidad=emisor,
                 habilitado_para_pago=True,
                 habilitado_para_cobro=False,
-                alias=f"Tarjeta {emisor.nombre if emisor else 'Principal'} {cliente.nombre}",
+                alias=f"Tarjeta {emisor.nombre if emisor else 'Principal'} {cliente.nombre}{alias_extra}",
             )
             self.stdout.write(f"    Creada tarjeta: {tarjeta.alias}")
 
@@ -413,3 +361,104 @@ class Command(BaseCommand):
             self.stdout.write(f"    Creada billetera: {billetera.alias}")
 
         self.stdout.write("¡Medios financieros creados exitosamente!")
+
+    def create_tausers(self):
+        """Crear tausers de ejemplo."""
+        self.stdout.write("Creando tausers...")
+
+        tausers_data = [
+            {
+                "nombre": "Casa Central",
+                "ubicacion": "Av. Mariscal López 1234, Asunción - Centro"
+            },
+            {
+                "nombre": "Sucursal Shopping del Sol",
+                "ubicacion": "Shopping del Sol, Local 205, Asunción"
+            },
+            {
+                "nombre": "Sucursal Villa Morra",
+                "ubicacion": "Av. Aviadores del Chaco 2050, Asunción - Villa Morra"
+            },
+            {
+                "nombre": "Sucursal Ciudad del Este",
+                "ubicacion": "Av. San Blas 1456, Ciudad del Este, Alto Paraná"
+            },
+            {
+                "nombre": "Sucursal Encarnación",
+                "ubicacion": "Calle 14 de Mayo 789, Encarnación, Itapúa"
+            }
+        ]
+
+        for tauser_data in tausers_data:
+            tauser, created = Tauser.objects.get_or_create(
+                nombre=tauser_data["nombre"],
+                defaults={
+                    "ubicacion": tauser_data["ubicacion"]
+                }
+            )
+            if created:
+                self.stdout.write(f"  Creado tauser: {tauser.nombre}")
+
+    def create_stock_divisas(self):
+        """Crear stock de divisas para cada tauser."""
+        self.stdout.write("Creando stock de divisas...")
+
+        tausers = list(Tauser.objects.all())
+        divisas = list(Divisa.objects.all())
+
+        # Denominaciones comunes para cada divisa
+        denominaciones_por_divisa = {
+            "PYG": [2000, 5000, 10000, 20000, 50000, 100000],
+            "USD": [1, 5, 10, 20, 50, 100],
+            "EUR": [5, 10, 20, 50, 100, 200],
+            "BRL": [2, 5, 10, 20, 50, 100, 200],
+            "ARS": [100, 200, 500, 1000, 2000]
+        }
+
+        # Stock inicial base por denominación (varía por tauser)
+        stock_base = {
+            "PYG": {2000: 400, 5000: 300, 10000: 200, 20000: 150, 50000: 100, 100000: 50},
+            "USD": {1: 200, 5: 150, 10: 100, 20: 80, 50: 50, 100: 30},
+            "EUR": {5: 100, 10: 80, 20: 60, 50: 40, 100: 25, 200: 15},
+            "BRL": {2: 150, 5: 120, 10: 90, 20: 70, 50: 45, 100: 25, 200: 15},
+            "ARS": {100: 200, 200: 150, 500: 100, 1000: 80, 2000: 40}
+        }
+
+        for tauser in tausers:
+            self.stdout.write(f"  Creando stock para tauser: {tauser.nombre}")
+
+            for divisa in divisas:
+                denominaciones = denominaciones_por_divisa.get(divisa.codigo, [])
+                stock_divisa = stock_base.get(divisa.codigo, {})
+
+                for denominacion in denominaciones:
+                    # Variar el stock base según el tauser
+                    # Casa Central tiene más stock, sucursales menores tienen menos
+                    multiplier = 1.0
+                    if "Casa Central" in tauser.nombre:
+                        multiplier = 1.5
+                    elif "Ciudad del Este" in tauser.nombre or "Encarnación" in tauser.nombre:
+                        multiplier = 0.7
+                    else:
+                        multiplier = 1.0
+
+                    stock_cantidad = int(stock_divisa.get(denominacion, 50) * multiplier)
+                    stock_reservado = min(stock_cantidad // 10, 20)  # 10% reservado, máximo 20
+
+                    stock, created = StockDivisaTauser.objects.get_or_create(
+                        tauser=tauser,
+                        divisa=divisa,
+                        denominacion=denominacion,
+                        defaults={
+                            "stock": stock_cantidad,
+                            "stock_reservado": stock_reservado
+                        }
+                    )
+
+                    if created:
+                        self.stdout.write(
+                            f"    {divisa.codigo} {denominacion}: {stock_cantidad} unidades "
+                            f"(reservado: {stock_reservado})"
+                        )
+
+        self.stdout.write("¡Stock de divisas creado exitosamente!")
