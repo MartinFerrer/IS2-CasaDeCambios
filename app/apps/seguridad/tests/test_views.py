@@ -12,8 +12,8 @@ from apps.usuarios.models import Usuario
 
 
 @pytest.mark.django_db
-def test_registro_view_creates_inactive_user(client):
-    """Prueba que la vista de registro crea un usuario inactivo."""
+def test_registro_view_creates_inactive_user(client, monkeypatch):
+    """Prueba que la vista de registro crea un usuario inactivo y llama a send_mail."""
     url = reverse("seguridad:registro")
     data = {
         "nombre": "Nuevo Usuario",
@@ -21,10 +21,29 @@ def test_registro_view_creates_inactive_user(client):
         "password1": "testpass123",
         "password2": "testpass123",
     }
+
+    called = {"count": 0, "args": None, "kwargs": None}
+
+    import django.core.mail as django_mail
+
+    real_send_mail = django_mail.send_mail
+
+    def fake_send_mail(*args, **kwargs):
+        called["count"] += 1
+        called["args"] = args
+        called["kwargs"] = kwargs
+        # Call the real send_mail so the test mail.outbox is populated
+        return real_send_mail(*args, **kwargs)
+
+    monkeypatch.setattr("apps.seguridad.views.send_mail", fake_send_mail)
+
     response = client.post(url, data)
     user = Usuario.objects.get(email="nuevo@ejemplo.com")
     assert user.activo is False
     assert response.status_code == 302
+    # Verificar que la función send_mail fue llamada exactamente una vez
+    assert called["count"] == 1
+    # También verificar que se haya colocado un correo en outbox por compatibilidad
     assert len(mail.outbox) == 1
 
 
