@@ -10,6 +10,10 @@ from decimal import Decimal
 from typing import Dict
 
 import stripe
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.usuarios.models import Cliente
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -19,31 +23,26 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
-from apps.seguridad.decorators import client_required
-from apps.usuarios.models import Cliente
-
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 
 
 def obtener_medio_financiero_por_identificador(identificador, cliente):
     """Obtiene el objeto de medio financiero basado en el identificador.
-    
+
     Args:
         identificador: String como 'tarjeta_1', 'cuenta_2', 'billetera_3', etc.
         cliente: Objeto Cliente al que pertenece el medio
-        
+
     Returns:
         Objeto del medio financiero (TarjetaCredito, CuentaBancaria, BilleteraElectronica) o None
-        
+
     """
     if not identificador or identificador == "efectivo":
         return None
 
     try:
         # Separar tipo y ID del identificador
-        partes = identificador.split('_')
+        partes = identificador.split("_")
         if len(partes) != 2:
             return None
 
@@ -107,10 +106,6 @@ def obtener_nombre_medio(medio_id, cliente):
 
 def _get_stripe_fixed_fee_pyg() -> Decimal:
     """Calcula la comisión fija de Stripe (0.30 USD) convertida a PYG usando la tasa vigente."""
-    from django.conf import settings
-
-    from apps.operaciones.models import TasaCambio
-
     try:
         # Obtener tasa USD/PYG vigente
         tasa_cambio = TasaCambio.objects.filter(
@@ -249,6 +244,10 @@ def _compute_simulation(params: Dict, request) -> Dict:
     # Validación: No permitir compra de divisas con medio de pago en efectivo
     if tipo == "compra" and metodo_pago == "efectivo":
         raise ValueError("No se permite comprar divisas usando efectivo como medio de pago")
+
+    # Validación: No permitir venta de divisas con medio de cobro en efectivo
+    if tipo == "venta" and metodo_cobro == "efectivo":
+        raise ValueError("No se permite vender divisas cobrando en efectivo como medio de cobro")
 
     # Obtener cliente del middleware para descuentos
     cliente = getattr(request, "cliente", None)
@@ -558,19 +557,17 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 )
 
         # Configurar medios de cobro según tipo de operación
-        # Agregar efectivo por defecto para cobro
-        medios_cobro.append(
-            {
-                "id": "efectivo",
-                "tipo": "efectivo",
-                "nombre": "Efectivo",
-                "descripcion": "Cobro en efectivo",
-                "comision": 0,  # 0%
-            }
-        )
+        if tipo_operacion == "compra":
+            medios_cobro.append(
+                {
+                    "id": "efectivo",
+                    "tipo": "efectivo",
+                    "nombre": "Efectivo",
+                    "descripcion": "Cobro en efectivo",
+                    "comision": 0,  # 0%
+                }
+            )
 
-        # Para compra: solo efectivo para cobro
-        # Para venta: agregar todos los medios habilitados para cobro
         if tipo_operacion == "venta":
             # Agregar tarjetas de crédito habilitadas para cobro
             for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_cobro=True):
@@ -1879,7 +1876,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
 
 @require_GET
 def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """Verificasi la cotización de una transacción ha cambiado significativamente.
+    """Verifica si la cotización de una transacción ha cambiado significativamente.
 
     Args:
         request: HttpRequest object
