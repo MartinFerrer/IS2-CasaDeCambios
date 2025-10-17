@@ -16,13 +16,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from decimal import Decimal
 from pathlib import Path
 
 import dj_database_url
 from environ import Env
 
 env = Env()
-env.read_env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -139,7 +139,7 @@ USE_THOUSAND_SEPARATOR = True
 
 # Forzar localización incluso en DEBUG=True
 FORMAT_MODULE_PATH = [
-    'global_exchange_django.locale',
+    "global_exchange_django.locale",
 ]
 
 # Directorio de locales personalizados
@@ -190,7 +190,7 @@ USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
 # Custom error views for CSRF failures
-CSRF_FAILURE_VIEW = 'global_exchange_django.views.csrf_failure'
+CSRF_FAILURE_VIEW = "global_exchange_django.views.csrf_failure"
 
 # Configuration for session cookie name (customizable via .env)
 _session_cookie_from_env = env.str("SESSION_COOKIE_NAME", default=None)
@@ -215,3 +215,20 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+
+
+# =============================================================================
+# STRIPE CONFIGURATION
+# =============================================================================
+
+# Stripe API Keys (con valores por defecto para CI/documentación)
+STRIPE_PUBLISHABLE_KEY = env.str("STRIPE_PUBLISHABLE_KEY", default="pk_test_fake_key_for_ci")
+STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="sk_test_fake_key_for_ci")
+STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET", default="")
+
+# Configuración de comisiones Stripe
+STRIPE_COMMISSION_RATE = Decimal("2.9")  # 2.9% comisión variable para pagos internacionales
+STRIPE_FIXED_FEE_USD = Decimal("0.30")  # 0.30 USD comisión fija por transacción exitosa
+
+# Configuración adicional de Stripe
+STRIPE_CURRENCY_DEFAULT = "USD"  # Moneda por defecto para pagos internacionales
