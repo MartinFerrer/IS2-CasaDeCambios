@@ -24,6 +24,43 @@ from apps.usuarios.models import Cliente
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 
 
+def obtener_medio_financiero_por_identificador(identificador, cliente):
+    """Obtiene el objeto de medio financiero basado en el identificador.
+    
+    Args:
+        identificador: String como 'tarjeta_1', 'cuenta_2', 'billetera_3', etc.
+        cliente: Objeto Cliente al que pertenece el medio
+        
+    Returns:
+        Objeto del medio financiero (TarjetaCredito, CuentaBancaria, BilleteraElectronica) o None
+        
+    """
+    if not identificador or identificador == "efectivo":
+        return None
+
+    try:
+        # Separar tipo y ID del identificador
+        partes = identificador.split('_')
+        if len(partes) != 2:
+            return None
+
+        tipo_medio, id_medio = partes
+        id_medio = int(id_medio)
+
+        # Buscar según el tipo
+        if tipo_medio == "tarjeta":
+            return TarjetaCredito.objects.get(id=id_medio, cliente=cliente)
+        elif tipo_medio == "cuenta":
+            return CuentaBancaria.objects.get(id=id_medio, cliente=cliente)
+        elif tipo_medio == "billetera":
+            return BilleteraElectronica.objects.get(id=id_medio, cliente=cliente)
+
+    except (ValueError, TarjetaCredito.DoesNotExist, CuentaBancaria.DoesNotExist, BilleteraElectronica.DoesNotExist):
+        pass
+
+    return None
+
+
 def obtener_nombre_medio(medio_id, cliente):
     """Obtiene el nombre legible de un medio de pago/cobro con su alias real.
 
@@ -1539,7 +1576,6 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         data = json.loads(request.body)
         transaccion_id = data.get("transaccion_id")
         exito = data.get("exito", False)
-        codigo_autorizacion = data.get("codigo_autorizacion")
         mensaje_error = data.get("mensaje_error")
 
         if not transaccion_id:
@@ -1567,13 +1603,7 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
             # Pago exitoso
             transaccion.estado = "completada"
             transaccion.fecha_pago = datetime.now()
-
-            # Agregar información del código de autorización si está disponible
-            if codigo_autorizacion:
-                # Aquí podrías agregar un campo para el código de autorización si lo tienes en el modelo
-                pass
-
-            mensaje_log = f"Pago procesado exitosamente. Código: {codigo_autorizacion}"
+            mensaje_log = "Pago procesado exitosamente"
 
         else:
             # Pago fallido
@@ -1677,10 +1707,23 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
             return render(request, "popup_codigo_tauser.html", context)
 
         # Para tarjetas y cuentas bancarias, usar el popup bancario primero
+
+        # Obtener los medios financieros reales basados en los identificadores
+        medio_pago_obj = None
+        medio_cobro_obj = None
+
+        if medio_pago and medio_pago != "efectivo":
+            medio_pago_obj = obtener_medio_financiero_por_identificador(medio_pago, cliente)
+
+        if medio_cobro and medio_cobro != "efectivo":
+            medio_cobro_obj = obtener_medio_financiero_por_identificador(medio_cobro, cliente)
+
         context = {
             "transaccion": transaccion,
             "cliente": cliente,
             "es_efectivo": False,
+            "medio_pago_obj": medio_pago_obj,
+            "medio_cobro_obj": medio_cobro_obj,
         }
 
         return render(request, "popup_banco_simulado.html", context)
