@@ -4,9 +4,10 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import RequestFactory
+
 from apps.transacciones.views import _compute_simulation
 from apps.usuarios.models import Usuario
-from django.test import RequestFactory
 
 
 @pytest.mark.django_db
@@ -44,7 +45,7 @@ class TestComputeSimulation:
             "tipo_operacion": "compra",
             "divisa_deseada": "USD",
             "monto": Decimal("100.00"),
-            "medio_pago": "stripe",
+            "metodo_pago": "stripe",
         }
 
         result = _compute_simulation(params, mock_request)
@@ -108,7 +109,7 @@ class TestComputeSimulation:
             "tipo_operacion": "compra",
             "divisa_deseada": "USD",
             "monto": Decimal("100.00"),
-            "medio_pago": "efectivo",
+            "metodo_pago": "tarjeta_1",
         }
 
         result = _compute_simulation(params, mock_request)

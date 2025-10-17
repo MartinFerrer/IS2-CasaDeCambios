@@ -246,6 +246,10 @@ def _compute_simulation(params: Dict, request) -> Dict:
     metodo_pago = params.get("metodo_pago") or "efectivo"
     metodo_cobro = params.get("metodo_cobro") or "efectivo"
 
+    # Validación: No permitir compra de divisas con medio de pago en efectivo
+    if tipo == "compra" and metodo_pago == "efectivo":
+        raise ValueError("No se permite comprar divisas usando efectivo como medio de pago")
+
     # Obtener cliente del middleware para descuentos
     cliente = getattr(request, "cliente", None)
 
@@ -404,9 +408,12 @@ def api_simular_cambio(request: HttpRequest) -> JsonResponse:
     :return: JsonResponse con los detalles de la simulación (tasas, comisiones, totales).
     :rtype: django.http.JsonResponse
     """
-    params = request.GET.dict()
-    result = _compute_simulation(params, request)
-    return JsonResponse(result)
+    try:
+        params = request.GET.dict()
+        result = _compute_simulation(params, request)
+        return JsonResponse(result)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @require_GET
@@ -468,17 +475,8 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 }
             )
         else:
-            # Para compra: todos los medios de pago disponibles
-            # Agregar efectivo por defecto para pago
-            medios_pago.append(
-                {
-                    "id": "efectivo",
-                    "tipo": "efectivo",
-                    "nombre": "Efectivo",
-                    "descripcion": "Pago en efectivo",
-                    "comision": 0,  # 0%
-                }
-            )
+            # Para compra: todos los medios de pago disponibles EXCEPTO efectivo
+            # No agregar efectivo para operaciones de compra (restricción de negocio)
 
             # Agregar tarjetas de crédito habilitadas para pago
             for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_pago=True):
@@ -1360,6 +1358,15 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
 
     try:
         params = request.GET.dict()
+
+        # Validación: No permitir compra de divisas con medio de pago en efectivo
+        tipo_operacion = params.get("tipo_operacion", "compra")
+        metodo_pago = params.get("metodo_pago", "efectivo")
+
+        if tipo_operacion == "compra" and metodo_pago == "efectivo":
+            return JsonResponse(
+                {"error": "No se permite comprar divisas usando PYG en efectivo como medio de pago"}, status=400
+            )
 
         # Verificar si el usuario requiere MFA para transacciones ANTES de crear
         from apps.seguridad.models import PerfilMFA

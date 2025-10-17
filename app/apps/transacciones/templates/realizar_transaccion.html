@@ -133,7 +133,7 @@
                                     <select id="metodo-pago-select"
                                             class="select select-bordered w-full text-left ml-0"
                                             required>
-                                        <option value="efectivo" selected>Efectivo</option>
+                                        <option value="">Seleccione método de pago</option>
                                     </select>
                                 </div>
                                 <div>
@@ -614,12 +614,19 @@
                 // Limpiar y rellenar método de pago
                 metodoPagoSelect.innerHTML = '';
 
-                data.medios_pago.forEach(medio => {
+                let hasEfectivoPago = false;
+                data.medios_pago.forEach((medio, index) => {
                     const optionPago = document.createElement('option');
                     optionPago.value = medio.id;
                     optionPago.textContent = `${medio.nombre} (${medio.comision}%)`;
                     optionPago.dataset.comision = medio.comision;
-                    if (medio.id === 'efectivo') optionPago.selected = true;
+                    if (medio.id === 'efectivo') {
+                        hasEfectivoPago = true;
+                        optionPago.selected = true;
+                    } else if (index === 0 && !hasEfectivoPago) {
+                        // Si no hay efectivo, seleccionar el primer método disponible
+                        optionPago.selected = true;
+                    }
                     metodoPagoSelect.appendChild(optionPago);
                 });
 
@@ -642,7 +649,14 @@
         }
 
         function resetMediosPago() {
-            metodoPagoSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
+            const tipo = getTipoOperacion();
+            if (tipo === 'compra') {
+                // Para compra, no mostrar efectivo por defecto
+                metodoPagoSelect.innerHTML = '<option value="">Seleccione método de pago</option>';
+            } else {
+                // Para venta, sí mostrar efectivo
+                metodoPagoSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
+            }
             metodoCobroSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
         }
 
