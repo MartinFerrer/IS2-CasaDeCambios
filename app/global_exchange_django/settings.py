@@ -16,9 +16,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from celery.schedules import crontab
 from environ import Env
 
 env = Env()
@@ -222,3 +224,31 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 TIME_ZONE = env.str("TIME_ZONE", default="America/Argentina/Buenos_Aires")
 CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_BEAT_SCHEDULE = {
+    # ------------------------------------------------------------------
+    # --- TAREA DIARIA ORIGINAL ---
+    # "notifs-diarias-prod": {
+    #     "task": "apps.usuarios.tasks.send_grouped_notifications",
+    #     "schedule": crontab(hour=8, minute=0),
+    #     "args": ("diario",),
+    # },
+    # ------------------------------------------------------------------
+    # --- TAREA DIARIA DE PRUEBA: SE EJECUTA CADA 2 MINUTOS ---
+    "notifs-diarias-test": {
+        "task": "apps.usuarios.tasks.send_grouped_notifications",
+        # Cambiamos crontab por timedelta para que se ejecute a menudo.
+        "schedule": timedelta(seconds=5),  # ¡Se disparará cada 5 segundos!
+        "args": ("diario",),
+    },
+    "notifs-semanales": {
+        "task": "apps.usuarios.tasks.send_grouped_notifications",
+        "schedule": crontab(hour=8, minute=0, day_of_week=0),
+        "args": ("semanal",),
+    },
+    "notifs-mensuales": {
+        "task": "apps.usuarios.tasks.send_grouped_notifications",
+        "schedule": crontab(hour=8, minute=0, day_of_month=1),
+        "args": ("mensual",),
+    },
+}

@@ -116,7 +116,7 @@ class PreferenciaNotificacion(models.Model):
         related_name="notification_pref",
     )
     habilitado = models.BooleanField(default=False)
-    frecuencia = models.CharField(max_length=10, choices=FRECUENCIA_CHOICES, default="daily")
+    frecuencia = models.CharField(max_length=10, choices=FRECUENCIA_CHOICES, default="diario")
     ultimo_envio = models.DateTimeField(null=True, blank=True)
 
     def __str__(self) -> str:

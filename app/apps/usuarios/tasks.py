@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 def ventana_para_frecuencia(freq_key: str) -> timedelta:
     if freq_key == "diario":
-        return timedelta(days=1)
+        # return timedelta(days=1) valor default
+        return timedelta(seconds=5)  # para pruebas y mostrar rapidamente durante la presentacion
     if freq_key == "semanal":
         return timedelta(weeks=1)
     return timedelta(days=30)
@@ -78,11 +79,10 @@ def send_grouped_notifications(self, frecuencia: str):
     for pref in prefs_qs.iterator():
         try:
             last = pref.ultimo_envio or (ahora - ventana)
-            # Ajusta el filtro si tu historial usa otro nombre de campo o relación a tasa/cliente
             cambios_qs = (
-                TasaCambioHistorial.objects.select_related("tasa_origen__divisa", "tasa_destino__divisa")
-                .filter(updated_at__gt=last)
-                .order_by("updated_at")
+                TasaCambioHistorial.objects.select_related("divisa_origen", "divisa_destino")
+                .filter(fecha_registro__gt=last)
+                .order_by("fecha_registro")
             )
 
             # Si tu historial no guarda relación con cliente, filtra según las tasas relevantes
