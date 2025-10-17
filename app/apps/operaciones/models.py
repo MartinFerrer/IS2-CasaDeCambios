@@ -166,6 +166,18 @@ class TasaCambio(models.Model):
         """
         return self.precio_base
 
+    @property
+    def tasa_compra(self) -> Decimal:
+        """Calcula la tasa de compra aplicando la comisión correspondiente."""
+        # Para compra, el cliente paga más (precio_base + comisión)
+        return self.precio_base + self.comision_compra
+
+    @property
+    def tasa_venta(self) -> Decimal:
+        """Calcula la tasa de venta aplicando la comisión correspondiente."""
+        # Para venta, el cliente recibe menos (precio_base - comisión)
+        return self.precio_base - self.comision_venta
+
     class Meta:
         """Meta información para el modelo TasaCambio.
 

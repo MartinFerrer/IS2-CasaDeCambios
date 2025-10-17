@@ -619,6 +619,14 @@ class Transaccion(models.Model):
     motivo_cancelacion = models.TextField(
         blank=True, null=True, help_text="Motivo detallado de la cancelación de la transacción"
     )
+    stripe_payment = models.ForeignKey(
+        "StripePayment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transacciones",
+        help_text="Pago con Stripe asociado a esta transacción",
+    )
 
     class Meta:
         """Configuración para el modelo Transaccion.
@@ -860,3 +868,122 @@ class LimiteTransacciones(models.Model):
             raise ValidationError("El límite mensual debe ser mayor a 0")
         if self.limite_mensual < self.limite_diario:
             raise ValidationError("El límite mensual debe ser mayor o igual al límite diario")
+
+
+class StripePayment(models.Model):
+    """Modelo para auditar pagos con Stripe (tarjetas extranjeras).
+
+    Este modelo mantiene un registro detallado de todas las operaciones
+    realizadas con Stripe para fines de auditoría y reconciliación.
+    """
+
+    STRIPE_STATUS_CHOICES = [
+        ("requires_payment_method", "Requiere método de pago"),
+        ("requires_confirmation", "Requiere confirmación"),
+        ("requires_action", "Requiere acción"),
+        ("processing", "Procesando"),
+        ("requires_capture", "Requiere captura"),
+        ("canceled", "Cancelado"),
+        ("succeeded", "Exitoso"),
+        ("failed", "Fallido"),
+    ]
+
+    # Relaciones
+    cliente = models.ForeignKey(
+        "usuarios.Cliente",
+        on_delete=models.PROTECT,
+        related_name="stripe_payments",
+        help_text="Cliente que realiza el pago",
+    )
+
+    # Datos de Stripe
+    stripe_payment_intent_id = models.CharField(max_length=100, unique=True, help_text="ID del PaymentIntent de Stripe")
+    stripe_customer_id = models.CharField(max_length=100, blank=True, null=True, help_text="ID del customer en Stripe")
+    amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Monto del pago en la moneda especificada")
+    currency = models.CharField(max_length=3, default="USD", help_text="Moneda del pago (USD, EUR, etc.)")
+    status = models.CharField(
+        max_length=30,
+        choices=STRIPE_STATUS_CHOICES,
+        default="requires_payment_method",
+        help_text="Estado del pago en Stripe",
+    )
+    payment_method_id = models.CharField(
+        max_length=100, blank=True, null=True, help_text="ID del método de pago en Stripe"
+    )
+
+    # Datos de auditoría detallados
+    card_brand = models.CharField(
+        max_length=20, blank=True, null=True, help_text="Marca de la tarjeta (visa, mastercard, etc.)"
+    )
+    card_last4 = models.CharField(max_length=4, blank=True, null=True, help_text="Últimos 4 dígitos de la tarjeta")
+    card_country = models.CharField(
+        max_length=2, blank=True, null=True, help_text="País emisor de la tarjeta (código ISO)"
+    )
+
+    # Auditoría completa
+    fecha_creacion = models.DateTimeField(auto_now_add=True, help_text="Fecha de creación del pago")
+    fecha_actualizacion = models.DateTimeField(auto_now=True, help_text="Fecha de última actualización")
+    metadata = models.JSONField(default=dict, blank=True, help_text="Metadatos adicionales del pago")
+
+    # Logs de operaciones para auditoría
+    log_operaciones = models.TextField(blank=True, null=True, help_text="Log JSON de todas las operaciones realizadas")
+
+    class Meta:
+        verbose_name = "Pago Stripe"
+        verbose_name_plural = "Pagos Stripe"
+        ordering = ["-fecha_creacion"]
+
+    def __str__(self):
+        return f"Stripe {self.amount} {self.currency} - {self.get_status_display()}"
+
+    def is_successful(self) -> bool:
+        """Verifica si el pago fue exitoso."""
+        return self.status == "succeeded"
+
+    def get_card_display(self) -> str:
+        """Retorna información legible de la tarjeta."""
+        if self.card_brand and self.card_last4:
+            return f"{self.card_brand.title()} *{self.card_last4}"
+        return "Tarjeta Internacional"
+
+
+class TarjetaExtranjera(models.Model):
+    """Modelo para tarjetas extranjeras guardadas vía Stripe.
+
+    Permite a los clientes guardar sus tarjetas internacionales
+    para uso futuro en transacciones.
+    """
+
+    # Relaciones
+    cliente = models.ForeignKey(
+        "usuarios.Cliente",
+        on_delete=models.CASCADE,
+        related_name="tarjetas_extranjeras",
+        help_text="Cliente propietario de la tarjeta",
+    )
+
+    # Identificadores de Stripe
+    stripe_payment_method_id = models.CharField(max_length=100, unique=True, help_text="ID del PaymentMethod en Stripe")
+    stripe_customer_id = models.CharField(max_length=100, help_text="ID del Customer en Stripe")
+
+    # Información visible para el cliente
+    brand = models.CharField(max_length=20, help_text="Marca de la tarjeta (visa, mastercard, etc.)")
+    last4 = models.CharField(max_length=4, help_text="Últimos 4 dígitos de la tarjeta")
+    alias = models.CharField(max_length=50, help_text="Alias personalizado para la tarjeta")
+
+    # Control
+    activo = models.BooleanField(default=True, help_text="Indica si la tarjeta está activa para uso")
+    fecha_creacion = models.DateTimeField(auto_now_add=True, help_text="Fecha de registro de la tarjeta")
+
+    class Meta:
+        verbose_name = "Tarjeta Extranjera"
+        verbose_name_plural = "Tarjetas Extranjeras"
+        ordering = ["-fecha_creacion"]
+        unique_together = ["cliente", "stripe_payment_method_id"]
+
+    def __str__(self):
+        return f"{self.brand.title()} *{self.last4} - {self.cliente.nombre}"
+
+    def get_display_name(self) -> str:
+        """Retorna el nombre para mostrar en la UI."""
+        return f"💳 {self.brand.title()} *{self.last4} ({self.alias})"

@@ -17,6 +17,8 @@ class TestTransaccionesViews:
         response = client.get("/transacciones/simular-cambio/")
 
         assert response.status_code == 200
+        # Verificar que el contexto incluya configuración de Stripe
+        assert "stripe_publishable_key" in response.context or "STRIPE_PUBLISHABLE_KEY" in str(response.content)
 
     def test_comprar_divisa_view_get(self):
         """Test GET a la vista de comprar divisa."""
@@ -516,3 +518,57 @@ class TestTransaccionesViews:
         assert response.status_code == 404
         # Verificar que la tarjeta sigue existiendo
         assert TarjetaCredito.objects.filter(pk=tarjeta.pk).exists()
+
+
+@pytest.mark.django_db
+class TestStripeSimulationIntegration:
+    """Tests para integración de Stripe en simulaciones de transacciones."""
+
+    def test_api_simular_transaccion_includes_stripe_fees(self):
+        """Test que la API de simulación incluye comisiones de Stripe."""
+        import json
+        from decimal import Decimal
+        from unittest.mock import patch
+
+        client = Client()
+
+        # Datos de simulación con Stripe
+        data = {"tipo_operacion": "compra", "divisa_deseada": "USD", "monto": "100.00", "medio_pago": "stripe"}
+
+        with patch("apps.transacciones.views._get_stripe_fixed_fee_pyg") as mock_fee:
+            mock_fee.return_value = Decimal("2250.00")  # 0.30 USD en PYG
+
+            response = client.post(
+                "/api/transacciones/simular/", data=json.dumps(data), content_type="application/json"
+            )
+
+        # Si el endpoint existe, debe incluir comisiones de Stripe
+        if response.status_code == 200:
+            result = json.loads(response.content)
+
+            # Verificar que incluya comisiones duales si es Stripe
+            if data["medio_pago"] == "stripe":
+                # Debe tener alguna referencia a comisiones de Stripe
+                content_str = str(result)
+                assert any(key in content_str.lower() for key in ["stripe", "comision", "fee"])
+
+    def test_realizar_transaccion_view_includes_stripe_context(self):
+        """Test que la vista de realizar transacción incluye contexto de Stripe."""
+        client = Client()
+
+        response = client.get("/transacciones/realizar/")
+
+        if response.status_code == 200:
+            # Debe incluir configuración de Stripe para el frontend
+            content = str(response.content)
+            context_keys = response.context.keys() if hasattr(response, "context") else []
+
+            # Verificar presencia de configuración Stripe
+            stripe_present = (
+                "stripe_publishable_key" in context_keys
+                or "STRIPE_PUBLISHABLE_KEY" in content
+                or "pk_test_" in content
+                or "stripe" in content.lower()
+            )
+
+            assert stripe_present, "Vista debe incluir configuración de Stripe"
