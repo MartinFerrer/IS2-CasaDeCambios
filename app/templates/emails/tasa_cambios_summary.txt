@@ -1,0 +1,23 @@
+Hola {{ cliente.nombre|default:cliente }} ,
+
+Este es el resumen de cambios en las tasas de cambio (frecuencia: {{ frecuencia|capfirst }}).
+Periodo: desde {{ since }} hasta {{ until }}.
+
+{% if changes %}
+Se han registrado los siguientes cambios:
+{% for h in changes %}
+- Par: {% if h.tasa %}{{ h.tasa }}{% else %}{{ h.divisa_origen|default:"?" }} / {{ h.divisa_destino|default:"?" }}{% endif %}
+  Fecha: {{ h.fecha_registro|date:"d M Y H:i"|default:"(fecha no disponible)" }}
+  Precio Base (Gs.): {{ h.precio_base|default:"-" }}
+  Comisión Compra (Gs.): {{ h.comision_compra|default:"-" }} (Monto que se resta al precio base para la compra)
+  Comisión Venta (Gs.): {{ h.comision_venta|default:"-" }} (Monto que se suma al precio base para la venta)
+
+{% endfor %}
+{% else %}
+No se registraron cambios en el periodo indicado.
+{% endif %}
+
+Si deseas más información accede a tu panel de administración.
+
+Saludos,
+El equipo de Global Exchange

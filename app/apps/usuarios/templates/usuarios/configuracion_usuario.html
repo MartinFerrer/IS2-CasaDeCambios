@@ -246,43 +246,107 @@
                         </div>
                     </div>
                 {% endif %}
-                <!-- Notificaciones (futuro) -->
-                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow opacity-60">
+                <!-- Notificaciones-->
+                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
                     <div class="card-body">
                         <div class="flex items-center mb-4">
                             <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-orange-600"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.343 12.344l1.414 1.414L9.878 9.636M6.343 8.343l1.414-1.414 4.242 4.243m3.535-2.828L18.364 5.5l-2.828 2.828L9.878 14.978">
-                                    </path>
+                                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.343 12.344l1.414 1.414L9.878 9.636M6.343 8.343l1.414-1.414 4.242 4.243m3.535-2.828L18.364 5.5l-2.828 2.828L9.878 14.978"></path>
                                 </svg>
                             </div>
                             <div>
                                 <h2 class="card-title text-lg">Notificaciones</h2>
-                                <p class="text-sm text-gray-600">Preferencias de notificación</p>
+                                <p class="text-sm text-gray-600">Preferencias de notificación por cliente</p>
                             </div>
                         </div>
-                        <div class="space-y-2 mb-4">
-                            <p class="text-sm text-gray-600">Configura cómo y cuándo recibir notificaciones sobre tus transacciones.</p>
-                            <div class="badge badge-ghost badge-sm">Próximamente</div>
+
+                        <div class="mb-4">
+                            <label class="text-sm font-medium text-gray-700 block mb-2">Seleccionar cliente:</label>
+                            <select id="clienteNotif" class="select select-bordered w-full text-black">
+                                <option value="">Seleccionar cliente...</option>
+                                {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}">{{ cliente.nombre }} ({{ cliente.ruc }})</option>
+                                {% endfor %}
+                            </select>
                         </div>
+
+                        <div class="space-y-2 mb-4">
+                            <p class="text-sm text-gray-600">Configura con qué frecuencia el cliente recibirá resúmenes de cambios en tasas.</p>
+                        </div>
+
                         <div class="card-actions justify-end">
-                            <button class="btn btn-outline btn-sm" disabled>
-                                <svg class="w-4 h-4 mr-1"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                                    </path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <button id="btnConfigNotif" class="btn btn-primary btn-sm" type="button">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                 </svg>
                                 Configurar
                             </button>
                         </div>
                     </div>
                 </div>
+
+                <!-- Modal de Preferencias de Notificación -->
+                <div id="notifModal" class="modal" style="display:none;">
+                    <div class="modal-box">
+                        <form id="notifForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="cliente_id" id="notif_cliente_id" value="">
+                            <h3 class="font-bold text-lg mb-3">Preferencias de Notificación</h3>
+                            <label class="flex items-center gap-2 mt-2">
+                                <input type="checkbox" name="habilitado" id="notif_habilitado" class="checkbox">
+                                <span>Activado</span>
+                            </label>
+                            <label class="block mt-4 text-sm font-medium">Frecuencia</label>
+                            <select name="frecuencia" id="notif_frecuencia" class="select select-bordered w-full mt-2">
+                                <option value="diario">Diario</option>
+                                <option value="semanal">Semanal</option>
+                                <option value="mensual">Mensual</option>
+                            </select>
+                            <div class="modal-action mt-4">
+                                <button type="button" class="btn" onclick="closeNotifModal()">Cerrar</button>
+                                <button type="submit" class="btn btn-primary">Guardar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <script>
+                    function openNotifModalForCliente(clienteId){
+                        if(!clienteId){ alert('Selecciona un cliente.'); return; }
+                        document.getElementById('notif_cliente_id').value = clienteId;
+                        document.getElementById('notif_habilitado').checked = false;
+                        document.getElementById('notif_frecuencia').value = 'diario';
+                        document.getElementById('notifModal').style.display = 'block';
+                    }
+                    function closeNotifModal(){ document.getElementById('notifModal').style.display = 'none'; }
+
+                    document.getElementById('btnConfigNotif').addEventListener('click', function(){
+                        const sel = document.getElementById('clienteNotif');
+                        openNotifModalForCliente(sel ? sel.value : null);
+                    });
+
+                    document.getElementById('notifForm').addEventListener('submit', async function(e){
+                        e.preventDefault();
+                        const form = e.target;
+                        const data = new FormData(form);
+                        data.set('habilitado', document.getElementById('notif_habilitado').checked ? 'true' : 'false');
+
+                        const resp = await fetch("{% url 'usuarios:actualizar_preferencia_notificacion' %}", {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                            body: data
+                        });
+                        const j = await resp.json();
+                        if(j.success){
+                            closeNotifModal();
+                            alert('Preferencia guardada correctamente.');
+                            location.reload();
+                        } else {
+                            alert(j.error || 'Error guardando preferencia.');
+                        }
+                    });
+                </script>
             </div>
             <!-- Botón de regreso -->
             <div class="mt-8 text-center">
@@ -334,11 +398,9 @@
                 return;
             }
             
-            // Redirigir a la página de medios de pago del cliente seleccionado
             window.location.href = `/transacciones/configuracion/cliente/${clienteId}/`;
         }
 
-        // Actualizar estado del botón según la selección
         document.addEventListener('DOMContentLoaded', function() {
             const clienteSelect = document.getElementById('clienteMediosPago');
             const btnGestionar = document.getElementById('btnGestionarMedios');
@@ -355,15 +417,105 @@
                 }
                 
                 clienteSelect.addEventListener('change', updateButtonState);
-                updateButtonState(); // Inicializar estado
+                updateButtonState();
             }
         });
 
-        // Cerrar modal al hacer clic fuera de él
         document.getElementById('editProfileModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeEditProfileModal();
             }
         });
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+  const btn = document.getElementById('btnConfigNotif');
+  const selCliente = document.getElementById('clienteNotif');
+  const modal = document.getElementById('notifModal');
+  const form = document.getElementById('notifForm');
+  const inputClienteId = document.getElementById('notif_cliente_id');
+  const chkHabilitado = document.getElementById('notif_habilitado');
+  const selFrecuencia = document.getElementById('notif_frecuencia');
+
+  const FRECUENCIAS_VALIDAS = ['diario', 'semanal', 'mensual'];
+
+  function openNotifModalForCliente(clienteId){
+    if(!clienteId){
+      alert('Selecciona un cliente.');
+      return;
+    }
+    inputClienteId.value = clienteId;
+    chkHabilitado.checked = false;
+    selFrecuencia.value = 'diario';
+    // Mostrar modal según tu CSS (daisyUI usa "modal-open")
+    if (modal) modal.classList.add('modal-open');
+  }
+
+  function closeNotifModal(){
+    if (modal) modal.classList.remove('modal-open');
+  }
+
+  if (btn) {
+    btn.addEventListener('click', function(){
+      const clienteId = selCliente ? selCliente.value : null;
+      openNotifModalForCliente(clienteId);
+    });
+  }
+
+  if (!form) return;
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+
+    const clienteId = inputClienteId ? inputClienteId.value : '';
+    const habilitadoVal = chkHabilitado ? (chkHabilitado.checked ? 'true' : 'false') : 'false';
+    const frecuenciaVal = selFrecuencia ? (selFrecuencia.value || '').toString().trim().toLowerCase() : '';
+
+    console.log('Enviar preferencia - cliente_id:', clienteId, 'habilitado:', habilitadoVal, 'frecuencia:', frecuenciaVal);
+
+    // Validación cliente-side rápida
+    if (!clienteId) { alert('cliente_id faltante'); return; }
+    if (!FRECUENCIAS_VALIDAS.includes(frecuenciaVal)) {
+      alert('Frecuencia inválida en cliente (valores válidos: ' + FRECUENCIAS_VALIDAS.join(', ') + '). Valor actual: ' + frecuenciaVal);
+      return;
+    }
+
+    const data = new FormData();
+    data.append('cliente_id', clienteId);
+    data.append('habilitado', habilitadoVal);
+    data.append('frecuencia', frecuenciaVal);
+
+    // CSRF
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+    const headers = {};
+    if (csrf && csrf.value) headers['X-CSRFToken'] = csrf.value;
+
+    try {
+      const resp = await fetch("{% url 'usuarios:actualizar_preferencia_notificacion' %}", {
+        method: 'POST',
+        headers,
+        body: data
+      });
+      const json = await resp.json();
+      console.log('Respuesta servidor:', json, 'status:', resp.status);
+      if (json.success) {
+        closeNotifModal();
+        alert('Preferencia guardada correctamente.');
+        location.reload();
+      } else {
+        alert(json.error || 'Error guardando preferencia. Revisa la consola para más detalles.');
+      }
+    } catch (err) {
+      console.error('Error en fetch:', err);
+      alert('Error de red. Revisa la consola.');
+    }
+  });
+
+  if (modal) {
+    modal.addEventListener('click', function(e){
+      if (e.target === modal) closeNotifModal();
+    });
+  }
+});
+</script>
 {% endblock %}

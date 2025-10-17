@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Resumen de cambios en tasas</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; color: #111; }
+      .container { max-width: 700px; margin: 0 auto; padding: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { text-align: left; padding: 8px; border: 1px solid #e6e6e6; }
+      th { background: #f7f7f8; }
+      .muted { color: #666; font-size: 0.95em; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Resumen de cambios en tasas</h2>
+      <p class="muted">Cliente: {{ cliente.nombre|default:cliente }} &nbsp;|&nbsp; Periodo: {{ since }} — {{ until }} &nbsp;|&nbsp; Frecuencia: {{ frecuencia|capfirst }}</p>
+
+      {% if changes %}
+      <table role="table" aria-label="Resumen de cambios en tasas">
+        <thead>
+          <tr>
+            <th>Par</th>
+            <th>Fecha</th>
+            <th>Precio Base (Gs.)</th>
+            <th>Comisión Compra (Gs.)</th>
+            <th>Comisión Venta (Gs.)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in changes %}
+          <tr>
+            <td>
+              {{ h.divisa_origen.codigo|default:"?" }} / {{ h.divisa_destino.codigo|default:"?" }}
+            </td>
+            <td>{{ h.fecha_registro|date:"d M Y H:i" }}</td>
+            <td title="Precio base ingresado">{{ h.precio_base|default:"-" }}</td>
+            <td title="Monto que se resta al Precio Base para Compra">{{ h.comision_compra|default:"-" }}</td>
+            <td title="Monto que se suma al Precio Base para Venta">{{ h.comision_venta|default:"-" }}</td>
+          </tr>
+          
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No se registraron cambios en el periodo indicado.</p>
+      {% endif %}
+
+      <p class="muted">Este correo fue generado automáticamente por Global Exchange.</p>
+      <p>Saludos,<br/>El equipo de Global Exchange</p>
+    </div>
+  </body>
+</html>

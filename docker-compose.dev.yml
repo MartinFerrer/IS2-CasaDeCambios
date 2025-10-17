@@ -78,6 +78,52 @@ services:
       db:
         condition: service_healthy
 
+  # Servicio Redis para desarrollo local
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  # celery worker y beat
+  celery_worker:
+    build:
+      context: ./app
+      cache_from:
+        - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    command: uv run celery -A global_exchange_django worker --loglevel=info
+    working_dir: /app
+    volumes:
+      - ./app:/app:cached
+      - /app/.venv
+    env_file:
+      - ./.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+          condition: service_healthy
+
+  celery_beat:
+    build:
+      context: ./app
+      cache_from:
+        - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    command: uv run celery -A global_exchange_django beat --loglevel=info
+    working_dir: /app
+    volumes:
+      - ./app:/app:cached
+      - /app/.venv
+    env_file:
+      - ./.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
   simulador-api:
     build:
       context: ./api_externo_simulador
