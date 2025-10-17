@@ -33,6 +33,20 @@
                     <a href="{% url 'cliente_listar' %}"
                        class="hover:bg-blue-700 rounded-md">Clientes</a>
                 </li>
+                <li class="relative z-50">
+                    <details>
+                        <summary class="hover:bg-blue-700 rounded-md">Stock</summary>
+                        <ul class="bg-base-100 rounded-t-none p-2 shadow-lg text-blue-700 w-52 z-50 absolute">
+                            <li>
+                                <a href="{% url 'tauser_listar' %}" class="hover:bg-blue-100 rounded-md">Tausers</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'movimientos_stock_listar' %}"
+                                   class="hover:bg-blue-100 rounded-md">Movimientos de Stock</a>
+                            </li>
+                        </ul>
+                    </details>
+                </li>
                 <li>
                     <a href="{% url 'asociar_cliente_usuario_form' %}"
                        class="hover:bg-blue-700 rounded-md">Asociar Cliente a Usuario</a>
@@ -108,6 +122,10 @@
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Roles</a>
             <a href="{% url 'cliente_listar' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Clientes</a>
+            <a href="{% url 'tauser_listar' %}"
+               class="mb-2 block py-2 px-3 rounded hover:bg-neutral-200 transition">Tausers</a>
+            <a href="{% url 'movimientos_stock_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Movimientos de Stock</a>
             <a href="{% url 'asociar_cliente_usuario_form' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Asociar Cliente a Usuario</a>
             <a href="{% url 'divisa_list' %}"
