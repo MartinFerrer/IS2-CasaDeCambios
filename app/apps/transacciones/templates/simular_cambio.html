@@ -579,7 +579,7 @@
                 const montoError = document.getElementById('monto-error');
 
                 // Validar si es un número entero
-                if (value && !Number.isInteger(parseFloat(value))) {
+                if (value && !/^[0-9]+$/.test(value)) {
                     // Mostrar error y cambiar estilo del input
                     montoError.classList.remove('hidden');
                     e.target.classList.remove('input-bordered');
@@ -588,6 +588,7 @@
                     // No borrar el valor, mantenerlo para que el usuario pueda corregirlo
                     return;
                 } else {
+
                     // Ocultar error y restaurar estilo normal
                     montoError.classList.add('hidden');
                     e.target.classList.remove('input-error');

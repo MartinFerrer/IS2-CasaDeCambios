@@ -106,9 +106,6 @@ def obtener_nombre_medio(medio_id, cliente):
 
 def _get_stripe_fixed_fee_pyg() -> Decimal:
     """Calcula la comisión fija de Stripe (0.30 USD) convertida a PYG usando la tasa vigente."""
-    from apps.operaciones.models import TasaCambio
-    from django.conf import settings
-
     try:
         # Obtener tasa USD/PYG vigente
         tasa_cambio = TasaCambio.objects.filter(
@@ -570,8 +567,6 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                     "comision": 0,  # 0%
                 }
             )
-        else:
-            pass  # No agregar efectivo para ventas
 
         if tipo_operacion == "venta":
             # Agregar tarjetas de crédito habilitadas para cobro
