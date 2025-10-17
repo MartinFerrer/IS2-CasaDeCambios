@@ -248,6 +248,10 @@ def _compute_simulation(params: Dict, request) -> Dict:
     if tipo == "compra" and metodo_pago == "efectivo":
         raise ValueError("No se permite comprar divisas usando efectivo como medio de pago")
 
+    # Validación: No permitir venta de divisas con medio de cobro en efectivo
+    if tipo == "venta" and metodo_cobro == "efectivo":
+        raise ValueError("No se permite vender divisas cobrando en efectivo como medio de cobro")
+
     # Obtener cliente del middleware para descuentos
     cliente = getattr(request, "cliente", None)
 
@@ -556,19 +560,19 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 )
 
         # Configurar medios de cobro según tipo de operación
-        # Agregar efectivo por defecto para cobro
-        medios_cobro.append(
-            {
-                "id": "efectivo",
-                "tipo": "efectivo",
-                "nombre": "Efectivo",
-                "descripcion": "Cobro en efectivo",
-                "comision": 0,  # 0%
-            }
-        )
+        if tipo_operacion == "compra":
+            medios_cobro.append(
+                {
+                    "id": "efectivo",
+                    "tipo": "efectivo",
+                    "nombre": "Efectivo",
+                    "descripcion": "Cobro en efectivo",
+                    "comision": 0,  # 0%
+                }
+            )
+        else:
+            pass  # No agregar efectivo para ventas
 
-        # Para compra: solo efectivo para cobro
-        # Para venta: agregar todos los medios habilitados para cobro
         if tipo_operacion == "venta":
             # Agregar tarjetas de crédito habilitadas para cobro
             for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_cobro=True):
