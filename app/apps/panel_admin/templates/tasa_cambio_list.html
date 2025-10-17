@@ -7,13 +7,13 @@
     bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
 {% endblock body_class %}
 {% block header %}
-    {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin_conditional.html" %}
 {% endblock header %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-blue-800">Gestión de Tasas de Cambio</h1>
-            <a href="{% url 'operaciones:tasa_cambio_crear' %}"
+            <a href="{% url 'tasa_cambio_crear' %}"
                class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5 mr-2"
@@ -54,7 +54,7 @@
                                         </td>
                                         <td class="text-center flex justify-center space-x-2">
                                             <!-- Botón Editar -->
-                                            <a href="{% url 'operaciones:tasa_cambio_editar' tasa.id_tasa_cambio %}"
+                                            <a href="{% url 'tasa_cambio_editar' tasa.id_tasa_cambio %}"
                                                class="btn btn-sm btn-info"
                                                title="Editar">
                                                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -67,7 +67,7 @@
                                                 </svg>
                                             </a>
                                             <!-- Botón Desactivar -->
-                                            <form action="{% url 'operaciones:tasa_cambio_desactivar' tasa.id_tasa_cambio %}"
+                                            <form action="{% url 'tasa_cambio_desactivar' tasa.id_tasa_cambio %}"
                                                   method="post"
                                                   class="inline-block">
                                                 {% csrf_token %}
@@ -104,7 +104,7 @@
                                         </td>
                                         <td class="text-center flex justify-center space-x-2">
                                             <!-- Botón Editar -->
-                                            <a href="{% url 'operaciones:tasa_cambio_editar' tasa.id_tasa_cambio %}"
+                                            <a href="{% url 'tasa_cambio_editar' tasa.id_tasa_cambio %}"
                                                class="btn btn-sm btn-info"
                                                title="Editar">
                                                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -117,7 +117,7 @@
                                                 </svg>
                                             </a>
                                             <!-- Botón Activar -->
-                                            <form action="{% url 'operaciones:tasa_cambio_activar' tasa.id_tasa_cambio %}"
+                                            <form action="{% url 'tasa_cambio_activar' tasa.id_tasa_cambio %}"
                                                   method="post"
                                                   class="inline-block">
                                                 {% csrf_token %}

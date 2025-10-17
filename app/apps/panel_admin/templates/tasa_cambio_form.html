@@ -11,7 +11,7 @@
     bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
 {% endblock body_class %}
 {% block header %}
-    {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin_conditional.html" %}
 {% endblock header %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
@@ -93,7 +93,7 @@
                         {% endfor %}
                     </div>
                     <div class="mt-6 flex justify-end space-x-4">
-                        <a href="{% url 'operaciones:tasa_cambio_listar' %}"
+                        <a href="{% url 'tasa_cambio_listar' %}"
                            class="btn btn-outline btn-neutral">Cancelar</a>
                         <button type="submit" class="btn btn-primary">
                             {% if form.instance.pk %}

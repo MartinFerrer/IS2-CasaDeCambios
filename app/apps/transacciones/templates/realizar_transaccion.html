@@ -7,7 +7,7 @@
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-bold">Realizar Transacción de Cambio de Divisas</h2>
-            <a href="/" class="btn btn-outline">
+            <a href="{% url 'presentacion:home' %}" class="btn btn-outline">
                 <svg xmlns="http://www.w3.org/2000/svg"
                      class="h-5 w-5"
                      fill="none"
@@ -122,17 +122,23 @@
                                     <input type="number"
                                            id="monto-input"
                                            name="monto"
+                                           pattern="^\d+$"
                                            min="1"
-                                           step="0.01"
-                                           class="input input-bordered w-full text-left ml-0"
-                                           placeholder="Ingrese el monto (mínimo 1)"
+                                           step="1"
+                                           class="input input-bordered w-full text-left ml-0 validator"
+                                           placeholder="Ingrese el monto entero (mínimo 1)"
+                                           title="El monto debe ser un número entero"
                                            required>
+                                    <p id="monto-error"
+                                       class="validator-hint text-error text-sm mt-1 hidden">
+                                        El monto debe ser un número entero
+                                    </p>
                                 </div>
                                 <div>
                                     <select id="metodo-pago-select"
                                             class="select select-bordered w-full text-left ml-0"
                                             required>
-                                        <option value="efectivo" selected>Efectivo</option>
+                                        <option value="">Seleccione método de pago</option>
                                     </select>
                                 </div>
                                 <div>
@@ -185,6 +191,18 @@
                         <p id="comision-medio-pago-section" class="hidden">
                             <strong>Comisión Medio de Pago:</strong> <span id="comision-medio-pago-val">0</span> (<span id="comision-medio-pago-pct">0</span>%)
                         </p>
+                        <div id="stripe-fees-section" class="hidden border-t pt-2 mt-2">
+                            <p class="text-sm font-medium text-purple-700 mb-1">💳 Comisiones Stripe (Tarjeta Internacional):</p>
+                            <p class="text-sm pl-4">
+                                • <strong>Comisión Variable:</strong> <span id="stripe-variable-fee">0</span> PYG (2.9%)
+                            </p>
+                            <p class="text-sm pl-4">
+                                • <strong>Comisión Fija:</strong> <span id="stripe-fixed-fee">0</span> PYG (0.30 USD)
+                            </p>
+                            <p class="text-sm pl-4 font-medium text-purple-800">
+                                <strong>Total Stripe:</strong> <span id="stripe-total-fee">0</span> PYG
+                            </p>
+                        </div>
                     </div>
                 </div>
                 <!-- Advertencia para billeteras electrónicas -->
@@ -302,8 +320,64 @@
                 </div>
             </div>
         </div>
-    </div>
-    <script>
+        <!-- Modal de Pago Stripe -->
+        <div id="stripe-payment-modal" class="modal">
+            <div class="modal-box max-w-md">
+                <h3 class="font-bold text-lg mb-4">💳 Pago con Tarjeta Internacional</h3>
+                <div id="stripe-error" class="alert alert-error mb-4 hidden">
+                    <span id="stripe-error-message"></span>
+                </div>
+                <form id="stripe-payment-form">
+                    <!-- Elemento de Stripe -->
+                    <div id="stripe-card-element"
+                         class="p-3 border border-gray-300 rounded-lg mb-4">
+                        <!-- Stripe Elements insertará aquí el formulario de tarjeta -->
+                    </div>
+                    <!-- Información del pago -->
+                    <div class="bg-base-200 p-4 rounded-lg mb-4">
+                        <div class="text-sm space-y-1">
+                            <div class="flex justify-between">
+                                <span>Monto Transacción:</span>
+                                <span id="stripe-amount-display" class="font-bold"></span>
+                            </div>
+                            <hr class="my-2">
+                            <div class="text-xs text-purple-700 font-medium">Comisiones Stripe:</div>
+                            <div class="flex justify-between text-xs pl-2">
+                                <span>• Comisión Variable (2.9%):</span>
+                                <span id="stripe-modal-variable-fee" class="font-bold text-orange-600">-</span>
+                            </div>
+                            <div class="flex justify-between text-xs pl-2">
+                                <span>• Comisión Fija (0.30 USD):</span>
+                                <span id="stripe-modal-fixed-fee" class="font-bold text-orange-600">-</span>
+                            </div>
+                            <div class="flex justify-between text-xs font-bold text-purple-800 border-t pt-1">
+                                <span>Total Comisiones:</span>
+                                <span id="stripe-modal-total-fees">-</span>
+                            </div>
+                            <hr class="my-2">
+                            <div class="flex justify-between font-bold text-lg">
+                                <span>Total a Pagar:</span>
+                                <span id="stripe-modal-grand-total" class="text-primary">-</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span>Procesado por:</span>
+                                <span class="font-bold">Stripe</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Botones -->
+                    <div class="modal-action">
+                        <button type="button" id="cancel-stripe-payment" class="btn btn-outline">Cancelar</button>
+                        <button type="submit" id="confirm-stripe-payment" class="btn btn-primary">
+                            <span class="loading loading-spinner loading-sm hidden" id="stripe-loading"></span>
+                            Pagar Ahora
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script src="https://js.stripe.com/v3/"></script>
+        <script>
     (function() {
         // Elementos del DOM
         const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
@@ -311,6 +385,60 @@
         const montoInput = document.getElementById('monto-input');
         const metodoPagoSelect = document.getElementById('metodo-pago-select');
         const metodoCobroSelect = document.getElementById('metodo-cobro-select');
+
+        // Configuración de Stripe
+        const stripeKey = '{{ STRIPE_PUBLISHABLE_KEY }}';
+        console.log('Stripe key loaded:', stripeKey ? 'OK' : 'MISSING');
+
+        if (!stripeKey) {
+            console.error('Stripe publishable key is missing!');
+        }
+
+        const stripe = Stripe(stripeKey);
+        const elements = stripe.elements();
+
+        // Elementos del modal de Stripe
+        const stripeModal = document.getElementById('stripe-payment-modal');
+        const stripeForm = document.getElementById('stripe-payment-form');
+        const stripeCardElement = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                        color: '#aab7c4',
+                    },
+                },
+            },
+        });
+        stripeCardElement.mount('#stripe-card-element');
+
+        // Verificar que el elemento se montó correctamente
+        stripeCardElement.on('ready', function() {
+            console.log('Stripe card element is ready');
+        });
+
+        stripeCardElement.on('change', function(event) {
+            if (event.error) {
+                console.error('Stripe element error:', event.error);
+                showStripeError(event.error.message);
+            } else {
+                hideStripeError();
+            }
+        });
+
+        const stripeErrorDiv = document.getElementById('stripe-error');
+        const stripeErrorMessage = document.getElementById('stripe-error-message');
+        const cancelStripeBtn = document.getElementById('cancel-stripe-payment');
+        const confirmStripeBtn = document.getElementById('confirm-stripe-payment');
+        const stripeLoading = document.getElementById('stripe-loading');
+        const stripeAmountDisplay = document.getElementById('stripe-amount-display');
+        const stripeModalVariableFee = document.getElementById('stripe-modal-variable-fee');
+        const stripeModalFixedFee = document.getElementById('stripe-modal-fixed-fee');
+        const stripeModalTotalFees = document.getElementById('stripe-modal-total-fees');
+        const stripeModalGrandTotal = document.getElementById('stripe-modal-grand-total');
+
+        let currentTransactionId = null;
 
         // Labels dinámicos
         const divisaLabel = document.getElementById('divisa-label');
@@ -331,6 +459,10 @@
         const comisionMedioPagoSection = document.getElementById('comision-medio-pago-section');
         const comisionMedioPagoVal = document.getElementById('comision-medio-pago-val');
         const comisionMedioPagoPct = document.getElementById('comision-medio-pago-pct');
+        const stripeFeeSection = document.getElementById('stripe-fees-section');
+        const stripeVariableFee = document.getElementById('stripe-variable-fee');
+        const stripeFixedFee = document.getElementById('stripe-fixed-fee');
+        const stripeTotalFee = document.getElementById('stripe-total-fee');
         const walletWarning = document.getElementById('wallet-warning');
         const proceedBtn = document.getElementById('proceed-btn');
 
@@ -350,22 +482,80 @@
 
         function formatNumber(value, currency) {
             const dec = isoDecimals[currency] !== undefined ? isoDecimals[currency] : 2;
-            return Number(value).toLocaleString(undefined, {
-                minimumFractionDigits: dec,
-                maximumFractionDigits: dec
-            });
+            const num = Number(value);
+            if (!isFinite(num)) return value;
+
+            // Separar la parte entera y decimal
+            const [integerPart, decimalPart] = num.toFixed(dec).split('.');
+
+            // Formatear parte entera con espacios como separadores de miles
+            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+            // Combinar con coma como separador decimal
+            if (dec > 0) {
+                return `${formattedInteger},${decimalPart}`;
+            } else {
+                return formattedInteger;
+            }
         }
 
         // Formatea la tasa mostrando los decimales necesarios y quitando ceros finales
         function formatRate(rate) {
-            // rate puede venir como string o número
             const num = Number(rate);
             if (!isFinite(num)) return rate;
-            // convertir a string con máximo 12 decimales para no perder precisión
+
+            // Obtener representación con suficientes decimales
             let s = num.toFixed(12);
-            // quitar ceros finales y punto si corresponde
+            // Quitar ceros finales y punto si corresponde
             s = s.replace(/(?:\.0+|(?<=\.[0-9]*?)0+)$/, '');
-            return s;
+
+            // Convertir a formato latinoamericano
+            const [integerPart, decimalPart] = s.split('.');
+            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+            if (decimalPart) {
+                return `${formattedInteger},${decimalPart}`;
+            } else {
+                return formattedInteger;
+            }
+        }
+
+        // Parsear input en formato latinoamericano a número
+        function parseInputNumber(value) {
+            if (!value) return 0;
+            // Remover espacios (separadores de miles) y reemplazar coma por punto
+            const normalized = value.replace(/\s/g, '').replace(',', '.');
+            return parseFloat(normalized) || 0;
+        }
+
+        // Formatear input en tiempo real
+        function formatInputNumber(value) {
+            if (!value) return '';
+
+            // Limpiar valor: solo números y una coma
+            let cleanValue = value.replace(/[^\d,]/g, '');
+
+            // Asegurar solo una coma
+            const commaIndex = cleanValue.indexOf(',');
+            if (commaIndex !== -1) {
+                const beforeComma = cleanValue.substring(0, commaIndex);
+                const afterComma = cleanValue.substring(commaIndex + 1).replace(/,/g, '');
+                cleanValue = beforeComma + ',' + afterComma;
+            }
+
+            // Separar parte entera y decimal
+            const [integerPart, decimalPart] = cleanValue.split(',');
+
+            // Formatear parte entera con espacios
+            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+            // Limitar decimales a 2 dígitos
+            if (decimalPart !== undefined) {
+                const limitedDecimal = decimalPart.substring(0, 2);
+                return `${formattedInteger},${limitedDecimal}`;
+            } else {
+                return formattedInteger;
+            }
         }
 
         // Obtener tipo de operación seleccionado
@@ -429,24 +619,58 @@
                 // Limpiar y rellenar método de pago
                 metodoPagoSelect.innerHTML = '';
 
-                data.medios_pago.forEach(medio => {
+                // Agregar opción vacía si hay múltiples métodos digitales
+                const metodosDigitales = data.medios_pago.filter(medio => medio.id !== 'efectivo');
+                if (metodosDigitales.length > 1) {
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = 'Seleccione método de pago';
+                    metodoPagoSelect.appendChild(emptyOption);
+                }
+
+                let hasEfectivoPago = false;
+                data.medios_pago.forEach((medio, index) => {
                     const optionPago = document.createElement('option');
                     optionPago.value = medio.id;
                     optionPago.textContent = `${medio.nombre} (${medio.comision}%)`;
                     optionPago.dataset.comision = medio.comision;
-                    if (medio.id === 'efectivo') optionPago.selected = true;
+
+                    // Solo autoseleccionar si hay efectivo O si hay solo un método digital
+                    if (medio.id === 'efectivo') {
+                        hasEfectivoPago = true;
+                        optionPago.selected = true;
+                    } else if (metodosDigitales.length === 1 && index === 0 && !hasEfectivoPago) {
+                        // Solo autoseleccionar si hay un único método digital disponible
+                        optionPago.selected = true;
+                    }
                     metodoPagoSelect.appendChild(optionPago);
                 });
 
                 // Limpiar y rellenar método de cobro
                 metodoCobroSelect.innerHTML = '';
 
-                data.medios_cobro.forEach(medio => {
+                // Agregar opción vacía si hay múltiples métodos digitales
+                const metodosCobroDigitales = data.medios_cobro.filter(medio => medio.id !== 'efectivo');
+                if (metodosCobroDigitales.length > 1) {
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = 'Seleccione método de cobro';
+                    metodoCobroSelect.appendChild(emptyOption);
+                }
+
+                data.medios_cobro.forEach((medio, index) => {
                     const optionCobro = document.createElement('option');
                     optionCobro.value = medio.id;
                     optionCobro.textContent = `${medio.nombre} (${medio.comision}%)`;
                     optionCobro.dataset.comision = medio.comision;
-                    if (medio.id === 'efectivo') optionCobro.selected = true;
+
+                    // Solo autoseleccionar si hay efectivo O si hay solo un método digital
+                    if (medio.id === 'efectivo') {
+                        optionCobro.selected = true;
+                    } else if (metodosCobroDigitales.length === 1 && index === 0) {
+                        // Solo autoseleccionar si hay un único método digital disponible
+                        optionCobro.selected = true;
+                    }
                     metodoCobroSelect.appendChild(optionCobro);
                 });
 
@@ -457,15 +681,28 @@
         }
 
         function resetMediosPago() {
-            metodoPagoSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
+            const tipo = getTipoOperacion();
+            if (tipo === 'compra') {
+                // Para compra, no mostrar efectivo por defecto
+                metodoPagoSelect.innerHTML = '<option value="">Seleccione método de pago</option>';
+            } else {
+                // Para venta, sí mostrar efectivo
+                metodoPagoSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
+            }
             metodoCobroSelect.innerHTML = '<option value="efectivo" selected>Efectivo</option>';
         }
 
         // Realizar simulación
         async function performSimulation() {
-            const monto = parseFloat(montoInput.value) || 0;
+            const monto = parseInputNumber(montoInput.value);
             const divisa = divisaSelect.value;
             const tipo = getTipoOperacion();
+
+            // Validar que el monto sea un número entero
+            if (montoInput.value && !Number.isInteger(parseFloat(montoInput.value))) {
+                resultsCard.classList.add('hidden');
+                return;
+            }
 
             if (monto < 1 || !divisa) {
                 resultsCard.classList.add('hidden');
@@ -510,12 +747,33 @@
                 comisionFinalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
 
                 // Mostrar comisión de medio de pago si aplica
-                if (data.comision_medio_pago_monto > 0) {
+                const metodoPago = metodoPagoSelect.value;
+                const isStripePayment = metodoPago === 'stripe_new' || metodoPago.startsWith('stripe_');
+
+                if (isStripePayment) {
+                    // Para Stripe, mostrar desglose detallado
+                    comisionMedioPagoSection.classList.add('hidden');
+                    stripeFeeSection.classList.remove('hidden');
+
+                    // Comisión variable (2.9%)
+                    stripeVariableFee.textContent = formatNumber(data.comision_medio_pago_monto, "PYG");
+
+                    // Comisión fija (0.30 USD en PYG)
+                    stripeFixedFee.textContent = formatNumber(data.stripe_fixed_fee, "PYG");
+
+                    // Total Stripe
+                    const totalStripeFee = data.comision_medio_pago_monto + data.stripe_fixed_fee;
+                    stripeTotalFee.textContent = formatNumber(totalStripeFee, "PYG");
+
+                } else if (data.comision_medio_pago_monto > 0) {
+                    // Para otros medios de pago
                     comisionMedioPagoSection.classList.remove('hidden');
+                    stripeFeeSection.classList.add('hidden');
                     comisionMedioPagoVal.textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
                     comisionMedioPagoPct.textContent = data.comision_medio_pago_porcentaje;
                 } else {
                     comisionMedioPagoSection.classList.add('hidden');
+                    stripeFeeSection.classList.add('hidden');
                 }
 
                 // Actualizar comisiones en el panel colapsable
@@ -534,7 +792,6 @@
                 }
 
                 // Mostrar advertencia de billeteras
-                const metodoPago = metodoPagoSelect.value;
                 const metodoCobro = metodoCobroSelect.value;
                 if (metodoPago.includes('billetera') || metodoCobro.includes('billetera')) {
                     walletWarning.classList.remove('hidden');
@@ -568,7 +825,7 @@
             // Actualizar labels dinámicos según el tipo de operación
             const divisaLabel = document.getElementById('modal-divisa-label');
             const totalLabel = document.getElementById('modal-total-label');
-            
+
             if (tipo === 'compra') {
                 divisaLabel.textContent = 'Divisa a Comprar:';
                 totalLabel.textContent = 'Total a Pagar:';
@@ -580,7 +837,7 @@
             // Obtener información de comisiones de los métodos
             const comisionPago = lastSimulationData.comision_medio_pago_porcentaje || 0;
             const comisionCobro = lastSimulationData.comision_medio_cobro_porcentaje || 0;
-            
+
             // Actualizar contenido
             document.getElementById('modal-tipo').textContent = tipoText;
             document.getElementById('modal-divisa').textContent = divisa;
@@ -596,6 +853,15 @@
         async function confirmTransaction() {
             if (!lastSimulationData) return;
 
+            // Verificar si el método de pago es Stripe
+            const metodoPago = metodoPagoSelect.value;
+            if (metodoPago === 'stripe_new' || metodoPago.startsWith('stripe_')) {
+                // Cerrar modal de confirmación y mostrar modal de Stripe
+                confirmationModal.classList.remove('modal-open');
+                await showStripePaymentModal();
+                return;
+            }
+
             // Show loading state
             confirmBtn.textContent = 'Procesando...';
             confirmBtn.disabled = true;
@@ -605,7 +871,7 @@
                 const params = new URLSearchParams({
                     tipo_operacion: getTipoOperacion(),
                     divisa_seleccionada: divisaSelect.value,
-                    monto: parseFloat(montoInput.value),
+                    monto: parseInputNumber(montoInput.value),
                     metodo_pago: metodoPagoSelect.value,
                     metodo_cobro: metodoCobroSelect.value
                 });
@@ -626,6 +892,9 @@
                         metodo_cobro: metodoCobroSelect.value
                     });
                     window.location.href = `${data.redirect_url}?${redirectParams.toString()}`;
+                } else if (data.error === 'MFA_REQUIRED') {
+                    // Se requiere verificación MFA - redirigir a la vista Django
+                    window.location.href = data.redirect_url;
                 } else {
                     showError('Error al crear la transacción: ' + (data.error || 'Error desconocido'));
                 }
@@ -635,7 +904,7 @@
                 showError('Error al procesar la transacción. Intente nuevamente.');
             } finally {
                 // Reset button state
-                confirmBtn.textContent = 'Confirmar';
+                confirmBtn.textContent = 'Confirmar Transacción';
                 confirmBtn.disabled = false;
                 confirmationModal.classList.remove('modal-open');
             }
@@ -652,12 +921,218 @@
                 </div>
             `;
             document.body.appendChild(toast);
-            
+
             // Remover el toast después de 5 segundos
             setTimeout(() => {
                 document.body.removeChild(toast);
             }, 5000);
         }
+
+        // ===== FUNCIONES DE STRIPE =====
+
+        // Mostrar modal de pago Stripe
+        async function showStripePaymentModal() {
+            try {
+                // Crear transacción primero
+                const params = new URLSearchParams({
+                    tipo_operacion: getTipoOperacion(),
+                    divisa_seleccionada: divisaSelect.value,
+                    monto: parseInputNumber(montoInput.value),
+                    metodo_pago: metodoPagoSelect.value,
+                    metodo_cobro: metodoCobroSelect.value
+                });
+
+                const response = await fetch(`{% url "transacciones:api_crear_transaccion" %}?${params.toString()}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    if (data.error === 'MFA_REQUIRED') {
+                        window.location.href = data.redirect_url;
+                        return;
+                    }
+                    showError('Error al crear la transacción: ' + (data.error || 'Error desconocido'));
+                    return;
+                }
+
+                // Guardar ID de transacción
+                currentTransactionId = data.transaccion_id;
+
+                // Actualizar información del modal con datos de la simulación
+                const montoTransaccion = lastSimulationData.total_antes_comision_medio;
+                const comisionVariable = lastSimulationData.comision_medio_pago_monto;
+                const comisionFija = lastSimulationData.stripe_fixed_fee;
+                const totalComisiones = comisionVariable + comisionFija;
+                const granTotal = lastSimulationData.total;
+
+                // Actualizar elementos del modal
+                stripeAmountDisplay.textContent = `${formatNumber(montoTransaccion, "PYG")} PYG`;
+                stripeModalVariableFee.textContent = `${formatNumber(comisionVariable, "PYG")} PYG`;
+                stripeModalFixedFee.textContent = `${formatNumber(comisionFija, "PYG")} PYG`;
+                stripeModalTotalFees.textContent = `${formatNumber(totalComisiones, "PYG")} PYG`;
+                stripeModalGrandTotal.textContent = `${formatNumber(granTotal, "PYG")} PYG`;
+
+                // Limpiar errores previos
+                hideStripeError();
+
+                // Mostrar modal
+                stripeModal.classList.add('modal-open');
+
+            } catch (error) {
+                console.error('Error showing Stripe modal:', error);
+                showError('Error al iniciar el proceso de pago. Intente nuevamente.');
+            }
+        }
+
+        // Ocultar error de Stripe
+        function hideStripeError() {
+            stripeErrorDiv.style.display = 'none';
+            stripeErrorMessage.textContent = '';
+        }
+
+        // Mostrar error de Stripe
+        function showStripeError(message) {
+            stripeErrorMessage.textContent = message;
+            stripeErrorDiv.style.display = 'block';
+        }
+
+        // Manejar envío del formulario de Stripe
+        stripeForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            console.log('=== STRIPE PAYMENT FORM SUBMITTED ===');
+            console.log('Current transaction ID:', currentTransactionId);
+            console.log('Stripe object:', stripe);
+            console.log('Card element:', stripeCardElement);
+
+            if (!currentTransactionId) {
+                console.error('No transaction ID found');
+                showStripeError('Error: No se ha creado la transacción.');
+                return;
+            }
+
+            // Mostrar loading
+            stripeLoading.style.display = 'inline-block';
+            confirmStripeBtn.disabled = true;
+            hideStripeError();
+
+            try {
+                console.log('Starting Stripe payment process for transaction:', currentTransactionId);
+
+                // Crear Payment Intent
+                const intentResponse = await fetch('{% url "transacciones:stripe_create_payment_intent" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        transaccion_id: currentTransactionId
+                    })
+                });
+
+                console.log('Intent response status:', intentResponse.status);
+
+                if (!intentResponse.ok) {
+                    throw new Error(`HTTP error! status: ${intentResponse.status}`);
+                }
+
+                const intentData = await intentResponse.json();
+                console.log('Intent data received:', intentData);
+
+                if (!intentData.success) {
+                    console.error('Payment intent creation failed:', intentData.error);
+                    showStripeError(intentData.error || 'Error al procesar el pago.');
+                    return;
+                }
+
+                console.log('Confirming card payment with Stripe...');
+                // Confirmar pago con Stripe
+                const {error} = await stripe.confirmCardPayment(intentData.client_secret, {
+                    payment_method: {
+                        card: stripeCardElement,
+                        billing_details: {
+                            // Aquí podrías agregar más detalles del cliente si están disponibles
+                        },
+                    }
+                });
+
+                if (error) {
+                    console.error('Stripe confirmation error:', error);
+                    showStripeError(error.message);
+                    return;
+                }
+
+                console.log('Card payment confirmed, now confirming with backend...');
+                // Confirmar pago en el backend
+                const confirmResponse = await fetch('{% url "transacciones:stripe_confirm_payment" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        payment_intent_id: intentData.payment_intent_id
+                    })
+                });
+
+                console.log('Confirm response status:', confirmResponse.status);
+
+                if (!confirmResponse.ok) {
+                    throw new Error(`HTTP error! status: ${confirmResponse.status}`);
+                }
+
+                const confirmData = await confirmResponse.json();
+                console.log('Confirm data received:', confirmData);
+
+                if (confirmData.success && confirmData.payment_status === 'succeeded') {
+                    // Pago exitoso - redirigir
+                    showSuccess('¡Pago procesado exitosamente!');
+                    setTimeout(() => {
+                        window.location.href = `/transacciones/procesar/${currentTransactionId}/`;
+                    }, 1500);
+                } else {
+                    showStripeError(confirmData.error || 'Error al confirmar el pago.');
+                }
+
+            } catch (error) {
+                console.error('Error processing Stripe payment:', error);
+                showStripeError('Error de conexión. Intente nuevamente.');
+            } finally {
+                // Ocultar loading
+                stripeLoading.style.display = 'none';
+                confirmStripeBtn.disabled = false;
+            }
+        });
+
+        // Función para mostrar éxito
+        function showSuccess(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-top toast-end';
+            toast.innerHTML = `
+                <div class="alert alert-success">
+                    <span>${message}</span>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 5000);
+        }
+
+        // Cerrar modal de Stripe
+        cancelStripeBtn.addEventListener('click', function() {
+            stripeModal.classList.remove('modal-open');
+            hideStripeError();
+        });
+
+        // ===== FIN FUNCIONES DE STRIPE =====
 
         // Event listeners
         tipoOperacionInputs.forEach(input => {
@@ -672,7 +1147,39 @@
         });
 
         divisaSelect.addEventListener('change', performSimulation);
-        montoInput.addEventListener('input', performSimulation);
+
+        // Event listeners para formateo en tiempo real del input de monto
+        montoInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            const montoError = document.getElementById('monto-error');
+
+            // Validar si es un número entero
+            if (value && !Number.isInteger(parseFloat(value))) {
+                // Mostrar error y cambiar estilo del input
+                montoError.classList.remove('hidden');
+                e.target.classList.remove('input-bordered');
+                e.target.classList.add('input-error');
+
+                // No borrar el valor, mantenerlo para que el usuario pueda corregirlo
+                return;
+            } else {
+                // Ocultar error y restaurar estilo normal
+                montoError.classList.add('hidden');
+                e.target.classList.remove('input-error');
+                e.target.classList.add('input-bordered');
+            }
+
+            performSimulation();
+        });
+
+        // Prevenir caracteres no válidos
+        montoInput.addEventListener('keypress', function(e) {
+            const char = String.fromCharCode(e.which);
+            if (!/[\d, ]/.test(char) && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+            }
+        });
+
         metodoPagoSelect.addEventListener('change', performSimulation);
         metodoCobroSelect.addEventListener('change', performSimulation);
 
@@ -683,12 +1190,12 @@
 
         // Event listeners para el modal
         confirmBtn.addEventListener('click', confirmTransaction);
-        
+
         // Función para cerrar modal
         function closeModal() {
             confirmationModal.classList.remove('modal-open');
         }
-        
+
         // Event listeners para cerrar modal
         cancelBtn.addEventListener('click', closeModal);
         closeModalBtn.addEventListener('click', closeModal);
@@ -707,6 +1214,8 @@
             }
         });
 
+
+
         // Inicialización
         updateLabels();
         loadDivisas();
@@ -714,5 +1223,6 @@
             loadMediosPago();
         }
     })();
-    </script>
+        </script>
+    </div>
 {% endblock content %}

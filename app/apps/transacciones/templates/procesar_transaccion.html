@@ -9,8 +9,13 @@
         <div class="flex items-center justify-center mb-8">
             <div class="text-center">
                 <div class="text-6xl mb-4">✅</div>
-                <h2 class="text-3xl font-bold text-success">¡Transacción Creada Exitosamente!</h2>
-                <p class="text-gray-600 mt-2">Tu transacción ha sido registrada y está lista para procesar</p>
+                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                    <h2 class="text-3xl font-bold text-success">¡Transacción Completada Exitosamente!</h2>
+                    <p class="text-gray-600 mt-2">Tu pago con Stripe ha sido procesado y la transacción está completada</p>
+                {% else %}
+                    <h2 class="text-3xl font-bold text-success">¡Transacción Creada Exitosamente!</h2>
+                    <p class="text-gray-600 mt-2">Tu transacción ha sido registrada y está lista para procesar</p>
+                {% endif %}
             </div>
         </div>
         <!-- Información de la transacción -->
@@ -70,7 +75,11 @@
                             </div>
                             <div>
                                 <span class="font-semibold">Estado:</span>
-                                <span class="badge badge-warning ml-2">Pendiente</span>
+                                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                    <span class="badge badge-success ml-2">Completada</span>
+                                {% else %}
+                                    <span class="badge badge-warning ml-2">Pendiente</span>
+                                {% endif %}
                             </div>
                             <div>
                                 <span class="font-semibold">Fecha de Creación:</span>
@@ -99,20 +108,44 @@
                     <!-- Total destacado -->
                     <div class="divider"></div>
                     <div class="bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 border-2 border-primary/20 rounded-xl p-6">
-                        <div class="text-center">
-                            <div class="text-2xl font-semibold text-primary mb-3 uppercase tracking-wide">
-                                {% if transaccion.tipo_operacion == 'compra' %}
-                                    Total a Pagar
-                                {% else %}
-                                    Total a Recibir
-                                {% endif %}
+                        <div class="flex items-center justify-center space-x-4 md:space-x-8">
+                            <!-- Total a Pagar -->
+                            <div class="text-center flex-1">
+                                <div class="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Total a Pagar</div>
+                                <div class="text-2xl md:text-3xl font-bold text-primary drop-shadow-sm">
+                                    {{ transaccion.monto_origen|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}
+                                </div>
                             </div>
-                            <div class="text-3xl font-bold text-primary mb-3 drop-shadow-sm">
-                                {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
+                            <!-- Flecha -->
+                            <div class="flex flex-col items-center justify-center px-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-16 w-20 text-primary animate-pulse"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                                <div class="text-sm text-gray-500 mt-1">cambio</div>
                             </div>
+                            <!-- Total a Recibir -->
+                            <div class="text-center flex-1">
+                                <div class="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Total a Recibir</div>
+                                <div class="text-2xl md:text-3xl font-bold text-primary drop-shadow-sm">
+                                    {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Información de tasa -->
+                        <div class="mt-4 text-center">
                             <div class="bg-white/70 rounded-lg px-4 py-2 inline-block">
-                                <div class="text-xs text-gray-600">Tasa de cambio aplicada</div>
-                                <div class="text-sm font-bold text-gray-800">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</div>
+                                <div class="text-xs font-semibold text-gray-600">TASA DE CAMBIO APLICADA</div>
+                                <div class="text-xl font-bold text-primary mb-2">
+                                    {% if transaccion.tipo_operacion == 'compra' %}
+                                        1 {{ transaccion.divisa_destino.codigo }} = {{ transaccion.tasa_aplicada|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}
+                                    {% else %}
+                                        1 {{ transaccion.divisa_origen.codigo }} = {{ transaccion.tasa_aplicada|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -265,7 +298,6 @@
                 </div>
             </div>
         </div>
-        <!-- Próximos pasos -->
         <div class="card bg-base-100 shadow-lg mb-6">
             <div class="card-body">
                 <h3 class="card-title text-primary mb-4">
@@ -278,100 +310,168 @@
                     </svg>
                     Próximos Pasos
                 </h3>
-                <div class="alert alert-warning mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="stroke-current shrink-0 h-6 w-6"
-                         fill="none"
-                         viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <div>
-                        <div class="font-bold">Transacción Pendiente de Procesamiento</div>
-                        <div class="text-sm">
-                            Esta transacción requiere procesamiento adicional según el método de pago/cobro seleccionado.
+                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                    <div class="alert alert-success mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="stroke-current shrink-0 h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div>
+                            <div class="font-bold">Transacción Completada Exitosamente</div>
+                            <div class="text-sm">El pago con Stripe ha sido procesado correctamente y la transacción está completa.</div>
                         </div>
                     </div>
-                </div>
-                <!-- Instrucciones según el método -->
-                {% if metodo_pago == 'efectivo' or metodo_cobro == 'efectivo' %}
-                    <div class="steps steps-vertical lg:steps-horizontal w-full">
-                        <div class="step step-primary">Transacción Creada</div>
-                        <div class="step">Presentarse en Sucursal</div>
-                        <div class="step">Verificación de Identidad</div>
-                        <div class="step">Procesamiento de Pago</div>
-                        <div class="step">Transacción Completada</div>
-                    </div>
-                    <div class="mt-4 p-4 bg-info bg-opacity-20 rounded-lg">
-                        <div class="font-semibold mb-2">Instrucciones para Pago en Efectivo:</div>
-                        <ul class="list-disc list-inside text-sm space-y-1">
-                            <li>Presentarse en cualquiera de nuestras sucursales</li>
-                            <li>Traer documento de identidad válido</li>
-                            <li>
-                                Proporcionar el ID de transacción: <code class="bg-base-300 px-2 py-1 rounded">{{ transaccion.id_transaccion }}</code>
-                            </li>
-                            <li>Realizar el pago correspondiente</li>
-                        </ul>
-                    </div>
-                {% elif 'tarjeta' in metodo_pago or 'tarjeta' in metodo_cobro %}
-                    <div class="steps steps-vertical lg:steps-horizontal w-full">
-                        <div class="step step-primary">Transacción Creada</div>
-                        <div class="step">Procesamiento Automático</div>
-                        <div class="step">Verificación del Pago</div>
-                        <div class="step">Transacción Completada</div>
-                    </div>
-                    <div class="mt-4 p-4 bg-warning bg-opacity-20 rounded-lg">
-                        <div class="font-semibold mb-2">Procesamiento con Tarjeta:</div>
-                        <ul class="list-disc list-inside text-sm space-y-1">
-                            <li>El procesamiento será automático</li>
-                            <li>Recibirá notificaciones por email</li>
-                            <li>Tiempo estimado: 2-5 minutos</li>
-                            <li>En caso de problemas, contacte al servicio al cliente</li>
-                        </ul>
-                    </div>
-                {% elif 'cuenta' in metodo_pago or 'cuenta' in metodo_cobro %}
-                    <div class="steps steps-vertical lg:steps-horizontal w-full">
-                        <div class="step step-primary">Transacción Creada</div>
-                        <div class="step">Verificación Bancaria</div>
-                        <div class="step">Transferencia</div>
-                        <div class="step">Transacción Completada</div>
-                    </div>
-                    <div class="mt-4 p-4 bg-success bg-opacity-20 rounded-lg">
-                        <div class="font-semibold mb-2">Transferencia Bancaria:</div>
-                        <ul class="list-disc list-inside text-sm space-y-1">
-                            <li>Se procesará la transferencia bancaria</li>
-                            <li>Tiempo estimado: 1-2 horas hábiles</li>
-                            <li>Recibirá confirmación por email</li>
-                            <li>Verifique los fondos disponibles en su cuenta</li>
-                        </ul>
-                    </div>
-                {% elif 'billetera' in metodo_pago or 'billetera' in metodo_cobro %}
-                    <div class="steps steps-vertical lg:steps-horizontal w-full">
-                        <div class="step step-primary">Transacción Creada</div>
-                        <div class="step">Autorización de Billetera</div>
-                        <div class="step">Procesamiento</div>
-                        <div class="step">Transacción Completada</div>
-                    </div>
-                    <div class="mt-4 p-4 bg-accent bg-opacity-20 rounded-lg">
-                        <div class="font-semibold mb-2">Billetera Electrónica:</div>
-                        <ul class="list-disc list-inside text-sm space-y-1">
-                            <li>Revisar notificaciones en su billetera electrónica</li>
-                            <li>Autorizar la transacción si es requerido</li>
-                            <li>Tiempo estimado: 5-15 minutos</li>
-                            <li>Pueden aplicar comisiones adicionales del proveedor</li>
-                        </ul>
-                    </div>
                 {% else %}
-                    <div class="steps steps-vertical lg:steps-horizontal w-full">
-                        <div class="step step-primary">Transacción Creada</div>
-                        <div class="step">En Proceso</div>
-                        <div class="step">Verificación</div>
-                        <div class="step">Transacción Completada</div>
-                    </div>
-                    <div class="mt-4 p-4 bg-base-200 rounded-lg">
-                        <div class="font-semibold mb-2">Procesamiento General:</div>
-                        <p class="text-sm">Su transacción está siendo procesada. Recibirá notificaciones sobre el estado de la misma.</p>
+                    <div class="alert alert-warning mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="stroke-current shrink-0 h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <div>
+                            <div class="font-bold">Transacción Pendiente de Procesamiento</div>
+                            <div class="text-sm">
+                                Esta transacción requiere procesamiento adicional según el método de pago/cobro seleccionado.
+                            </div>
+                        </div>
                     </div>
                 {% endif %}
+                <!-- Pasos según método de pago/cobro -->
+                {% with metodo_pago=transaccion.metodo_pago metodo_cobro=transaccion.metodo_cobro %}
+                    {% if metodo_pago == 'efectivo' or metodo_cobro == 'efectivo' %}
+                        <div class="steps steps-vertical lg:steps-horizontal w-full">
+                            <div class="step step-primary">Transacción Creada</div>
+                            <div class="step">Presentarse en Sucursal</div>
+                            <div class="step">Verificación de Identidad</div>
+                            <div class="step">Procesamiento de Pago</div>
+                            <div class="step">Transacción Completada</div>
+                        </div>
+                        <div class="mt-4 p-4 bg-info bg-opacity-20 rounded-lg">
+                            <div class="font-semibold mb-2">Instrucciones para Pago en Efectivo:</div>
+                            <ul class="list-disc list-inside text-sm space-y-1">
+                                <li>Presentarse en cualquiera de nuestras sucursales</li>
+                                <li>Traer documento de identidad válido</li>
+                                <li>
+                                    Proporcionar el ID de transacción: <code class="bg-base-300 px-2 py-1 rounded">{{ transaccion.id_transaccion }}</code>
+                                </li>
+                                <li>Realizar el pago correspondiente</li>
+                            </ul>
+                        </div>
+                    {% elif 'stripe' in metodo_pago %}
+                        <div class="steps steps-vertical lg:steps-horizontal w-full">
+                            {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                <div class="step step-primary">Transacción Completada</div>
+                                <div class="step step-primary">Pago Stripe Procesado</div>
+                                <div class="step step-primary">Verificación Internacional</div>
+                                <div class="step step-primary">Proceso Finalizado</div>
+                            {% else %}
+                                <div class="step step-primary">Transacción Creada</div>
+                                <div class="step step-primary">Pago Stripe Procesado</div>
+                                <div class="step">Verificación Internacional</div>
+                                <div class="step">Transacción Completada</div>
+                            {% endif %}
+                        </div>
+                        <div class="mt-4 p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border border-purple-200">
+                            <div class="font-semibold mb-2 flex items-center">
+                                <span class="text-2xl mr-2">💳</span>
+                                Pago Internacional con Stripe:
+                            </div>
+                            <ul class="list-disc list-inside text-sm space-y-1">
+                                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                    <li class="text-green-700 font-medium">Pago procesado exitosamente</li>
+                                    <li class="text-green-700 font-medium">Procesamiento internacional completado</li>
+                                    <li class="text-green-700 font-medium">Verificación bancaria finalizada</li>
+                                    <li class="text-green-700 font-medium">Transacción completada</li>
+                                    <li>Confirmación enviada por email</li>
+                                {% else %}
+                                    <li class="text-green-700 font-medium">Pago en proceso</li>
+                                    <li>Procesamiento internacional seguro</li>
+                                    <li>Verificación bancaria en curso</li>
+                                    <li>Tiempo estimado: 2-5 minutos</li>
+                                    <li>Recibirá confirmación por email</li>
+                                {% endif %}
+                                <li>
+                                    Comisión aplicada: <span class="font-bold text-purple-600">2.9%</span>
+                                </li>
+                            </ul>
+                            <!-- Estado del pago Stripe -->
+                            {% if transaccion.stripe_payment %}
+                                <div class="mt-3 p-3 bg-white rounded border-l-4 border-purple-400">
+                                    <div class="text-xs text-gray-600 mb-1">Estado del Pago:</div>
+                                    {% if transaccion.stripe_payment.paid %}
+                                        <div class="text-green-600 font-bold">Pago Confirmado</div>
+                                    {% elif transaccion.stripe_payment.status == 'pending' %}
+                                        <div class="text-yellow-600 font-bold">Pago Pendiente</div>
+                                    {% else %}
+                                        <div class="text-gray-600 font-bold">{{ transaccion.stripe_payment.status|title }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% elif 'tarjeta' in metodo_pago or 'tarjeta' in metodo_cobro %}
+                        <div class="steps steps-vertical lg:steps-horizontal w-full">
+                            <div class="step step-primary">Transacción Creada</div>
+                            <div class="step">Procesamiento Automático</div>
+                            <div class="step">Verificación del Pago</div>
+                            <div class="step">Transacción Completada</div>
+                        </div>
+                        <div class="mt-4 p-4 bg-warning bg-opacity-20 rounded-lg">
+                            <div class="font-semibold mb-2">Procesamiento con Tarjeta:</div>
+                            <ul class="list-disc list-inside text-sm space-y-1">
+                                <li>El procesamiento será automático</li>
+                                <li>Recibirá notificaciones por email</li>
+                                <li>Tiempo estimado: 2-5 minutos</li>
+                                <li>En caso de problemas, contacte al servicio al cliente</li>
+                            </ul>
+                        </div>
+                    {% elif 'cuenta' in metodo_pago or 'cuenta' in metodo_cobro %}
+                        <div class="steps steps-vertical lg:steps-horizontal w-full">
+                            <div class="step step-primary">Transacción Creada</div>
+                            <div class="step">Verificación Bancaria</div>
+                            <div class="step">Transferencia</div>
+                            <div class="step">Transacción Completada</div>
+                        </div>
+                        <div class="mt-4 p-4 bg-success bg-opacity-20 rounded-lg">
+                            <div class="font-semibold mb-2">Transferencia Bancaria:</div>
+                            <ul class="list-disc list-inside text-sm space-y-1">
+                                <li>Se procesará la transferencia bancaria</li>
+                                <li>Tiempo estimado: 1-2 horas hábiles</li>
+                                <li>Recibirá confirmación por email</li>
+                                <li>Verifique los fondos disponibles en su cuenta</li>
+                            </ul>
+                        </div>
+                    {% elif 'billetera' in metodo_pago or 'billetera' in metodo_cobro %}
+                        <div class="steps steps-vertical lg:steps-horizontal w-full">
+                            <div class="step step-primary">Transacción Creada</div>
+                            <div class="step">Autorización de Billetera</div>
+                            <div class="step">Procesamiento</div>
+                            <div class="step">Transacción Completada</div>
+                        </div>
+                        <div class="mt-4 p-4 bg-accent bg-opacity-20 rounded-lg">
+                            <div class="font-semibold mb-2">Billetera Electrónica:</div>
+                            <ul class="list-disc list-inside text-sm space-y-1">
+                                <li>Revisar notificaciones en su billetera electrónica</li>
+                                <li>Autorizar la transacción si es requerido</li>
+                                <li>Tiempo estimado: 5-15 minutos</li>
+                                <li>Pueden aplicar comisiones adicionales del proveedor</li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <div class="steps steps-vertical lg:steps-horizontal w-full">
+                            <div class="step step-primary">Transacción Creada</div>
+                            <div class="step">En Proceso</div>
+                            <div class="step">Verificación</div>
+                            <div class="step">Transacción Completada</div>
+                        </div>
+                        <div class="mt-4 p-4 bg-base-200 rounded-lg">
+                            <div class="font-semibold mb-2">Procesamiento General:</div>
+                            <p class="text-sm">Su transacción está siendo procesada. Recibirá notificaciones sobre el estado de la misma.</p>
+                        </div>
+                    {% endif %}
+                {% endwith %}
             </div>
         </div>
         <!-- Acciones -->
@@ -415,21 +515,39 @@
                             <div class="text-xs opacity-60">Realizar otra</div>
                         </div>
                     </a>
-                    <button id="btnPagarTransaccion"
-                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
-                            class="btn btn-success btn-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <div class="text-left">
-                            <div class="font-semibold">Pagar Transacción</div>
-                            <div class="text-xs opacity-60">Procesar pago</div>
-                        </div>
-                    </button>
+                    {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                        <button id="btnPagarTransaccion"
+                                class="btn btn-success btn-lg btn-disabled"
+                                disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Pago Completado</div>
+                                <div class="text-xs opacity-60">Transacción pagada</div>
+                            </div>
+                        </button>
+                    {% else %}
+                        <button id="btnPagarTransaccion"
+                                onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
+                                class="btn btn-success btn-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Pagar Transacción</div>
+                                <div class="text-xs opacity-60">Procesar pago</div>
+                            </div>
+                        </button>
+                    {% endif %}
                     <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
                             class="btn btn-error btn-outline btn-lg">
                         <svg xmlns="http://www.w3.org/2000/svg"
