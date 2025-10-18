@@ -1353,6 +1353,7 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         transaccion = Transaccion.objects.create(
             cliente=cliente,
             usuario=request.user,
+            usuario_responsable=request.user,  # El usuario en sesión es el responsable
             tipo_operacion=tipo_operacion,
             estado="pendiente",
             divisa_origen=divisa_origen,
@@ -1459,7 +1460,7 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
 
 @login_required
 def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """Cancel an existing transaction.
+    """Cancelar una transacción existente.
 
     Args:
         request: HttpRequest object
@@ -1497,6 +1498,7 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
 
         # Cancelar la transacción
         transaccion.estado = "cancelada"
+        transaccion.motivo_cancelacion = "Cancelación solicitada por el usuario"
         transaccion.save()
 
         return JsonResponse(
@@ -1565,7 +1567,6 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         # Procesar según el resultado del banco
         if exito:
             # Pago exitoso
-            transaccion.estado = "completada"
             transaccion.fecha_pago = datetime.now()
 
             # Agregar información del código de autorización si está disponible
@@ -1733,20 +1734,34 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
             }
             return render(request, "popup_codigo_tauser.html", context)
 
-        # Verificar que la transacción esté completada
-        if transaccion.estado != "completada":
-            context = {
-                "error": "La transacción debe estar completada para generar código de retiro",
-                "transaccion": transaccion,
-                "cliente": cliente,
-            }
-            return render(request, "popup_codigo_tauser.html", context)
-
         # Generar código único para TAUSER (retiro)
         import random
         import string
 
-        codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        # Verificar si la transacción ya tiene código de verificación
+        if transaccion.codigo_verificacion:
+            codigo_tauser = transaccion.codigo_verificacion
+        else:
+            # Generar nuevo código único y guardarlo en la transacción
+            while True:
+                codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                # Verificar que el código sea único
+                if not Transaccion.objects.filter(codigo_verificacion=codigo_tauser).exists():
+                    break
+
+            # Actualizar la transacción con el código de verificación
+            transaccion.codigo_verificacion = codigo_tauser
+
+            try:
+                transaccion.save(update_fields=['codigo_verificacion'])
+
+                # Verificar que se guardó correctamente
+                transaccion.refresh_from_db()
+
+
+            except Exception as save_error:
+                print(f"ERROR: No se pudo guardar el código: {save_error}")
+                # Continuar con el código generado aunque no se haya guardado
 
         context = {
             "transaccion": transaccion,
@@ -1934,4 +1949,90 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
     except Exception as e:
         print(f"Error al aceptar nueva cotización: {e}")
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
-        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_GET
+@login_required
+def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para obtener el historial de una transacción en formato JSON.
+    
+    Args:
+        request: La solicitud HTTP.
+        transaccion_id: ID de la transacción a consultar.
+        
+    Returns:
+        JsonResponse: Historial de la transacción.
+
+    """
+    try:
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Verificar que el usuario tenga permiso para ver esta transacción
+        cliente = getattr(request, "cliente", None)
+        if not (request.user.is_staff or (cliente and transaccion.cliente == cliente)):
+            return JsonResponse(
+                {"success": False, "message": "No tienes permisos para ver esta transacción"},
+                status=403
+            )
+
+        # Crear historial de acciones
+        historial = []
+
+        # Acción de creación
+        detalle_creacion = (
+            f"{strip_trailing_zeros(transaccion.monto_origen, 0)} {transaccion.divisa_origen.codigo} → "
+            f"{strip_trailing_zeros(transaccion.monto_destino, 0)} {transaccion.divisa_destino.codigo}"
+        )
+
+        historial.append({
+            "accion": "Transacción creada",
+            "fecha": transaccion.fecha_creacion.isoformat(),
+            "detalle": detalle_creacion
+        })
+
+        # Acción de pago (si existe)
+        if transaccion.fecha_pago:
+            detalle_pago = (
+                f"Código: {transaccion.codigo_verificacion}"
+                if transaccion.codigo_verificacion else "Sin código"
+            )
+            historial.append({
+                "accion": "Pago procesado",
+                "fecha": transaccion.fecha_pago.isoformat(),
+                "detalle": detalle_pago
+            })
+
+        # Transacción completada
+        if transaccion.estado == "completada":
+            historial.append({
+                "accion": "Transacción completada",
+                "fecha": transaccion.fecha_actualizacion.isoformat(),
+                "detalle": "Entrega de fondos realizada"
+            })
+
+        # Si está cancelada
+        if transaccion.estado == "cancelada":
+            motivo = transaccion.motivo_cancelacion or "Sin motivo especificado"
+            historial.append({
+                "accion": "Transacción cancelada",
+                "fecha": transaccion.fecha_actualizacion.isoformat(),
+                "detalle": f"Motivo: {motivo}"
+            })
+
+        return JsonResponse({
+            "success": True,
+            "historial": historial
+        })
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "message": "Transacción no encontrada"},
+            status=404
+        )
+    except Exception as e:
+        print(f"Error al obtener historial de transacción: {e}")
+        return JsonResponse(
+            {"success": False, "message": "Error interno del servidor"},
+            status=500
+        )

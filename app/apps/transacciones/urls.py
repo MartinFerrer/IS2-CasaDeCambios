@@ -82,5 +82,6 @@ urlpatterns = [
         views.api_aceptar_nueva_cotizacion,
         name="api_aceptar_nueva_cotizacion",
     ),
+    path("api/historial/<str:transaccion_id>/", views.api_historial_transaccion, name="api_historial_transaccion"),
     path("", views.vista_transacciones, name="lista"),
 ]

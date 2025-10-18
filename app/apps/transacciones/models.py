@@ -526,6 +526,8 @@ class Transaccion(models.Model):
         tasaAplicada (DecimalField): Tasa de cambio aplicada en la transacción.
         montoOrigen (DecimalField): Monto en la divisa de origen.
         montoDestino (DecimalField): Monto en la divisa de destino.
+        usuario_responsable (ForeignKey): Usuario responsable de procesar en el tauser.
+        codigo_verificacion (CharField): Código único de verificación para el tauser.
 
     """
 
@@ -618,6 +620,21 @@ class Transaccion(models.Model):
     )
     motivo_cancelacion = models.TextField(
         blank=True, null=True, help_text="Motivo detallado de la cancelación de la transacción"
+    )
+    usuario_responsable = models.ForeignKey(
+        "usuarios.Usuario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transacciones_responsable",
+        help_text="Usuario responsable de procesar la transacción en el tauser"
+    )
+    codigo_verificacion = models.CharField(
+        max_length=10,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Código único de verificación generado para el tauser"
     )
 
     class Meta:
