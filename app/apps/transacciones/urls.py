@@ -82,6 +82,11 @@ urlpatterns = [
         views.api_aceptar_nueva_cotizacion,
         name="api_aceptar_nueva_cotizacion",
     ),
+
     path("api/historial/<str:transaccion_id>/", views.api_historial_transaccion, name="api_historial_transaccion"),
+    # URLs para Stripe
+    path("api/stripe/create-payment-intent/", views.create_stripe_payment_intent, name="stripe_create_payment_intent"),
+    path("api/stripe/confirm-payment/", views.confirm_stripe_payment, name="stripe_confirm_payment"),
+    path("stripe/webhook/", views.stripe_webhook_handler, name="stripe_webhook"),
     path("", views.vista_transacciones, name="lista"),
 ]

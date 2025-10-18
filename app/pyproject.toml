@@ -26,7 +26,11 @@ dependencies = [
     "whitenoise>=6.8.2",
     "pyotp>=2.9.0",
     "qrcode[pil]>=7.4.2",
+    "stripe>=8.0.0",
     "sqlparse>=0.4.4",
+    # Simulador externo/API externa
+    "flask>=2.3.3",
+    "flask-cors>=4.0.0",
 ]
 
 [project.optional-dependencies]

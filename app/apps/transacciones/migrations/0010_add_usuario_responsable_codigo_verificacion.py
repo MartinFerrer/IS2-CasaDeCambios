@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('transacciones', '0007_transaccion_cambio_cotizacion_notificado_and_more'),
+        ('transacciones', '0009_remove_stripepayment_save_payment_method'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
