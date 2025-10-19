@@ -107,10 +107,6 @@ def obtener_nombre_medio(medio_id, cliente):
 
 def _get_stripe_fixed_fee_pyg() -> Decimal:
     """Calcula la comisión fija de Stripe (0.30 USD) convertida a PYG usando la tasa vigente."""
-    from django.conf import settings
-
-    from apps.operaciones.models import TasaCambio
-
     try:
         # Obtener tasa USD/PYG vigente
         tasa_cambio = TasaCambio.objects.filter(
@@ -249,6 +245,10 @@ def _compute_simulation(params: Dict, request) -> Dict:
     # Validación: No permitir compra de divisas con medio de pago en efectivo
     if tipo == "compra" and metodo_pago == "efectivo":
         raise ValueError("No se permite comprar divisas usando efectivo como medio de pago")
+
+    # Validación: No permitir venta de divisas con medio de cobro en efectivo
+    if tipo == "venta" and metodo_cobro == "efectivo":
+        raise ValueError("No se permite vender divisas cobrando en efectivo como medio de cobro")
 
     # Obtener cliente del middleware para descuentos
     cliente = getattr(request, "cliente", None)
@@ -558,19 +558,16 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                 )
 
         # Configurar medios de cobro según tipo de operación
-        # Agregar efectivo por defecto para cobro
-        medios_cobro.append(
-            {
-                "id": "efectivo",
-                "tipo": "efectivo",
-                "nombre": "Efectivo",
-                "descripcion": "Cobro en efectivo",
-                "comision": 0,  # 0%
-            }
-        )
-
-        # Para compra: solo efectivo para cobro
-        # Para venta: agregar todos los medios habilitados para cobro
+        if tipo_operacion == "compra":
+            medios_cobro.append(
+                {
+                    "id": "efectivo",
+                    "tipo": "efectivo",
+                    "nombre": "Efectivo",
+                    "descripcion": "Cobro en efectivo",
+                    "comision": 0,
+                }
+            )
         if tipo_operacion == "venta":
             # Agregar tarjetas de crédito habilitadas para cobro
             for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_cobro=True):
@@ -659,6 +656,53 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
     destino_list = [{"codigo": cod, "nombre": nom, "simbolo": sim} for cod, nom, sim in divisas_destino]
 
     return JsonResponse({"divisas": destino_list})
+
+
+@require_GET
+def api_verificar_stock_tauser(request: HttpRequest) -> JsonResponse:
+    """Verifica la disponibilidad de stock en TAUSERs para una transacción.
+    
+    Args:
+        request: HttpRequest con parámetros GET:
+        - tipo_operacion : 'compra' o 'venta'
+        - divisa : código de la divisa (USD, EUR, etc.)
+        - monto: monto entero en la divisa especificada
+    
+    Returns:
+        JsonResponse con información de disponibilidad y TAUSERs disponibles
+
+    """
+    try:
+        tipo_operacion = request.GET.get('tipo_operacion')
+        divisa_codigo = request.GET.get('divisa')
+        monto_str = request.GET.get('monto')
+
+        if not all([tipo_operacion, divisa_codigo, monto_str]):
+            return JsonResponse({
+                "error": "Faltan parámetros requeridos: tipo_operacion, divisa, monto"
+            }, status=400)
+
+        try:
+            monto = int(float(monto_str))
+        except (ValueError, TypeError):
+            return JsonResponse({
+                "error": "El monto debe ser un número válido"
+            }, status=400)
+
+        if monto <= 0:
+            return JsonResponse({
+                "error": "El monto debe ser mayor a cero"
+            }, status=400)
+
+        # Verificar stock disponible
+        stock_info = _verificar_stock_disponible(tipo_operacion, divisa_codigo, monto)
+        print(stock_info)
+        return JsonResponse(stock_info)
+
+    except Exception as e:
+        return JsonResponse({
+            "error": f"Error interno: {e!s}"
+        }, status=500)
 
 
 def comprar_divisa_view(request):
@@ -1773,7 +1817,7 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
                 "tipo_operacion": "pagar",  # Para pagar dinero
             }
 
-            return render(request, "popup_codigo_tauser.html", context)
+            return popup_codigo_tauser_retiro(request, transaccion_id)
 
         # Para tarjetas y cuentas bancarias, usar el popup bancario primero
 
@@ -1808,18 +1852,18 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
 
 @login_required
 def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> HttpResponse:
-    """Vista para generar código TAUSER de retiro después del pago bancario.
+    """Vista para generar código TAUSER.
 
-    Esta función se llama después de que se complete exitosamente un pago
-    por tarjeta o cuenta bancaria, para generar el código que permite
-    retirar el dinero en efectivo en un TAUSER.
+    Esta función genera códigos TAUSER tanto para compras como para ventas:
+    - Compra: código para retirar en efectivo en TAUSER
+    - Venta: código para depositar dinero en efectivo en TAUSER
 
     Args:
         request: HttpRequest de la solicitud
-        transaccion_id: ID único de la transacción ya pagada
+        transaccion_id: ID único de la transacción
 
     Returns:
-        HttpResponse con la página del código TAUSER para retiro
+        HttpResponse con la página del código TAUSER correspondiente
 
     """
     try:
@@ -1844,7 +1888,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
             }
             return render(request, "popup_codigo_tauser.html", context)
 
-        # Generar código único para TAUSER (retiro)
+        # Generar código único para TAUSER
         import random
         import string
 
@@ -1859,31 +1903,40 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
                 if not Transaccion.objects.filter(codigo_verificacion=codigo_tauser).exists():
                     break
 
-            # Actualizar la transacción con el código de verificación
+            # Actualizar la transacción con el código de verificación y fecha de procesado
+            from datetime import datetime
+            print(f"Generando código TAUSER {codigo_tauser} para transacción {transaccion.id_transaccion}")
             transaccion.codigo_verificacion = codigo_tauser
+            transaccion.fecha_procesamiento = datetime.now()
 
             try:
-                transaccion.save(update_fields=['codigo_verificacion'])
+                transaccion.save(update_fields=['codigo_verificacion', 'fecha_procesamiento'])
 
                 # Verificar que se guardó correctamente
                 transaccion.refresh_from_db()
 
-
             except Exception as save_error:
-                print(f"ERROR: No se pudo guardar el código: {save_error}")
+                print(f"ERROR: No se pudo guardar el código para {transaccion.tipo_operacion}: {save_error}")
                 # Continuar con el código generado aunque no se haya guardado
+
+        # Determinar el tipo de operación TAUSER según el tipo de transacción
+        if transaccion.tipo_operacion == "compra":
+            tipo_operacion_tauser = "retirar"  # Cliente retira divisas compradas del TAUSER
+        else:  # venta
+            tipo_operacion_tauser = "pagar"  # Cliente paga con divisas en efectivo en TAUSER
 
         context = {
             "transaccion": transaccion,
             "cliente": cliente,
             "es_efectivo": False,
             "codigo_tauser": codigo_tauser,
-            "tipo_operacion": "retirar",  # Para retirar dinero
+            "tipo_operacion": tipo_operacion_tauser,
         }
 
         return render(request, "popup_codigo_tauser.html", context)
 
-    except Exception:
+    except Exception as e:
+        print(f"ERROR en popup_codigo_tauser_retiro: {e}")
         context = {
             "error": "Error interno del servidor",
             "transaccion": None,
@@ -1894,7 +1947,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
 
 @require_GET
 def api_verificar_cotizacion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """Verificasi la cotización de una transacción ha cambiado significativamente.
+    """Verifica si la cotización de una transacción ha cambiado significativamente.
 
     Args:
         request: HttpRequest object
@@ -2056,7 +2109,6 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
     except Exception as e:
         print(f"Error al aceptar nueva cotización: {e}")
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
-        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
 @require_GET
@@ -2099,12 +2151,23 @@ def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> Json
             "detalle": detalle_creacion
         })
 
-        # Acción de pago (si existe)
-        if transaccion.fecha_pago:
-            detalle_pago = (
+        # Acción de procesamiento
+        detalle_procesamiento = (
                 f"Código: {transaccion.codigo_verificacion}"
                 if transaccion.codigo_verificacion else "Sin código"
             )
+        if transaccion.fecha_procesamiento:
+            historial.append({
+                "accion": "Transacción procesada",
+                "fecha": transaccion.fecha_procesamiento.isoformat(),
+                "detalle": detalle_procesamiento
+            })
+
+        # Acción de pago (si existe)
+        detalle_pago = (
+            f"Medio de pago: {obtener_nombre_medio(transaccion.medio_pago, transaccion.cliente)}"
+        )
+        if transaccion.fecha_pago:
             historial.append({
                 "accion": "Pago procesado",
                 "fecha": transaccion.fecha_pago.isoformat(),
@@ -2120,14 +2183,14 @@ def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> Json
             })
 
         # Si está cancelada
-        if transaccion.estado == "cancelada":
+        if transaccion.estado == "cancelada" or transaccion.estado == "cancelada_cotizacion":
             motivo = transaccion.motivo_cancelacion or "Sin motivo especificado"
             historial.append({
                 "accion": "Transacción cancelada",
                 "fecha": transaccion.fecha_actualizacion.isoformat(),
                 "detalle": f"Motivo: {motivo}"
             })
-
+        historial = sorted(historial, key=lambda x: x["fecha"])
         return JsonResponse({
             "success": True,
             "historial": historial

@@ -478,7 +478,8 @@
                     </a>
                     <button id="btnPagarTransaccion"
                             onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
-                            class="btn btn-success btn-lg">
+                            class="btn btn-success btn-lg"
+                            {% if transaccion.fecha_procesamiento %}disabled{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg"
                              class="h-6 w-6"
                              fill="none"
@@ -487,8 +488,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                         <div class="text-left">
-                            <div class="font-semibold">Pagar Transacción</div>
-                            <div class="text-xs opacity-60">Procesar pago</div>
+                            {% if transaccion.tipo_operacion == 'compra' %}
+                                <div class="font-semibold">Pagar Transacción</div>
+                                <div class="text-xs opacity-60">Procesar pago</div>
+                            {% else %}
+                                <div class="font-semibold">Generar Código</div>
+                                <div class="text-xs opacity-60">Generar código para Tauser</div>
+                            {% endif %}
                         </div>
                     </button>
                     <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
@@ -846,18 +852,18 @@
         }
 
         function handleAbrirTauserRetiro(data) {
-            console.log('Abriendo popup TAUSER para retiro:', data);
+            console.log('Abriendo popup TAUSER:', data);
 
             // Cerrar la ventana del banco si aún está abierta
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
 
-            // Abrir popup para código TAUSER de retiro
+            // Abrir popup para código TAUSER
             const urlTauser = `/transacciones/popup-tauser-retiro/${data.transaccionId}/`;
             ventanaBanco = window.open(
                 urlTauser,
-                'tauserRetiro',
+                'tauserCodigo',
                 'width=600,height=700,scrollbars=yes,resizable=yes,modal=yes,dependent=yes,alwaysRaised=yes'
             );
 

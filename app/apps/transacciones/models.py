@@ -569,6 +569,7 @@ class Transaccion(models.Model):
     )
     fecha_creacion = models.DateTimeField(auto_now_add=True, help_text="Fecha y hora de creación de la transacción")
     fecha_pago = models.DateTimeField(null=True, blank=True, help_text="Fecha y hora del pago (opcional)")
+    fecha_procesamiento = models.DateTimeField(null=True, blank=True, help_text="Fecha y hora de generación del código de verificación")
     fecha_actualizacion = models.DateTimeField(auto_now=True, help_text="Fecha y hora de última actualización")
     divisa_origen = models.ForeignKey(
         "operaciones.Divisa",
