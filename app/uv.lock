@@ -36,6 +36,8 @@ dev = [
     { name = "model-bakery" },
     { name = "pre-commit" },
     { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-django" },
     { name = "requests" },
     { name = "ruff" },
     { name = "sphinx" },
@@ -45,7 +47,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dj-database-url" },
+    { name = "dj-database-url", specifier = ">=2.1.0" },
     { name = "django", specifier = "==5.2.5" },
     { name = "django-environ", specifier = ">=0.12.0" },
     { name = "djlint", marker = "extra == 'dev'", specifier = ">=1.36.4" },
@@ -58,9 +60,10 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"] },
     { name = "pycountry", specifier = ">=24.6.1" },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.403" },
-    { name = "pytest", specifier = ">=8.4.1" },
-    { name = "pytest-django", specifier = ">=4.11.1" },
-    { name = "python-dotenv" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.1" },
+    { name = "pytest-django", marker = "extra == 'dev'", specifier = ">=4.11.1" },
+    { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "qrcode", extras = ["pil"], specifier = ">=7.4.2" },
     { name = "requests", marker = "extra == 'dev'", specifier = ">=2.32.5" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.9" },
     { name = "sphinx", marker = "extra == 'dev'", specifier = ">=8.2.3" },
