@@ -192,17 +192,6 @@ USE_X_FORWARDED_PORT = True
 # Custom error views for CSRF failures
 CSRF_FAILURE_VIEW = "global_exchange_django.views.csrf_failure"
 
-# Configuration for session cookie name (customizable via .env)
-_session_cookie_from_env = env.str("SESSION_COOKIE_NAME", default=None)
-if _session_cookie_from_env:
-    SESSION_COOKIE_NAME = _session_cookie_from_env
-else:
-    if DEBUG:
-        # Prevent the browser from overwriting the session cookie used in production
-        SESSION_COOKIE_NAME = "sessionid_dev"
-    else:
-        SESSION_COOKIE_NAME = "sessionid"
-
 if not DEBUG:
     # HTTPS settings
     SECURE_SSL_REDIRECT = (

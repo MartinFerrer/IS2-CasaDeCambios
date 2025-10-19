@@ -4,10 +4,11 @@ Este módulo contiene las vistas relacionadas con la gestión de usuarios,
 configuración de perfiles y gestión de información personal.
 """
 
-from apps.seguridad.models import PerfilMFA
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+
+from apps.seguridad.models import PerfilMFA
 
 
 def ejemplo(request: HttpRequest) -> HttpResponse:
@@ -32,7 +33,7 @@ def configuracion_usuario(request):
     - Configuración MFA (autenticación multifactor)
     - Medios de pago (si el usuario tiene clientes)
     - Listado de clientes asociados
-    - Notificaciones (actualizaciones de tasas, etc.)
+    - Notificaciones (futuro)
 
     Args:
         request: Objeto HttpRequest de Django.
