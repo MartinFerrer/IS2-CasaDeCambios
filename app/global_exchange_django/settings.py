@@ -136,7 +136,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "America/Argentina/Buenos_Aires"
+# Forzar localización incluso en DEBUG=True
+FORMAT_MODULE_PATH = [
+    "global_exchange_django.locale",
+]
 
 USE_I18N = True
 
@@ -162,7 +165,9 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 # aca ponemos el correo desde donde se va enviar
 EMAIL_HOST_USER = env.str("EMAIL_USER", default="NO_CONFIGURADO")
-EMAIL_HOST_PASSWORD = env.str("EMAIL_PASSWORD", default="NO_CONFIGURADO")  # usa una contraseña de app si usas 2FA
+EMAIL_HOST_PASSWORD = env.str(
+    "EMAIL_PASSWORD", default="NO_CONFIGURADO"
+)  # usa una contraseña de app si usas 2FA
 DEFAULT_FROM_EMAIL = env.str("EMAIL_USER", default="NO_CONFIGURADO")
 
 # CSRF trusted origins for reverse proxy
@@ -200,10 +205,14 @@ else:
 
 if not DEBUG:
     # HTTPS settings
-    SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
+    SECURE_SSL_REDIRECT = (
+        os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
+    )
 
     # Cookie security
-    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
+    SESSION_COOKIE_SECURE = (
+        os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
+    )
     CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "False").lower() == "true"
 
     # Additional security headers

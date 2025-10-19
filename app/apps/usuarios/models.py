@@ -1,10 +1,13 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.core.exceptions import ValidationError
 from django.db import models
-
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -89,7 +92,9 @@ class Cliente(models.Model):
 
             # Validar dígito verificador
             if not validar_ruc_completo(ruc_limpio):
-                raise ValidationError({"ruc": "El dígito verificador del RUC no es válido."})
+                raise ValidationError(
+                    {"ruc": "El dígito verificador del RUC no es válido."}
+                )
             self.ruc = ruc_limpio[:-1] + "-" + ruc_limpio[-1]
 
     def save(self, *args, **kwargs):
