@@ -9,6 +9,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from environ import Env
@@ -163,3 +164,49 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env.str("EMAIL_USER", default="NO_CONFIGURADO")
 EMAIL_HOST_PASSWORD = env.str("EMAIL_PASSWORD", default="NO_CONFIGURADO")  # usa una contraseña de app si usas 2FA
 DEFAULT_FROM_EMAIL = env.str("EMAIL_USER", default="NO_CONFIGURADO")
+
+# CSRF trusted origins for reverse proxy
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost",
+    "http://127.0.0.1",
+    "https://localhost",
+    "https://127.0.0.1",
+    "http://localhost:8000",  # Dev environment
+    "http://localhost:8080",  # Prod environment (nginx)
+    "https://localhost:4443",  # Prod environment (nginx HTTPS)
+    "https://global-exchange-2000226d6e82.herokuapp.com",
+]
+
+# Use X-Forwarded-Proto header to detect HTTPS
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Use forwarded headers for correct URL generation behind proxy
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# Custom error views for CSRF failures
+CSRF_FAILURE_VIEW = "global_exchange_django.views.csrf_failure"
+
+# Configuration for session cookie name (customizable via .env)
+_session_cookie_from_env = env.str("SESSION_COOKIE_NAME", default=None)
+if _session_cookie_from_env:
+    SESSION_COOKIE_NAME = _session_cookie_from_env
+else:
+    if DEBUG:
+        # Prevent the browser from overwriting the session cookie used in production
+        SESSION_COOKIE_NAME = "sessionid_dev"
+    else:
+        SESSION_COOKIE_NAME = "sessionid"
+
+if not DEBUG:
+    # HTTPS settings
+    SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
+
+    # Cookie security
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
+    CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "False").lower() == "true"
+
+    # Additional security headers
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
