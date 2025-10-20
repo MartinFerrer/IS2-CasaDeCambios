@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 
 from .services import (
     cargar_denominaciones_divisa,
+    cargar_denominaciones_divisa_especifica,
     depositar_divisas,
     extraer_divisas,
     obtener_denominaciones_disponibles,
@@ -200,7 +201,7 @@ def depositar_divisas_api(request):
         return JsonResponse({
             'success': True,
             'data': {
-                'movimiento_id': movimiento.id,
+                'movimiento_id': movimiento.pk,
                 'mensaje': 'Depósito realizado exitosamente'
             }
         })
@@ -272,7 +273,7 @@ def extraer_divisas_api(request):
         return JsonResponse({
             'success': True,
             'data': {
-                'movimiento_id': movimiento.id,
+                'movimiento_id': movimiento.pk,
                 'mensaje': 'Extracción realizada exitosamente'
             }
         })
@@ -292,3 +293,22 @@ def extraer_divisas_api(request):
             'success': False,
             'error': f'Error interno: {e!s}'
         }, status=500)
+
+
+@require_http_methods(["GET"])
+def api_denominaciones_divisa(request, divisa_codigo):
+    """API para obtener denominaciones disponibles de una divisa específica.
+
+    Args:
+        request (HttpRequest): Solicitud HTTP.
+        divisa_codigo (str): Código de la divisa (ej. 'USD').
+
+    Returns:
+        JsonResponse: Lista de denominaciones disponibles.
+
+    """
+    try:
+        denominaciones = cargar_denominaciones_divisa_especifica(divisa_codigo)
+        return JsonResponse(denominaciones, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': f'Error al cargar denominaciones: {e!s}'}, status=500)

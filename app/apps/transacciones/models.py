@@ -527,7 +527,6 @@ class Transaccion(models.Model):
         tasaAplicada (DecimalField): Tasa de cambio aplicada en la transacción.
         montoOrigen (DecimalField): Monto en la divisa de origen.
         montoDestino (DecimalField): Monto en la divisa de destino.
-        usuario_responsable (ForeignKey): Usuario responsable de procesar en el tauser.
         codigo_verificacion (CharField): Código único de verificación para el tauser.
 
     """
@@ -569,7 +568,12 @@ class Transaccion(models.Model):
     )
     fecha_creacion = models.DateTimeField(auto_now_add=True, help_text="Fecha y hora de creación de la transacción")
     fecha_pago = models.DateTimeField(null=True, blank=True, help_text="Fecha y hora del pago (opcional)")
-    fecha_procesamiento = models.DateTimeField(null=True, blank=True, help_text="Fecha y hora de generación del código de verificación")
+    fecha_procesamiento = models.DateTimeField(
+        null=True, blank=True, help_text="Fecha y hora de generación del código de verificación"
+    )
+    fecha_completada = models.DateTimeField(
+        null=True, blank=True, help_text="Fecha y hora de finalización de la transacción"
+    )
     fecha_actualizacion = models.DateTimeField(auto_now=True, help_text="Fecha y hora de última actualización")
     divisa_origen = models.ForeignKey(
         "operaciones.Divisa",
@@ -623,20 +627,20 @@ class Transaccion(models.Model):
     motivo_cancelacion = models.TextField(
         blank=True, null=True, help_text="Motivo detallado de la cancelación de la transacción"
     )
-    usuario_responsable = models.ForeignKey(
-        "usuarios.Usuario",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="transacciones_responsable",
-        help_text="Usuario responsable de procesar la transacción en el tauser"
-    )
     codigo_verificacion = models.CharField(
         max_length=10,
         unique=True,
         null=True,
         blank=True,
         help_text="Código único de verificación generado para el tauser"
+    )
+    tauser = models.ForeignKey(
+        "tauser.Tauser",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transacciones",
+        help_text="Terminal de autoservicio donde se procesa la transacción"
     )
     stripe_payment = models.ForeignKey(
         "StripePayment",

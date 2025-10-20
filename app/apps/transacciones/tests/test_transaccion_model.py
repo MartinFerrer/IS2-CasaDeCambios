@@ -4,10 +4,11 @@ import uuid
 from decimal import Decimal
 
 import pytest
+from django.core.exceptions import ValidationError
+
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.transacciones.models import Transaccion
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
-from django.core.exceptions import ValidationError
 
 
 @pytest.mark.django_db

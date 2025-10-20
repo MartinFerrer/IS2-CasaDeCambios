@@ -41,6 +41,19 @@ def cargar_denominaciones_divisa():
         print(f"Error cargando denominaciones: {e}")
         return {}
 
+def cargar_denominaciones_divisa_especifica(divisa_id):
+    """Carga las denominaciones para una divisa específica.
+
+    Args:
+        divisa_id (str): Código ISO de la divisa (ej. 'USD').
+
+    Returns:
+        list[int]: Lista de denominaciones o [] si no se encuentra.
+
+    """
+    todas_denominaciones = cargar_denominaciones_divisa()
+    return todas_denominaciones.get(divisa_id, [])
+
 
 def obtener_stock_tauser(tauser_id):
     """Obtiene el stock de un tauser agrupado por divisa.
@@ -139,8 +152,7 @@ def monto_valido(divisa_id, monto):
         return False
 
     # Cargar denominaciones globales desde el JSON
-    all_denoms = cargar_denominaciones_divisa()
-    denoms = all_denoms.get(divisa_id)
+    denoms = cargar_denominaciones_divisa_especifica(divisa_id)
     if not denoms:
         # Si no hay definidas denominaciones para la divisa, no es válido
         return False

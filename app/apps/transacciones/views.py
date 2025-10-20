@@ -1537,17 +1537,17 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         transaccion = Transaccion.objects.create(
             cliente=cliente,
             usuario=request.user,
-            usuario_responsable=request.user,  # El usuario en sesión es el responsable
             tipo_operacion=tipo_operacion,
             estado="pendiente",
             divisa_origen=divisa_origen,
             divisa_destino=divisa_destino,
             tasa_aplicada=tasa_actual,
             tasa_original=tasa_actual,  # Almacenar la tasa original para verificar cambios posteriores
-            monto_origen=monto_origen,
-            monto_destino=monto_destino,
+            monto_origen=round(monto_origen),
+            monto_destino=round(monto_destino),
             medio_pago=metodo_pago,
             medio_cobro=metodo_cobro,
+            tauser=Tauser.objects.get(id=tauser),
         )
 
         # Actualizar el stock del Tauser según la operación
@@ -2219,10 +2219,10 @@ def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> Json
             })
 
         # Transacción completada
-        if transaccion.estado == "completada":
+        if transaccion.estado == "completada" and transaccion.fecha_completada:
             historial.append({
                 "accion": "Transacción completada",
-                "fecha": transaccion.fecha_actualizacion.isoformat(),
+                "fecha": transaccion.fecha_completada.isoformat(),
                 "detalle": "Entrega de fondos realizada"
             })
 
