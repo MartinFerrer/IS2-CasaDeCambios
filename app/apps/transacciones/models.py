@@ -778,7 +778,7 @@ class Transaccion(models.Model):
                 umbral_porcentual = Decimal("1.0")  # 1% de cambio porcentual
 
                 cambio_significativo = (cambio_absoluto >= umbral_absoluto) or (porcentaje_cambio >= umbral_porcentual)
-
+                self.save(update_fields=["tasa_actual"])
                 return {
                     "cambio_detectado": cambio_significativo,
                     "tasa_original": tasa_original_redondeada,
@@ -819,11 +819,12 @@ class Transaccion(models.Model):
         La nueva tasa también se establece como tasa original para futuras comparaciones.
         """
         if self.tasa_actual:
-            self.tasa_aplicada = self.tasa_actual
             self.tasa_original = self.tasa_actual  # Nueva tasa como base para futuras comparaciones
+            self.tasa_aplicada = self.tasa_actual
             self.cambio_cotizacion_notificado = False  # Reset notification flag
             # Los montos se mantienen como fueron calculados originalmente
             # ya que incluyen comisiones de medios de pago/cobro y otros factores
+            self.tasa_actual = None
             self.save()
 
     def save(self, *args, **kwargs):

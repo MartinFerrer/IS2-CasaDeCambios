@@ -22,6 +22,9 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
 from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
@@ -1256,9 +1259,10 @@ def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
     :rtype: django.http.HttpResponse
     """
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
-
+    tauser = Tauser.objects.all()
     context = {
         "divisas": divisas,
+        "tausers": tauser,
         "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY,
         # El cliente se obtiene automáticamente del middleware en request.cliente
     }
@@ -1387,6 +1391,7 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
     - tipo_operacion: "compra" o "venta".
     - metodo_pago: identificador del medio de pago (ej. "efectivo", "tarjeta_1").
     - metodo_cobro: identificador del medio de cobro.
+    - tauser_id: ID del Tauser asociado.
 
     :param request: HttpRequest con la querystring de la transacción.
     :type request: django.http.HttpRequest
@@ -1399,6 +1404,10 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
     cliente = getattr(request, "cliente", None)
     if not cliente:
         return JsonResponse({"error": "No hay cliente asociado"}, status=400)
+
+    tauser = request.GET.get("tauser")
+    if not tauser:
+        return JsonResponse({"error": "No hay Tauser asociado"}, status=400)
 
     try:
         params = request.GET.dict()
@@ -1465,11 +1474,27 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             if tipo_operacion == "compra":
                 divisa_origen = Divisa.objects.get(codigo="PYG")
                 divisa_destino = Divisa.objects.get(codigo=divisa_seleccionada)
-            else:  # venta
+            else:
                 divisa_origen = Divisa.objects.get(codigo=divisa_seleccionada)
                 divisa_destino = Divisa.objects.get(codigo="PYG")
         except Divisa.DoesNotExist:
             return JsonResponse({"error": "Divisa no válida"}, status=400)
+
+        # Validar si el monto es soportada por el tauser
+        # Compra: Si el tauser tiene stock suficiente de la divisa destino
+        if tipo_operacion == "compra":
+            lista_denominaciones = StockDivisaTauser.seleccionar_denominaciones_optimas(tauser, divisa_destino, int(monto))
+            if not lista_denominaciones:
+                return JsonResponse(
+                    {"error": "Monto no disponible en stock del Tauser para la divisa seleccionada o el monto es inválido"}, status=400
+                )
+        # Venta: Si el valor del monto es válido según las denominaciones disponibles
+        else:
+            resultado = monto_valido(divisa_origen.codigo, int(monto))
+            if not resultado:
+                return JsonResponse(
+                    {"error": "Monto inválido según las denominaciones disponibles para la divisa seleccionada"}, status=400
+                )
 
         # Crear la transacción
         from .models import Transaccion
@@ -1482,7 +1507,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         else:  # venta
             monto_origen = Decimal(str(simulation_data["monto_original"]))  # Divisa a entregar
             monto_destino = Decimal(str(simulation_data["total"]))  # PYG a recibir
-
         # Obtener y validar los medios de pago/cobro
         metodo_pago = params.get("metodo_pago", "efectivo")
         metodo_cobro = params.get("metodo_cobro", "efectivo")
@@ -1491,7 +1515,7 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         # Calcular el monto en PYG según el tipo de operación
         if tipo_operacion == "compra":
             monto_pyg_transaccion = monto_origen
-        else:  # venta
+        else:
             # En venta, el cliente recibe PYG (monto_destino)
             monto_pyg_transaccion = monto_destino
 
@@ -1525,6 +1549,11 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             medio_pago=metodo_pago,
             medio_cobro=metodo_cobro,
         )
+
+        # Actualizar el stock del Tauser según la operación
+        # Si es venta, el movimiento se realiza en el sistema de tauser
+        if tipo_operacion == "compra":
+            extraer_divisas(tauser_id=tauser, divisa_id=divisa_destino.codigo, transaccion=transaccion, denominaciones_cantidades=lista_denominaciones, panel_admin=False)
 
         # Limpiar token MFA si se usó
         mfa_token = request.GET.get("mfa_token")
@@ -1656,6 +1685,11 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
         transaccion.motivo_cancelacion = "Cancelación solicitada por el usuario"
         transaccion.save()
 
+        # Si es una compra, revertir el movimiento de stock pendiente
+        # Si es una venta, no hay movimiento de stock que revertir
+        if transaccion.tipo_operacion == "compra":
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado='pendiente').first():
+                cancelar_movimiento(movimiento.id)
         return JsonResponse(
             {
                 "success": True,
@@ -2037,6 +2071,11 @@ def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> Js
         motivo = motivo_custom or "Cancelada por el cliente debido a cambio de cotización"
         transaccion.cancelar_por_cotizacion(motivo)
 
+        # Si es una compra, revertir el movimiento de stock pendiente
+        # Si es una venta, no hay movimiento de stock que revertir
+        if transaccion.tipo_operacion == "compra":
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado='pendiente').first():
+                cancelar_movimiento(movimiento.id)
         return JsonResponse(
             {
                 "success": True,
@@ -2087,7 +2126,12 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
 
         # Aceptar la nueva cotización
         transaccion.aceptar_nueva_cotizacion()
-
+        # Aplicar comisión de medio de pago nuevamente
+        if transaccion.tipo_operacion == "compra":
+            transaccion.monto_origen = Decimal(round((transaccion.monto_destino * transaccion.tasa_aplicada) * (1 + _get_payment_commission(transaccion.medio_pago, transaccion.cliente, "compra")/100)))
+        else:
+            transaccion.monto_destino = Decimal(round((transaccion.monto_origen * transaccion.tasa_aplicada) * (1 - _get_payment_commission(transaccion.medio_cobro, transaccion.cliente, "venta")/100)))
+        transaccion.save()
         return JsonResponse(
             {
                 "success": True,
