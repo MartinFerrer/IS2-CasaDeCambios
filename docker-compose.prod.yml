@@ -41,36 +41,6 @@ services:
     depends_on:
       - web
 
-      
-  # --- SERVICIO DE CELERY WORKER (Procesa las tareas) ---
-  celery_worker:
-    build: ./app
-    # El comando para correr el worker
-    command: uv run celery -A global_exchange_django worker -l info
-    working_dir: /app
-    env_file:
-      - ./.env.prod
-    environment:
-      - DJANGO_SETTINGS_MODULE=global_exchange_django.settings
-    depends_on:
-      - redis
-      - db
-    restart: always
-
-  # --- SERVICIO DE CELERY BEAT (El programador de tareas recurrentes) ---
-  celery_beat:
-    build: ./app
-    # Usamos DatabaseScheduler para que las frecuencias sean configurables desde el admin de Django y persistan
-    command: uv run celery -A global_exchange_django beat -l info --scheduler django_celery_beat.schedulers.DatabaseScheduler
-    working_dir: /app
-    env_file:
-      - ./.env.prod
-    environment:
-      - DJANGO_SETTINGS_MODULE=global_exchange_django.settings
-    depends_on:
-      - redis
-      - db
-    restart: always
   simulador-api:
     build:
       context: ./api_externo_simulador
