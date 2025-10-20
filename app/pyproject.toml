@@ -26,10 +26,6 @@ dependencies = [
     "whitenoise>=6.8.2",
     "pyotp>=2.9.0",
     "qrcode[pil]>=7.4.2",
-    "celery>=5.2",
-    "redis>=4.0",
-    "python-dotenv>=1.0",
-    "django-crontab>=0.7.1",
     "stripe>=8.0.0",
     "sqlparse>=0.4.4",
     # Simulador externo/API externa
@@ -49,8 +45,6 @@ dev = [
     "pre-commit>=4.3.0",
     "djlint>=1.36.4",
     "pytest>=8.4.1",
-    "celery>=5.2",
-    "redis>=4.0",
     "pytest-django>=4.11.1",
     "model-bakery>=1.16.0",
 ]

@@ -6,13 +6,10 @@ configuración de perfiles y gestión de información personal.
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_POST
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
 
 from apps.seguridad.models import PerfilMFA
-
-from .models import Cliente, PreferenciaNotificacion
 
 
 def ejemplo(request: HttpRequest) -> HttpResponse:
@@ -37,7 +34,7 @@ def configuracion_usuario(request):
     - Configuración MFA (autenticación multifactor)
     - Medios de pago (si el usuario tiene clientes)
     - Listado de clientes asociados
-    - Notificaciones (actualizaciones de tasas, etc.)
+    - Notificaciones (futuro)
 
     Args:
         request: Objeto HttpRequest de Django.
@@ -78,44 +75,6 @@ def configuracion_usuario(request):
     }
 
     return render(request, "usuarios/configuracion_usuario.html", context)
-
-
-@require_POST
-@login_required
-def actualizar_preferencia_notificacion(request):
-    """Vista para la configuracion de frecuencia de notificaciones en base a cambios en la tasa de cambios
-
-    Args:
-        request (_type_): _description_
-
-    Returns:
-        _type_: _description_
-
-    """
-    cliente_id = request.POST.get("cliente_id")
-    if not cliente_id:
-        return JsonResponse({"error": "cliente_id requerido"}, status=400)
-
-    cliente = get_object_or_404(Cliente, pk=cliente_id)
-
-    raw_frecuencia = (request.POST.get("frecuencia") or "").strip().lower()
-    habilitado_raw = request.POST.get("habilitado", "false")
-    habilitado = habilitado_raw in ("true", "1", "on", "yes")
-
-    opciones_validas = [choice[0] for choice in PreferenciaNotificacion.FRECUENCIA_CHOICES]
-
-    if raw_frecuencia not in opciones_validas:
-        return JsonResponse(
-            {"error": "frecuencia inválida", "received": raw_frecuencia, "valid": opciones_validas},
-            status=400,
-        )
-
-    pref, _ = PreferenciaNotificacion.objects.get_or_create(cliente=cliente)
-    pref.habilitado = habilitado
-    pref.frecuencia = raw_frecuencia
-    pref.save(update_fields=["habilitado", "frecuencia"])
-
-    return JsonResponse({"success": True})
 
 
 @login_required
