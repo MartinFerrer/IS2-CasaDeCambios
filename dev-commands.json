@@ -4,6 +4,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "build"
@@ -14,6 +16,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "build",
@@ -25,6 +29,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "up"
@@ -35,6 +41,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "up",
@@ -47,9 +55,12 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
-        "down"
+        "down",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
@@ -57,10 +68,13 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "down",
-        "-v"
+        "-v",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
@@ -68,6 +82,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "run",
@@ -86,6 +102,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "run",
@@ -120,6 +138,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "logs",
@@ -167,6 +187,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "run",
@@ -189,6 +211,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "run",
@@ -214,8 +238,8 @@
         "sphinx-build",
         "-b",
         "html",
-        "docs",
-        "docs/_build/html"
+        "../docs",
+        "../docs/_build/html"
       ],
       "cwd": "app"
     },
@@ -223,6 +247,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "up",
@@ -254,6 +280,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-dev",
         "-f",
         "docker-compose.dev.yml",
         "exec",
@@ -266,6 +294,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
         "build"
@@ -276,6 +306,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
         "build",
@@ -287,6 +319,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
         "up",
@@ -295,13 +329,24 @@
       ],
       "cwd": "."
     },
+    "deploy-heroku": {
+      "cmd": [
+        "python",
+        "dev.py",
+        "deploy-heroku"
+      ],
+      "cwd": "."
+    },
     "down-prod": {
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
-        "down"
+        "down",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
@@ -309,10 +354,13 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
         "down",
-        "-v"
+        "-v",
+        "--remove-orphans"
       ],
       "cwd": "."
     },
@@ -320,6 +368,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
         "logs",
@@ -331,6 +381,8 @@
       "cmd": [
         "docker",
         "compose",
+        "-p",
+        "casadecambios-prod",
         "-f",
         "docker-compose.prod.yml",
         "exec",

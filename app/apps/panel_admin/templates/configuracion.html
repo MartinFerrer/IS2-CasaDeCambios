@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% block title %}
     Configuración del Sistema
 {% endblock title %}
@@ -6,7 +7,7 @@
     bg-gradient-to-br from-blue-20 to-blue-200 min-h-screen
 {% endblock body_class %}
 {% block header %}
-    {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin_conditional.html" %}
 {% endblock %}
 {% block content %}
     <main class="prose prose-a:no-underline max-w-screen-lg container mx-auto px-4 py-8">
@@ -14,6 +15,8 @@
         <!-- Tabs para diferentes secciones de configuración -->
         <div class="tabs tabs-box mb-6">
             <a class="tab tab-active" data-tab="comisiones">Comisiones</a>
+            <a class="tab" data-tab="limites">Límites</a>
+            <a class="tab" data-tab="entidades">Entidades</a>
             <a class="tab" data-tab="otras">Otras</a>
             <!-- Más tabs para futuras configuraciones -->
         </div>
@@ -32,14 +35,15 @@
                                 <label class="label row">
                                     <span class="label-text">Cliente {{ tipo_cliente.nombre }} (%)</span>
                                 </label>
-                                <input type="number"
+                                <input type="decimal"
                                        name="descuento_comision_{{ tipo_cliente.pk }}"
                                        min="0"
+                                       pattern="^\d{1,2}(,\d)?$"
                                        max="20"
                                        step="0.1"
-                                       class="input input-bordered"
-                                       title="Debe ser entre 0 y 20"
-                                       value="{{ tipo_cliente.descuento_sobre_comision | floatformat:1 }}"
+                                       class="input input-bordered decimal-input"
+                                       title="Debe ser entre 0 y 20, máximo 1 decimal"
+                                       value="{{ tipo_cliente.descuento_sobre_comision | strip_trailing_zeros }}"
                                        required>
                             {% endfor %}
                         </div>
@@ -49,6 +53,187 @@
                             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+        <!-- Sección de Límites de Transacciones -->
+        <div id="limites" class="config-section hidden">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mt-0 mb-6">Límites de Transacciones</h2>
+                    <!-- Información actual de límites -->
+                    {% if limite_actual %}
+                        <div class="alert alert-info mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 class="stroke-current shrink-0 w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                            <div>
+                                <h3 class="font-bold">Límites Actuales</h3>
+                                <div class="text-sm">
+                                    <p>
+                                        <strong>Límite Diario:</strong> ₲{{ limite_actual.limite_diario|strip_trailing_zeros:0 }}
+                                    </p>
+                                    <p>
+                                        <strong>Límite Mensual:</strong> ₲{{ limite_actual.limite_mensual|strip_trailing_zeros:0 }}
+                                    </p>
+                                    <p>
+                                        <strong>Última Modificación:</strong> {{ limite_actual.fecha_modificacion|date:"d/m/Y H:i" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="stroke-current shrink-0 h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <span>No hay límites configurados aún.</span>
+                        </div>
+                    {% endif %}
+                    <!-- Formulario de límites -->
+                    <form method="POST" action="{% url 'guardar_limites' %}" class="space-y-6">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-[max-content_1fr] gap-4">
+                            <label class="label row">
+                                <span class="label-text">Límite Diario (₲)</span>
+                            </label>
+                            <input type="number"
+                                   name="limite_diario"
+                                   min="1"
+                                   step="1"
+                                   class="input input-bordered"
+                                   placeholder="Ej: 10000000"
+                                   required>
+                            <label class="label row">
+                                <span class="label-text">Límite Mensual (₲)</span>
+                            </label>
+                            <input type="number"
+                                   name="limite_mensual"
+                                   min="1"
+                                   step="1"
+                                   class="input input-bordered"
+                                   placeholder="Ej: 100000000"
+                                   required>
+                        </div>
+                        <!-- Botones de acción -->
+                        <div class="flex justify-between items-center">
+                            <button type="button"
+                                    class="btn btn-info"
+                                    onclick="document.getElementById('modal_historial_limites').showModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke-width="1.5"
+                                     stroke="currentColor"
+                                     class="w-5 h-5 mr-2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                </svg>
+                                Ver Historial
+                            </button>
+                            <div class="flex space-x-4">
+                                <button type="reset" class="btn btn-outline">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Sección de Entidades -->
+        <div id="entidades" class="config-section hidden">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="card-title text-2xl mt-0">Gestión de Entidades de Medios Finanieros</h2>
+                        <button class="btn btn-primary"
+                                onclick="document.getElementById('modal_crear_entidad').showModal()">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5 mr-2"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Crear Entidad
+                        </button>
+                    </div>
+                    <!-- Tabla de entidades -->
+                    <div class="overflow-x-auto max-h-96 rounded-lg bg-white shadow-lg">
+                        <table class="table table-zebra">
+                            <thead class="sticky top-0 bg-white">
+                                <tr>
+                                    <th class="bg-blue-100">ID</th>
+                                    <th class="bg-blue-100">Nombre</th>
+                                    <th class="bg-blue-100">Tipo</th>
+                                    <th class="bg-blue-100">Comisión Compra</th>
+                                    <th class="bg-blue-100">Comisión Venta</th>
+                                    <th class="bg-blue-100">Estado</th>
+                                    <th class="bg-blue-100 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entidad in entidades %}
+                                    <tr class="hover">
+                                        <td>{{ entidad.id }}</td>
+                                        <td>{{ entidad.nombre }}</td>
+                                        <td>
+                                            {% if entidad.tipo == 'banco' %}
+                                                <div class="badge badge-info">Banco</div>
+                                            {% elif entidad.tipo == 'emisor_tarjeta' %}
+                                                <div class="badge badge-success">Emisor Tarjeta</div>
+                                            {% else %}
+                                                <div class="badge badge-warning">Billetera</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ entidad.comision_compra|strip_trailing_zeros }}%</td>
+                                        <td>{{ entidad.comision_venta|strip_trailing_zeros }}%</td>
+                                        <td>
+                                            {% if entidad.activo %}
+                                                <div class="badge badge-success">Activo</div>
+                                            {% else %}
+                                                <div class="badge badge-error">Inactivo</div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="flex justify-center space-x-2">
+                                            <button class="btn btn-sm btn-info"
+                                                    onclick="document.getElementById('modal_editar_entidad_{{ entidad.id }}').showModal()">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-4 w-4"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                Editar
+                                            </button>
+                                            <button class="btn btn-sm btn-error"
+                                                    onclick="document.getElementById('modal_eliminar_entidad_{{ entidad.id }}').showModal()">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-4 w-4"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Eliminar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-gray-500">No hay entidades registradas.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -62,12 +247,235 @@
             </div>
         </div>
     </main>
+    <!-- Modal para crear entidad -->
+    <dialog id="modal_crear_entidad" class="modal">
+        <div class="modal-box w-11/12 max-w-2xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-blue-700 mb-4">Crear Nueva Entidad</h3>
+            <form method="post" action="{% url 'entidad_crear' %}" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Nombre</span>
+                        </label>
+                        <input type="text"
+                               name="nombre"
+                               placeholder="Nombre de la entidad"
+                               class="input input-bordered"
+                               required />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tipo</span>
+                        </label>
+                        <select name="tipo" class="select select-bordered" required>
+                            <option value="">Seleccionar tipo...</option>
+                            <option value="banco">Banco</option>
+                            <option value="emisor_tarjeta">Emisor de Tarjeta</option>
+                            <option value="proveedor_billetera">Proveedor de Billetera</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Comisión Compra (%)</span>
+                        </label>
+                        <input type="decimal"
+                               name="comision_compra"
+                               pattern="^\d*\,?\d+$"
+                               step="0.01"
+                               min="0"
+                               placeholder="0,00"
+                               class="input input-bordered decimal-input"
+                               required />
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Comisión Venta (%)</span>
+                        </label>
+                        <input type="decimal"
+                               name="comision_venta"
+                               pattern="^\d*\,?\d+$"
+                               step="0.01"
+                               min="0"
+                               placeholder="0,00"
+                               class="input input-bordered decimal-input"
+                               required />
+                    </div>
+                </div>
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        <span class="label-text">Estado Activo</span>
+                        <input type="checkbox" name="activo" class="checkbox" checked />
+                    </label>
+                </div>
+                <div class="modal-action">
+                    <button type="button"
+                            class="btn btn-outline"
+                            onclick="document.getElementById('modal_crear_entidad').close()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Entidad</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+    <!-- Modales para editar y eliminar entidades -->
+    {% for entidad in entidades %}
+        <!-- Modal de edición -->
+        <dialog id="modal_editar_entidad_{{ entidad.id }}" class="modal">
+            <div class="modal-box w-11/12 max-w-2xl">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="font-bold text-lg text-blue-700 mb-4">Editar Entidad</h3>
+                <form method="post"
+                      action="{% url 'entidad_editar' entidad.id %}"
+                      class="space-y-4">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Nombre</span>
+                            </label>
+                            <input type="text"
+                                   name="nombre"
+                                   value="{{ entidad.nombre }}"
+                                   class="input input-bordered"
+                                   required />
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Tipo</span>
+                            </label>
+                            <select name="tipo" class="select select-bordered" required>
+                                <option value="banco" {% if entidad.tipo == 'banco' %}selected{% endif %}>Banco</option>
+                                <option value="emisor_tarjeta"
+                                        {% if entidad.tipo == 'emisor_tarjeta' %}selected{% endif %}>
+                                    Emisor de Tarjeta
+                                </option>
+                                <option value="proveedor_billetera"
+                                        {% if entidad.tipo == 'proveedor_billetera' %}selected{% endif %}>
+                                    Proveedor de Billetera
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Comisión Compra (%)</span>
+                            </label>
+                            <input type="decimal"
+                                   name="comision_compra"
+                                   pattern="^\d*\,?\d+$"
+                                   value="{{ entidad.comision_compra }}"
+                                   step="0.01"
+                                   min="0"
+                                   class="input input-bordered decimal-input"
+                                   required />
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Comisión Venta (%)</span>
+                            </label>
+                            <input type="decimal"
+                                   name="comision_venta"
+                                   pattern="^\d*\,?\d+$"
+                                   value="{{ entidad.comision_venta }}"
+                                   step="0.01"
+                                   min="0"
+                                   class="input input-bordered decimal-input"
+                                   required />
+                        </div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text">Estado Activo</span>
+                            <input type="checkbox"
+                                   name="activo"
+                                   class="checkbox"
+                                   {% if entidad.activo %}checked{% endif %} />
+                        </label>
+                    </div>
+                    <div class="modal-action">
+                        <button type="button"
+                                class="btn btn-outline"
+                                onclick="document.getElementById('modal_editar_entidad_{{ entidad.id }}').close()">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">Actualizar</button>
+                    </div>
+                </form>
+            </div>
+        </dialog>
+        <!-- Modal de eliminación -->
+        <dialog id="modal_eliminar_entidad_{{ entidad.id }}" class="modal">
+            <div class="modal-box">
+                <h3 class="font-bold text-lg text-red-600 mb-4">Confirmar Eliminación</h3>
+                <p class="py-4">
+                    ¿Estás seguro de que quieres eliminar la entidad "<strong>{{ entidad.nombre }}</strong>"?
+                </p>
+                <p class="text-sm text-gray-600 mb-4">Esta acción no se puede deshacer.</p>
+                <div class="modal-action">
+                    <button type="button"
+                            class="btn btn-outline"
+                            onclick="document.getElementById('modal_eliminar_entidad_{{ entidad.id }}').close()">
+                        Cancelar
+                    </button>
+                    <form method="post"
+                          action="{% url 'entidad_eliminar' entidad.id %}"
+                          class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-error">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </dialog>
+    {% endfor %}
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast toast-end hidden">
         <div class="alert alert-success">
             <span>Cambios guardados exitosamente.</span>
         </div>
     </div>
+    <!-- Modal para Historial de Límites -->
+    <dialog id="modal_historial_limites" class="modal">
+        <div class="modal-box w-11/12 max-w-4xl">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="document.getElementById('modal_historial_limites').close()">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-blue-700 mb-4">Historial de Límites de Transacciones</h3>
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th>Fecha de Modificación</th>
+                            <th>Límite Diario</th>
+                            <th>Límite Mensual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for limite in historial_limites %}
+                            <tr>
+                                <td>{{ limite.fecha_modificacion|date:"d/m/Y H:i" }}</td>
+                                <td>₲{{ limite.limite_diario|strip_trailing_zeros:0 }}</td>
+                                <td>₲{{ limite.limite_mensual|strip_trailing_zeros:0 }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4">No hay registros de límites</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </dialog>
 {% endblock %}
 {% block extra_scripts %}
     <script>

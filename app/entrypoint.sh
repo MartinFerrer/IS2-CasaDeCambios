@@ -24,5 +24,13 @@ if [ "${DEBUG}" = "False" ] || [ "${DEBUG}" = "false" ] || [ "${DEBUG}" = "0" ];
     uv run python manage.py collectstatic --noinput
 fi
 
+# Set default PORT for Heroku if not set
+PORT=${PORT:-8000}
+
 # Exec the main command (runserver, gunicorn, etc.)
-exec "$@"
+# If no command is provided, start gunicorn
+if [ $# -eq 0 ]; then
+    exec uv run gunicorn --bind 0.0.0.0:$PORT global_exchange_django.wsgi:application
+else
+    exec "$@"
+fi

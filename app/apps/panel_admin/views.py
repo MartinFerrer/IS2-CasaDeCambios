@@ -6,18 +6,67 @@ así como la lógica de asociación entre Cliente y Usuario.
 
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+import pycountry
 from django.contrib import messages
 from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse
+from django.db.models import Q
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
+from forex_python.converter import CurrencyCodes
 
+from apps.operaciones.forms import DivisaForm, TasaCambioForm
+from apps.operaciones.models import Divisa, TasaCambio, TasaCambioHistorial
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import admin_required, permission_required
+from apps.seguridad.permissions import (
+    PERM_ADD_CLIENTE,
+    PERM_ADD_DIVISA,
+    PERM_ADD_ENTIDADFINANCIERA,
+    PERM_ADD_TASACAMBIO,
+    PERM_ADD_TAUSER,
+    PERM_ADD_USUARIO,
+    PERM_ASIGNAR_PERMISO_ROL,
+    PERM_ASOCIAR_CLIENTE,
+    PERM_CHANGE_CLIENTE,
+    PERM_CHANGE_COMISIONES,
+    PERM_CHANGE_DIVISA,
+    PERM_CHANGE_ENTIDADFINANCIERA,
+    PERM_CHANGE_LIMITETRANSACCIONES,
+    PERM_CHANGE_STOCKDIVISATAUSER,
+    PERM_CHANGE_TASACAMBIO,
+    PERM_CHANGE_TAUSER,
+    PERM_CHANGE_USUARIO,
+    PERM_DELETE_CLIENTE,
+    PERM_DELETE_DIVISA,
+    PERM_DELETE_ENTIDADFINANCIERA,
+    PERM_DELETE_TAUSER,
+    PERM_DELETE_USUARIO,
+    PERM_DESASIGNAR_PERMISO_ROL,
+    PERM_DESASOCIAR_CLIENTE,
+    PERM_VIEW_CLIENTE,
+    PERM_VIEW_DIVISA,
+    PERM_VIEW_MOVIMIENTOSTOCK,
+    PERM_VIEW_ROL,
+    PERM_VIEW_TASACAMBIO,
+    PERM_VIEW_TASACAMBIOHISTORIAL,
+    PERM_VIEW_TAUSER,
+    PERM_VIEW_USUARIO,
+    get_permission_display_name,
+)
+from apps.stock.models import MovimientoStock
+from apps.stock.services import depositar_divisas, extraer_divisas
+from apps.tauser.models import Tauser
+from apps.transacciones.models import EntidadFinanciera, LimiteTransacciones
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
 
-from .forms import ClienteForm, UsuarioForm
+from .forms import ClienteForm, TauserForm, UsuarioForm
 
 
+@admin_required
 def panel_inicio(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de inicio del panel de administración.
 
@@ -31,24 +80,41 @@ def panel_inicio(request: HttpRequest) -> HttpResponse:
     return render(request, "panel_inicio.html")
 
 
+@permission_required(PERM_CHANGE_COMISIONES, PERM_CHANGE_LIMITETRANSACCIONES, PERM_CHANGE_ENTIDADFINANCIERA)
 def configuracion(request: HttpRequest) -> HttpResponse:
     """Renderiza la página de configuracion de opciones.
 
     Se pasan los siguentes queryset para la configuracion:
         - TipoCliente: Configuración de descuento sobre la comisión
+        - EntidadFinanciera: Gestión de entidades financieras
+        - LimiteTransacciones: Configuración de límites de transacciones
 
     Args:
         request: HttpRequest object.
 
     Retorna:
-        HttpResponse: Rendered panel_inicio.html template.
+        HttpResponse: Rendered configuracion.html template.
 
     """
     tipos_clientes = TipoCliente.objects.all()
-    return render(request, "configuracion.html", {"tipos_clientes": tipos_clientes})
+    entidades = EntidadFinanciera.objects.all().order_by("tipo", "nombre")
+    limite_actual = LimiteTransacciones.get_limite_actual()
+    historial_limites = LimiteTransacciones.objects.all().order_by("-fecha_modificacion")
+
+    return render(
+        request,
+        "configuracion.html",
+        {
+            "tipos_clientes": tipos_clientes,
+            "entidades": entidades,
+            "limite_actual": limite_actual,
+            "historial_limites": historial_limites,
+        },
+    )
 
 
 @require_POST
+@permission_required(PERM_CHANGE_COMISIONES)
 def guardar_comisiones(request: HttpRequest) -> HttpResponse:
     """Guarda los descuentos de comisión enviados por el formulario.
 
@@ -104,7 +170,55 @@ def guardar_comisiones(request: HttpRequest) -> HttpResponse:
     return redirect("configuracion")
 
 
+@require_POST
+@permission_required(PERM_CHANGE_LIMITETRANSACCIONES)
+def guardar_limites(request: HttpRequest) -> HttpResponse:
+    """Guarda los límites de transacciones enviados por el formulario.
+
+    Args:
+        request (HttpRequest): Petición HTTP POST con 'limite_diario' y 'limite_mensual'.
+
+    Retorna:
+        HttpResponse: Redirige a 'configuracion' con mensaje de éxito o error.
+
+    """
+    limite_diario_str = request.POST.get("limite_diario")
+    limite_mensual_str = request.POST.get("limite_mensual")
+
+    if not limite_diario_str or not limite_mensual_str:
+        messages.error(request, "Faltan valores en el formulario de límites.")
+        return redirect("configuracion")
+
+    try:
+        limite_diario = Decimal(limite_diario_str).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        limite_mensual = Decimal(limite_mensual_str).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError):
+        messages.error(request, "Los valores ingresados no son válidos.")
+        return redirect("configuracion")
+
+    try:
+        with transaction.atomic():
+            limite = LimiteTransacciones(limite_diario=limite_diario, limite_mensual=limite_mensual)
+            limite.full_clean()  # Usa las validaciones del modelo
+            limite.save()
+
+        messages.success(
+            request,
+            f"Límites actualizados exitosamente. "
+            f"Diario: ₲{strip_trailing_zeros(limite.limite_diario, 0)}, "
+            f"Mensual: ₲{strip_trailing_zeros(limite.limite_mensual, 0)}",
+        )
+    except ValidationError as e:
+        for error in e.messages:
+            messages.error(request, error)
+    except Exception as e:
+        messages.error(request, f"Error al guardar los límites: {e}")
+
+    return redirect("configuracion")
+
+
 # CRUD de Usuarios
+@permission_required(PERM_VIEW_USUARIO)
 def usuario_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de usuarios y roles en el panel de administración.
 
@@ -120,6 +234,7 @@ def usuario_list(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos})
 
 
+@permission_required(PERM_ADD_USUARIO)
 def usuario_create(request: HttpRequest) -> HttpResponse:
     """Crea un nuevo usuario en el panel de administración.
 
@@ -134,10 +249,11 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
         form = UsuarioForm(request.POST)
         if form.is_valid():
             usuario = form.save(commit=False)
+            usuario.set_password(form.cleaned_data["password"])
             usuario.save()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -151,6 +267,7 @@ def usuario_create(request: HttpRequest) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
+@permission_required(PERM_CHANGE_USUARIO)
 def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Edita un usuario existente en el panel de administración.
 
@@ -168,6 +285,9 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
         if form.is_valid():
             # Guardar el usuario sin los grupos primero
             usuario = form.save(commit=False)
+            # No se encripta la contraseña si el campo de la contraseña es la vieja
+            if not form.cleaned_data["password"] == form.initial["password"]:
+                usuario.set_password(form.cleaned_data["password"])
             usuario.save()
 
             # Verificar si el usuario tenía el rol "Usuario Asociado a Cliente"
@@ -175,7 +295,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
             tenia_usuario_asociado = usuario_asociado_grupo and usuario_asociado_grupo in usuario.groups.all()
 
             # Obtener los grupos seleccionados del formulario
-            grupos_seleccionados = form.cleaned_data['groups']
+            grupos_seleccionados = form.cleaned_data["groups"]
 
             # Limpiar grupos existentes y agregar los seleccionados
             usuario.groups.clear()
@@ -193,6 +313,7 @@ def usuario_edit(request: HttpRequest, pk: int) -> HttpResponse:
     return render(request, "usuario_list.html", {"usuarios": usuarios, "grupos": grupos, "form": form})
 
 
+@permission_required(PERM_DELETE_USUARIO)
 def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina un usuario existente en el panel de administración.
 
@@ -214,6 +335,7 @@ def usuario_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 # CRUD de Roles
+@permission_required(PERM_VIEW_ROL)
 def rol_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de roles (grupos) y sus permisos asociados.
 
@@ -224,11 +346,131 @@ def rol_list(request: HttpRequest) -> HttpResponse:
         HttpResponse: Rendered rol_list.html template.
 
     """
-    grupos = Group.objects.prefetch_related("permissions").all()
-    return render(request, "rol_list.html", {"grupos": grupos})
+    from django.contrib.auth.models import Permission
+
+    # Serializar grupos y permisos en estructuras simples para la plantilla
+    grupos_qs = Group.objects.prefetch_related("permissions", "user_set").all()
+    grupos = []
+    for g in grupos_qs:
+        permisos = []
+        for p in g.permissions.all():
+            permisos.append(
+                {
+                    "id": getattr(p, "pk", None),
+                    "codename": p.codename,
+                    "name": p.name,
+                    "display_name": get_permission_display_name(p.codename) if p.codename else p.name,
+                }
+            )
+        grupos.append(
+            {
+                "id": getattr(g, "pk", None),
+                "name": g.name,
+                "permission_count": len(permisos),
+                "permissions": permisos,
+                "user_count": g.user_set.count(),
+            }
+        )
+
+    # Obtener todos los permisos disponibles, agrupados por app (serializados)
+    permisos_por_app = {}
+    for perm in Permission.objects.select_related("content_type").all():
+        app_label = perm.content_type.app_label
+        if app_label not in permisos_por_app:
+            permisos_por_app[app_label] = []
+        permisos_por_app[app_label].append(
+            {
+                "id": getattr(perm, "pk", None),
+                "codename": perm.codename,
+                "name": perm.name,
+                "display_name": get_permission_display_name(perm.codename) if perm.codename else perm.name,
+            }
+        )
+
+    return render(
+        request,
+        "rol_list.html",
+        {
+            "grupos": grupos,
+            "permisos_por_app": permisos_por_app,
+        },
+    )
+
+
+@require_POST
+@permission_required(PERM_ASIGNAR_PERMISO_ROL)
+def rol_asignar_permiso(request: HttpRequest, rol_id: int) -> HttpResponse:
+    """Asigna un permiso a un rol (grupo).
+
+    Args:
+        request: HttpRequest object con permiso_id en POST.
+        rol_id: ID del rol al que se asignará el permiso.
+
+    Retorna:
+        HttpResponse: Redirect to rol_listar with success or error message.
+
+    """
+    from django.contrib.auth.models import Permission
+
+    grupo = get_object_or_404(Group, pk=rol_id)
+    permiso_id = request.POST.get("permiso_id")
+
+    if not permiso_id:
+        messages.error(request, "Debe seleccionar un permiso.")
+        return redirect("rol_listar")
+
+    try:
+        permiso = Permission.objects.get(pk=permiso_id)
+
+        if permiso in grupo.permissions.all():
+            messages.warning(request, f"El rol '{grupo.name}' ya tiene el permiso '{permiso.name}'.")
+        else:
+            grupo.permissions.add(permiso)
+            messages.success(request, f"Permiso '{permiso.name}' asignado al rol '{grupo.name}' exitosamente.")
+    except Permission.DoesNotExist:
+        messages.error(request, "El permiso seleccionado no existe.")
+    except Exception as e:
+        messages.error(request, f"Error al asignar el permiso: {e}")
+
+    return redirect("rol_listar")
+
+
+@require_POST
+@permission_required(PERM_DESASIGNAR_PERMISO_ROL)
+def rol_desasignar_permiso(request: HttpRequest, rol_id: int, permiso_id: int) -> HttpResponse:
+    """Desasigna un permiso de un rol (grupo).
+
+    Args:
+        request: HttpRequest object.
+        rol_id: ID del rol del que se quitará el permiso.
+        permiso_id: ID del permiso a quitar.
+
+    Retorna:
+        HttpResponse: Redirect to rol_listar with success or error message.
+
+    """
+    from django.contrib.auth.models import Permission
+
+    grupo = get_object_or_404(Group, pk=rol_id)
+
+    try:
+        permiso = Permission.objects.get(pk=permiso_id)
+
+        if permiso not in grupo.permissions.all():
+            messages.warning(request, f"El rol '{grupo.name}' no tiene el permiso '{permiso.name}'.")
+        else:
+            grupo.permissions.remove(permiso)
+            messages.success(request, f"Permiso '{permiso.name}' removido del rol '{grupo.name}' exitosamente.")
+    except Permission.DoesNotExist:
+        messages.error(request, "El permiso seleccionado no existe.")
+    except Exception as e:
+        messages.error(request, f"Error al quitar el permiso: {e}")
+
+    return redirect("rol_listar")
 
 
 # CRUD de Clientes
+@permission_required(PERM_VIEW_CLIENTE)
 def cliente_list(request: HttpRequest) -> HttpResponse:
     """Renderiza la lista de clientes, tipos de cliente y usuarios en el panel de administración.
 
@@ -249,6 +491,7 @@ def cliente_list(request: HttpRequest) -> HttpResponse:
     )
 
 
+@permission_required(PERM_ADD_CLIENTE)
 def cliente_create(request: HttpRequest) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -276,6 +519,7 @@ def cliente_create(request: HttpRequest) -> HttpResponse:
     )
 
 
+@permission_required(PERM_CHANGE_CLIENTE)
 def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     """Valida el formulario de creación de cliente y renderiza la lista de clientes con el nuevo cliente.
 
@@ -305,6 +549,7 @@ def cliente_edit(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@permission_required(PERM_DELETE_CLIENTE)
 def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     """Elimina al cliente y renderiza la lista de clientes actualizada.
 
@@ -330,6 +575,7 @@ def cliente_delete(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@permission_required(PERM_ASOCIAR_CLIENTE)
 def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     """Muestra el formulario para asociar un cliente a un usuario.
 
@@ -353,6 +599,7 @@ def asociar_cliente_usuario_form(request: HttpRequest) -> HttpResponse:
     return render(request, "asociar_cliente_usuario.html", {"clientes": clientes, "usuarios": usuarios})
 
 
+@permission_required(PERM_ASOCIAR_CLIENTE)
 def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Asocia un cliente a un usuario.
 
@@ -381,6 +628,7 @@ def asociar_cliente_usuario_post(request: HttpRequest, usuario_id: int) -> HttpR
     return redirect("asociar_cliente_usuario_form")
 
 
+@permission_required(PERM_DESASOCIAR_CLIENTE)
 def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpResponse:
     """Desasocia un cliente a un usuario.
 
@@ -411,3 +659,768 @@ def desasociar_cliente_usuario(request: HttpRequest, usuario_id: int) -> HttpRes
 
         return redirect("asociar_cliente_usuario_form")
     return redirect("asociar_cliente_usuario_form")
+
+
+# Sección de Divisas:
+
+
+@permission_required(PERM_ADD_DIVISA)
+def crear_divisa(request):
+    """View para crear una nueva divisa.
+
+    Argumento:
+        request: La solicitud HTTP.
+    Retorna:
+        HttpResponse: el formulario de creación o la redirección después de guardar.
+
+    """
+    if request.method == "POST":
+        form = DivisaForm(request.POST)
+        if form.is_valid():
+            divisa = form.save()
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Divisa creada exitosamente",
+                    "divisa": {
+                        "pk": str(divisa.pk),
+                        "codigo": divisa.codigo,
+                        "nombre": divisa.nombre,
+                        "simbolo": divisa.simbolo,
+                        "estado": divisa.estado,
+                    },
+                },
+                status=201,
+            )
+        else:
+            return JsonResponse({"success": False, "errors": form.errors}, status=400)
+    form = DivisaForm()
+    return render(request, "divisa_list.html", {"form": form})
+
+
+@permission_required(PERM_CHANGE_DIVISA)
+def edit_divisa(request, pk):
+    """View para editar una divisa existente.
+
+    Argumentos:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a editar.
+    Retorna:
+        HttpResponse: el formulario de edición o la redirección después de guardar.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    if request.method == "POST":
+        divisa.nombre = request.POST.get("nombre")
+        divisa.simbolo = request.POST.get("simbolo")
+        divisa.estado = request.POST.get("estado")
+        divisa.save()
+        return redirect("divisa_list")
+
+    return redirect("divisa_list")
+
+
+@permission_required(PERM_DELETE_DIVISA)
+def delete_divisa(request, pk):
+    """View para eliminar una divisa específica.
+
+    Argumento:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a eliminar.
+    Retorna:
+        HttpResponse: Redirige a la lista de divisas después de eliminar.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    if request.method == "POST":
+        divisa.delete()
+        return redirect("divisa_list")
+    return redirect("divisa_detail", pk=pk)
+
+
+@permission_required(PERM_VIEW_DIVISA)
+def divisa_detail(request, pk):
+    """View para mostrar los detalles de una divisa específica.
+
+    Argumento:
+        request: La solicitud HTTP.
+        pk: El identificador de la divisa a mostrar.
+    Retorna:
+        HttpResponse: Renderiza el template divisa_detalle.html con el contexto de la divisa.
+
+    """
+    divisa = get_object_or_404(Divisa, pk=pk)
+    return render(request, "divisa_detalle.html", {"divisa": divisa})
+
+
+@permission_required(PERM_VIEW_DIVISA)
+def divisa_listar(request: HttpRequest) -> object:
+    """Muestra el listado de todas las divisas en el sistema.
+
+    Argumentos:
+        request: La solicitud HTTP.
+
+    Retorna:
+        HttpResponse: La página HTML con la lista de divisas.
+    """
+    divisas = Divisa.objects.all().order_by("codigo")
+    return render(request, "divisa_list.html", {"object_list": divisas})
+
+
+@permission_required(PERM_VIEW_DIVISA)
+def obtener_divisas(request: HttpRequest) -> JsonResponse:
+    """Obtiene las divisas disponibles en el sistema y las devuelve como un JSON.
+
+    Esta vista utiliza la librería `pycountry` para obtener una lista de códigos
+    ISO de divisas.
+
+    Argumentos:
+        request: La solicitud HTTP.
+
+    Returns:
+        JsonResponse: Una respuesta HTTP con una lista de diccionarios de divisas.
+
+    """
+    c = CurrencyCodes()
+    data = []
+    for currency in pycountry.currencies:
+        codigo = getattr(currency, "alpha_3", None)
+        if not codigo:
+            continue
+        nombre = getattr(currency, "name", "Desconocida")
+        simbolo = c.get_symbol(codigo)
+        data.append({"codigo": codigo, "nombre": nombre, "simbolo": simbolo})
+
+    return JsonResponse(data, safe=False)
+
+
+# CRUD de Entidades de Medios financiero
+@permission_required(PERM_ADD_ENTIDADFINANCIERA)
+def entidad_create(request: HttpRequest) -> HttpResponse:
+    """Crea una nueva entidad de medio financiero.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Redirect to configuracion with entidades tab.
+
+    """
+    if request.method == "POST":
+        try:
+            nombre = request.POST.get("nombre", "").strip()
+            tipo = request.POST.get("tipo")
+            comision_compra = Decimal(request.POST.get("comision_compra", "0"))
+            comision_venta = Decimal(request.POST.get("comision_venta", "0"))
+            activo = request.POST.get("activo") == "on"
+
+            if not nombre or not tipo:
+                messages.error(request, "Nombre y tipo son obligatorios.")
+                return redirect("configuracion")
+
+            # Verificar que no exista ya esa combinación nombre-tipo
+            if EntidadFinanciera.objects.filter(nombre=nombre, tipo=tipo).exists():
+                messages.error(request, f"Ya existe una entidad {tipo} con el nombre '{nombre}'.")
+                return redirect("configuracion")
+
+            EntidadFinanciera.objects.create(
+                nombre=nombre, tipo=tipo, comision_compra=comision_compra, comision_venta=comision_venta, activo=activo
+            )
+            messages.success(request, f"Entidad '{nombre}' creada exitosamente.")
+
+        except (ValueError, InvalidOperation):
+            messages.error(request, "Los valores de comisión deben ser números válidos.")
+        except Exception as e:
+            messages.error(request, f"Error al crear la entidad: {e}")
+
+    return redirect("configuracion")
+
+
+@permission_required(PERM_CHANGE_ENTIDADFINANCIERA)
+def entidad_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    """Edita una entidad financiera existente.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario de la entidad a editar.
+
+    Retorna:
+        HttpResponse: Redirect to configuracion with entidades tab.
+
+    """
+    entidad = get_object_or_404(EntidadFinanciera, pk=pk)
+
+    if request.method == "POST":
+        try:
+            nombre = request.POST.get("nombre", "").strip()
+            tipo = request.POST.get("tipo")
+            comision_compra = Decimal(request.POST.get("comision_compra", "0"))
+            comision_venta = Decimal(request.POST.get("comision_venta", "0"))
+            activo = request.POST.get("activo") == "on"
+
+            if not nombre or not tipo:
+                messages.error(request, "Nombre y tipo son obligatorios.")
+                return redirect("configuracion")
+
+            # Verificar que no exista ya esa combinación nombre-tipo (excepto esta misma entidad)
+            if EntidadFinanciera.objects.filter(nombre=nombre, tipo=tipo).exclude(pk=pk).exists():
+                messages.error(request, f"Ya existe otra entidad {tipo} con el nombre '{nombre}'.")
+                return redirect("configuracion")
+
+            entidad.nombre = nombre
+            entidad.tipo = tipo
+            entidad.comision_compra = comision_compra
+            entidad.comision_venta = comision_venta
+            entidad.activo = activo
+            entidad.save()
+
+            messages.success(request, f"Entidad '{nombre}' actualizada exitosamente.")
+
+        except (ValueError, InvalidOperation):
+            messages.error(request, "Los valores de comisión deben ser números válidos.")
+        except Exception as e:
+            messages.error(request, f"Error al actualizar la entidad: {e}")
+
+    return redirect("configuracion")
+
+
+@permission_required(PERM_DELETE_ENTIDADFINANCIERA)
+def entidad_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Elimina una entidad de medio financiero.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario de la entidad a eliminar.
+
+    Retorna:
+        HttpResponse: Redirect to configuracion with entidades tab.
+
+    """
+    entidad = get_object_or_404(EntidadFinanciera, pk=pk)
+
+    if request.method == "POST":
+        try:
+            # Verificar si la entidad está siendo usada por algún medio financiero
+            from apps.transacciones.models import BilleteraElectronica, CuentaBancaria, TarjetaCredito
+
+            en_uso = (
+                TarjetaCredito.objects.filter(entidad=entidad).exists()
+                or CuentaBancaria.objects.filter(entidad=entidad).exists()
+                or BilleteraElectronica.objects.filter(entidad=entidad).exists()
+            )
+
+            if en_uso:
+                messages.error(
+                    request,
+                    (
+                        "No se puede eliminar la entidad '"
+                        f"{entidad.nombre}' porque está siendo utilizada por medios financieros existentes."
+                    ),
+                )
+            else:
+                nombre = entidad.nombre
+                entidad.delete()
+                messages.success(request, f"Entidad '{nombre}' eliminada exitosamente.")
+
+        except Exception as e:
+            messages.error(request, f"Error al eliminar la entidad: {e}")
+
+    return redirect("configuracion")
+
+
+# CRUD Tasas de Cambio
+
+
+@permission_required(PERM_VIEW_TASACAMBIO)
+def tasa_cambio_listar(request: HttpRequest) -> object:
+    """Renderiza la página de listado de tasas de cambio.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        HttpResponse: Renderiza el template tasa_cambio_list.html con el contexto de las tasas de cambio.
+
+    """
+    tasas = TasaCambio.objects.all().order_by("-fecha_actualizacion")
+    return render(request, "tasa_cambio_list.html", {"tasas_de_cambio": tasas})
+
+
+@permission_required(PERM_ADD_TASACAMBIO)
+def tasa_cambio_crear(request: HttpRequest):
+    """Crea una nueva tasa de cambio.
+
+    Argumento:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        HttpResponse: Redirige al listado de tasas o renderiza el formulario de creación.
+
+    """
+    if request.method == "POST":
+        form = TasaCambioForm(request.POST)
+        if form.is_valid():
+            nueva_tasa = form.save()
+            # Guardar registro inicial en el historial
+            TasaCambioHistorial.objects.create(
+                tasa_cambio_original=nueva_tasa,
+                divisa_origen=nueva_tasa.divisa_origen,
+                divisa_destino=nueva_tasa.divisa_destino,
+                precio_base=nueva_tasa.precio_base,
+                comision_compra=nueva_tasa.comision_compra,
+                comision_venta=nueva_tasa.comision_venta,
+                activo=nueva_tasa.activo,
+                motivo="Creación de Tasa",
+                fecha_registro=timezone.now(),
+            )
+            return redirect("tasa_cambio_listar")
+    else:
+        form = TasaCambioForm()
+    return render(request, "tasa_cambio_form.html", {"form": form})
+
+
+@permission_required(PERM_CHANGE_TASACAMBIO)
+def tasa_cambio_editar(request: HttpRequest, pk: str) -> object:
+    """Edita una tasa de cambio existente y guarda los cambios en el historial.
+
+    Argumento:
+        request: Objeto HttpRequest.
+        pk: str, el identificador único (UUID) de la tasa de cambio a editar.
+
+    Retorna:
+        HttpResponse: Redirige al listado de tasas o renderiza el formulario de edición.
+
+    """
+    tasa = get_object_or_404(TasaCambio, pk=pk)
+
+    # Guardar valores originales para comparar
+    valores_originales = {
+        "precio_base": tasa.precio_base,
+        "comision_compra": tasa.comision_compra,
+        "comision_venta": tasa.comision_venta,
+        "activo": tasa.activo,
+    }
+
+    if request.method == "POST":
+        form = TasaCambioForm(request.POST, instance=tasa)
+        if form.is_valid():
+            # Verificar si hubo cambios reales
+            cambios = []
+            if tasa.precio_base != valores_originales["precio_base"]:
+                cambios.append(
+                    f"Precio base: {strip_trailing_zeros(valores_originales['precio_base'])} → {strip_trailing_zeros(tasa.precio_base)}"
+                )
+            if tasa.comision_compra != valores_originales["comision_compra"]:
+                cambios.append(
+                    f"Comisión compra: {strip_trailing_zeros(valores_originales['comision_compra'])} → {strip_trailing_zeros(tasa.comision_compra)}"
+                )
+            if tasa.comision_venta != valores_originales["comision_venta"]:
+                cambios.append(
+                    f"Comisión venta: {strip_trailing_zeros(valores_originales['comision_venta'])} → {strip_trailing_zeros(tasa.comision_venta)}"
+                )
+            if tasa.activo != valores_originales["activo"]:
+                cambios.append(
+                    "Estado: "
+                    + ("Activo" if valores_originales["activo"] else "Inactivo")
+                    + " → "
+                    + ("Activo" if tasa.activo else "Inactivo")
+                )
+
+            # Solo guardar en historial si hubo cambios
+            if cambios:
+                tasa_editada = form.save()
+                # Actualizar fecha de modificación
+                tasa_editada.fecha_actualizacion = timezone.now()
+                tasa_editada.save()
+
+                # Guardar en el historial con detalles de los cambios
+                motivo_detallado = f"Edición de Tasa - Cambios: {'; '.join(cambios)}"
+                TasaCambioHistorial.objects.create(
+                    tasa_cambio_original=tasa_editada,
+                    divisa_origen=tasa_editada.divisa_origen,
+                    divisa_destino=tasa_editada.divisa_destino,
+                    precio_base=tasa_editada.precio_base,
+                    comision_compra=tasa_editada.comision_compra,
+                    comision_venta=tasa_editada.comision_venta,
+                    activo=tasa_editada.activo,
+                    motivo=motivo_detallado,
+                    fecha_registro=timezone.now(),
+                )
+            return redirect("tasa_cambio_listar")
+    else:
+        form = TasaCambioForm(instance=tasa)
+    return render(request, "tasa_cambio_form.html", {"form": form})
+
+
+@permission_required(PERM_CHANGE_TASACAMBIO)
+def tasa_cambio_desactivar(request: HttpRequest, pk: str) -> object:
+    """Desactiva una tasa de cambio existente.
+
+    Argumento:
+        request: Objeto HttpRequest.
+        pk: str, el identificador único (UUID) de la tasa de cambio a desactivar.
+
+    Retorna:
+        HttpResponse: Redirige al listado de tasas.
+
+    """
+    tasa = get_object_or_404(TasaCambio, pk=pk)
+    if request.method == "POST" and tasa.activo:  # Solo desactivar si está activa
+        tasa.activo = False
+        tasa.fecha_actualizacion = timezone.now()
+        tasa.save()
+        # Guardar en el historial
+        TasaCambioHistorial.objects.create(
+            tasa_cambio_original=tasa,
+            divisa_origen=tasa.divisa_origen,
+            divisa_destino=tasa.divisa_destino,
+            precio_base=tasa.precio_base,
+            comision_compra=tasa.comision_compra,
+            comision_venta=tasa.comision_venta,
+            activo=tasa.activo,
+            motivo="Desactivación de Tasa",
+            fecha_registro=timezone.now(),
+        )
+    return redirect("tasa_cambio_listar")
+
+
+@permission_required(PERM_CHANGE_TASACAMBIO)
+def tasa_cambio_activar(request: HttpRequest, pk: str) -> object:
+    """Activa una tasa de cambio existente.
+
+    Argumento:
+        request: Objeto HttpRequest.
+        pk: str, el identificador único (UUID) de la tasa de cambio a activar.
+
+    Retorna:
+        HttpResponse: Redirige al listado de tasas.
+
+    """
+    tasa = get_object_or_404(TasaCambio, pk=pk)
+    if request.method == "POST" and not tasa.activo:  # Solo activar si está inactiva:
+        tasa.activo = True
+        tasa.fecha_actualizacion = timezone.now()
+        tasa.save()
+        # Guardar en el historial
+        TasaCambioHistorial.objects.create(
+            tasa_cambio_original=tasa,
+            divisa_origen=tasa.divisa_origen,
+            divisa_destino=tasa.divisa_destino,
+            precio_base=tasa.precio_base,
+            comision_compra=tasa.comision_compra,
+            comision_venta=tasa.comision_venta,
+            activo=tasa.activo,
+            motivo="Activación de Tasa",
+            fecha_registro=timezone.now(),
+        )
+    return redirect("tasa_cambio_listar")
+
+
+@permission_required(PERM_VIEW_TASACAMBIOHISTORIAL)
+def tasa_cambio_historial_listar(request: HttpRequest) -> object:
+    """Renderiza la página de listado del historial de tasas de cambio con filtros.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Retorna:
+        HttpResponse: Renderiza el template tasa_cambio_historial_list.html con el contexto del historial filtrado.
+
+    """
+    from datetime import datetime
+
+    historial = TasaCambioHistorial.objects.all().order_by("-fecha_registro")
+
+    # Filtros
+    fecha_inicio = request.GET.get("fecha_inicio")
+    fecha_fin = request.GET.get("fecha_fin")
+    divisa = request.GET.get("divisa")
+    motivo = request.GET.get("motivo")
+
+    if fecha_inicio:
+        historial = historial.filter(fecha_registro__gte=fecha_inicio)
+    if fecha_fin:
+        # Hacer que la fecha de fin sea inclusiva hasta el final del día
+        try:
+            fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d")
+            fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+            historial = historial.filter(fecha_registro__lte=fecha_fin_dt)
+        except Exception:
+            historial = historial.filter(fecha_registro__lte=fecha_fin)
+    if divisa:
+        historial = historial.filter(Q(divisa_origen__codigo=divisa) | Q(divisa_destino__codigo=divisa))
+    if motivo:
+        historial = historial.filter(motivo__icontains=motivo)
+
+    # Obtener motivos únicos (sin duplicados)
+    motivos_queryset = TasaCambioHistorial.objects.values_list("motivo", flat=True).distinct()
+    motivos_unicos = sorted(set(motivos_queryset))
+
+    context = {
+        "historial": historial,
+        "divisas": Divisa.objects.all(),  # Para el filtro de divisas
+        "motivos": motivos_unicos,  # Motivos únicos para el filtro
+    }
+
+    return render(request, "tasa_cambio_historial_list.html", context)
+
+# CRUD de Tausers
+@permission_required(PERM_VIEW_TAUSER)
+def tauser_list(request: HttpRequest) -> HttpResponse:
+    """Renderiza la lista de tausers en el panel de administración.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers})
+
+
+@permission_required(PERM_ADD_TAUSER)
+def tauser_create(request: HttpRequest) -> HttpResponse:
+    """Valida el formulario de creación de tauser y renderiza la lista de tausers con el nuevo tauser.
+
+    Args:
+        request: HttpRequest object.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    if request.method == "POST":
+        form = TauserForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tauser creado exitosamente.")
+            return redirect("tauser_listar")
+    else:
+        form = TauserForm()
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers, "form": form})
+
+
+@permission_required(PERM_CHANGE_TAUSER)
+def tauser_edit(request: HttpRequest, pk: int) -> HttpResponse:
+    """Valida el formulario de edición de tauser y renderiza la lista de tausers con el tauser editado.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario del tauser a editar.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tauser = get_object_or_404(Tauser, pk=pk)
+    if request.method == "POST":
+        form = TauserForm(request.POST, instance=tauser)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tauser actualizado exitosamente.")
+            return redirect("tauser_listar")
+    else:
+        form = TauserForm(instance=tauser)
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers, "form": form, "editing": True})
+
+
+@permission_required(PERM_DELETE_TAUSER)
+def tauser_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Elimina el tauser y renderiza la lista de tausers actualizada.
+
+    Args:
+        request: HttpRequest object.
+        pk: int, identificador primario del tauser a eliminar.
+
+    Retorna:
+        HttpResponse: Rendered tauser_list.html template.
+
+    """
+    tauser = get_object_or_404(Tauser, pk=pk)
+    if request.method == "POST":
+        tauser.delete()
+        messages.success(request, "Tauser eliminado exitosamente.")
+        return redirect("tauser_listar")
+    tausers = Tauser.objects.all()
+    return render(request, "tauser_list.html", {"tausers": tausers})
+
+
+@permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
+@require_POST
+def tauser_depositar(request: HttpRequest) -> HttpResponse:
+    """Realiza un depósito de divisas en el stock de un tauser.
+
+    Args:
+        request: HttpRequest object con datos JSON del depósito.
+
+    Retorna:
+        HttpResponse: Redirect a lista de tausers con mensaje de éxito.
+
+    """
+    import json
+
+    try:
+        # Leer datos del formulario POST (campo payload) o del body JSON
+        payload = request.POST.get('payload')
+        if payload:
+            data = json.loads(payload)
+        else:
+            data = json.loads(request.body)
+
+        # Validar campos requeridos
+        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        for field in required_fields:
+            if field not in data:
+                messages.error(request, f'Campo requerido: {field}')
+                return redirect('tauser_listar')
+
+        # Validar denominaciones
+        denominaciones = data['denominaciones']
+        if not isinstance(denominaciones, list) or not denominaciones:
+            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
+            return redirect('tauser_listar')
+
+        for item in denominaciones:
+            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
+                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
+                return redirect('tauser_listar')
+        print(denominaciones)
+        # Realizar el depósito
+        movimiento = depositar_divisas(
+            tauser_id=data['tauser_id'],
+            divisa_id=data['divisa_id'],
+            denominaciones_cantidades=denominaciones
+        )
+
+        messages.success(request, '¡Depósito realizado exitosamente!')
+        return redirect('tauser_listar')
+
+    except ValidationError as e:
+        messages.error(request, str(e))
+        return redirect('tauser_listar')
+    except json.JSONDecodeError:
+        messages.error(request, 'JSON inválido')
+        return redirect('tauser_listar')
+    except Exception as e:
+        messages.error(request, f'Error interno: {e!s}')
+        return redirect('tauser_listar')
+
+
+@permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
+@require_POST
+def tauser_extraer(request: HttpRequest) -> HttpResponse:
+    """Realiza una extracción de divisas del stock de un tauser.
+
+    Args:
+        request: HttpRequest object con datos JSON de la extracción.
+
+    Retorna:
+        HttpResponse: Redirect a lista de tausers con mensaje de éxito.
+
+    """
+    import json
+
+    try:
+        # Leer datos del formulario POST (campo payload) o del body JSON
+        payload = request.POST.get('payload')
+        if payload:
+            data = json.loads(payload)
+        else:
+            data = json.loads(request.body)
+
+        # Validar campos requeridos
+        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        for field in required_fields:
+            if field not in data:
+                messages.error(request, f'Campo requerido: {field}')
+                return redirect('tauser_listar')
+
+        # Validar denominaciones
+        denominaciones = data['denominaciones']
+        if not isinstance(denominaciones, list) or not denominaciones:
+            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
+            return redirect('tauser_listar')
+
+        for item in denominaciones:
+            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
+                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
+                return redirect('tauser_listar')
+
+        # Realizar la extracción
+        movimiento = extraer_divisas(
+            tauser_id=data['tauser_id'],
+            divisa_id=data['divisa_id'],
+            denominaciones_cantidades=denominaciones
+        )
+
+        messages.success(request, '¡Extracción realizada exitosamente!')
+        return redirect('tauser_listar')
+
+    except ValidationError as e:
+        messages.error(request, str(e))
+        return redirect('tauser_listar')
+    except json.JSONDecodeError:
+        messages.error(request, 'JSON inválido')
+        return redirect('tauser_listar')
+    except Exception as e:
+        messages.error(request, f'Error interno: {e!s}')
+        return redirect('tauser_listar')
+
+
+@permission_required(PERM_VIEW_MOVIMIENTOSTOCK)
+def movimientos_stock_listar(request: HttpRequest) -> HttpResponse:
+    """Renderiza la página de listado de movimientos de stock con filtros.
+
+    Args:
+        request: Objeto HttpRequest.
+
+    Returns:
+        HttpResponse: Renderiza el template movimientos_stock_list.html con el contexto de movimientos filtrados.
+
+    """
+    from datetime import datetime
+
+    movimientos = MovimientoStock.objects.select_related(
+        'tauser', 'divisa', 'transaccion'
+    ).prefetch_related('detalles').order_by('-fecha_creacion')
+
+    # Filtros
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    tauser_id = request.GET.get('tauser')
+    divisa_codigo = request.GET.get('divisa')
+    tipo_movimiento = request.GET.get('tipo_movimiento')
+    estado = request.GET.get('estado')
+
+    if fecha_inicio:
+        movimientos = movimientos.filter(fecha_creacion__gte=fecha_inicio)
+    if fecha_fin:
+        # Hacer que la fecha de fin sea inclusiva hasta el final del día
+        try:
+            fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+            movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin_dt)
+        except Exception:
+            movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin)
+    if tauser_id:
+        movimientos = movimientos.filter(tauser_id=tauser_id)
+    if divisa_codigo:
+        movimientos = movimientos.filter(divisa__codigo=divisa_codigo)
+    if tipo_movimiento:
+        movimientos = movimientos.filter(tipo_movimiento=tipo_movimiento)
+    if estado:
+        movimientos = movimientos.filter(estado=estado)
+
+    context = {
+        'movimientos': movimientos,
+        'tausers': Tauser.objects.all().order_by('nombre'),
+        'divisas': Divisa.objects.all().order_by('codigo'),
+        'tipos_movimiento': MovimientoStock.TIPOS_MOVIMIENTO,
+        'estados_movimiento': MovimientoStock.ESTADOS_MOVIMIENTO,
+    }
+
+    return render(request, 'movimientos_stock_list.html', context)

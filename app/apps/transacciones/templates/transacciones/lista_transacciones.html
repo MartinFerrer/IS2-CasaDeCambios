@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% load static %}
+{% block title %}
+    Mis Transacciones
+{% endblock title %}
+{% block content %}
+    <div class="container mx-auto p-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">Mis Transacciones</h2>
+            <div class="flex gap-2">
+                <a href="{% url 'transacciones:realizar_transaccion' %}"
+                   class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         viewBox="0 0 20 20"
+                         fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Nueva Transacción
+                </a>
+                <a href="{% url 'transacciones:simular_cambio' %}"
+                   class="btn btn-outline">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Simulador
+                </a>
+                <a href="/" class="btn btn-outline">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    Volver al inicio
+                </a>
+            </div>
+        </div>
+        <!-- Información del Cliente -->
+        {% if cliente %}
+            <div class="alert alert-info mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                    </path>
+                </svg>
+                <span>Mostrando transacciones para: <strong>{{ cliente.nombre }}</strong> ({{ cliente.ruc }})</span>
+            </div>
+        {% elif user.is_authenticated %}
+            <div class="alert alert-warning mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="stroke-current shrink-0 h-6 w-6"
+                     fill="none"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>No tienes clientes asociados. Contacta a un operador para asociar clientes a tu cuenta.</span>
+            </div>
+        {% else %}
+            <div class="alert alert-error mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="stroke-current shrink-0 h-6 w-6"
+                     fill="none"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Debes iniciar sesión para ver tus transacciones.</span>
+            </div>
+        {% endif %}
+        <!-- Lista de Transacciones -->
+        {% if transacciones %}
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body">
+                    <h3 class="card-title text-primary mb-4">Historial de Transacciones</h3>
+                    <!-- Stats rápidos -->
+                    <div class="stats stats-vertical lg:stats-horizontal shadow mb-6">
+                        <div class="stat">
+                            <div class="stat-title">Total Transacciones</div>
+                            <div class="stat-value text-primary">{{ transacciones|length }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Pendientes</div>
+                            <div class="stat-value text-warning" id="pendientes-count">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Completadas</div>
+                            <div class="stat-value text-success" id="completadas-count">0</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Canceladas</div>
+                            <div class="stat-value text-error" id="canceladas-count">0</div>
+                        </div>
+                    </div>
+                    <!-- Tabla de transacciones -->
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Divisas</th>
+                                    <th>Monto Origen</th>
+                                    <th>Monto Destino</th>
+                                    <th>Tasa</th>
+                                    <th>Medio de Pago</th>
+                                    <th>Medio de Cobro</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaccion in transacciones %}
+                                    <tr>
+                                        <td>
+                                            <div class="font-mono text-xs">{{ transaccion.id_transaccion|slice:":8" }}...</div>
+                                        </td>
+                                        <td>
+                                            <div class="flex flex-col">
+                                                <div class="font-semibold">{{ transaccion.fecha_creacion|date:"d/m/Y" }}</div>
+                                                <div class="text-sm text-gray-500">{{ transaccion.fecha_creacion|time:"H:i" }}</div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="badge badge-outline">
+                                                {% if transaccion.tipo_operacion == 'compra' %}
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-3 w-3 mr-1"
+                                                         viewBox="0 0 20 20"
+                                                         fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Compra
+                                                {% else %}
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-3 w-3 mr-1"
+                                                         viewBox="0 0 20 20"
+                                                         fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293 9.293a1 1 0 011.414 0L9 13.586V6a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Venta
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="flex items-center gap-1">
+                                                <span class="font-semibold">{{ transaccion.divisa_origen.codigo }}</span>
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-3 w-3"
+                                                     viewBox="0 0 20 20"
+                                                     fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                                </svg>
+                                                <span class="font-semibold">{{ transaccion.divisa_destino.codigo }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="font-mono">
+                                                {{ transaccion.monto_origen|strip_trailing_zeros }}
+                                                <span class="text-xs text-gray-500">{{ transaccion.divisa_origen.codigo }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="font-mono font-semibold">
+                                                {{ transaccion.monto_destino|strip_trailing_zeros }}
+                                                <span class="text-xs text-gray-500">{{ transaccion.divisa_destino.codigo }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="font-mono text-xs">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="text-xs">
+                                                {% if transaccion.nombre_medio_pago %}
+                                                    {{ transaccion.nombre_medio_pago }}
+                                                {% else %}
+                                                    <span class="text-gray-400">-</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-xs">
+                                                {% if transaccion.nombre_medio_cobro %}
+                                                    {{ transaccion.nombre_medio_cobro }}
+                                                {% else %}
+                                                    <span class="text-gray-400">-</span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if transaccion.estado == 'pendiente' %}
+                                                <div class="badge badge-warning">Pendiente</div>
+                                            {% elif transaccion.estado == 'procesando' %}
+                                                <div class="badge badge-info">Procesando</div>
+                                            {% elif transaccion.estado == 'completada' %}
+                                                <div class="badge badge-success">Completada</div>
+                                            {% elif transaccion.estado == 'cancelada' %}
+                                                <div class="badge badge-error">Cancelada</div>
+                                            {% elif transaccion.estado == 'anulada' %}
+                                                <div class="badge badge-error">Anulada</div>
+                                            {% else %}
+                                                <div class="badge badge-neutral">{{ transaccion.estado }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="flex gap-1">
+                                                <button class="btn btn-ghost btn-xs"
+                                                        onclick="verDetalle('{{ transaccion.id_transaccion }}')">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-4 w-4"
+                                                         fill="none"
+                                                         viewBox="0 0 24 24"
+                                                         stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </button>
+                                                {% if transaccion.estado == 'pendiente' %}
+                                                    <a href="{% url 'transacciones:procesar_transaccion' transaccion.id_transaccion %}"
+                                                       class="btn btn-primary btn-xs">Procesar</a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- Estado vacío -->
+            <div class="card bg-base-100 shadow-lg">
+                <div class="card-body text-center py-12">
+                    <div class="w-24 h-24 mx-auto mb-4 opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">No tienes transacciones aún</h3>
+                    <p class="text-gray-600 mb-6">Comienza realizando tu primera transacción de cambio de divisas.</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="{% url 'transacciones:realizar_transaccion' %}"
+                           class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5"
+                                 viewBox="0 0 20 20"
+                                 fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Realizar Transacción
+                        </a>
+                        <a href="{% url 'transacciones:simular_cambio' %}"
+                           class="btn btn-outline">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-5 w-5"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Probar Simulador
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        <!-- Modal de detalle -->
+        <div id="detail-modal" class="modal">
+            <div class="modal-box max-w-2xl">
+                <h3 class="font-bold text-lg mb-4">Detalle de Transacción</h3>
+                <div id="detail-content">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+                <div class="modal-action">
+                    <button class="btn" onclick="cerrarDetalle()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Función para contar transacciones por estado
+        function actualizarEstadisticas() {
+            const badges = document.querySelectorAll('.table tbody tr .badge');
+            let pendientes = 0;
+            let completadas = 0;
+            let canceladas = 0;
+            
+            badges.forEach(badge => {
+                const texto = badge.textContent.trim().toLowerCase();
+                if (texto === 'pendiente') {
+                    pendientes++;
+                } else if (texto === 'completada') {
+                    completadas++;
+                } else if (texto === 'cancelada') {
+                    canceladas++;
+                }
+            });
+            
+            // Actualizar los contadores en el DOM
+            const pendientesElement = document.getElementById('pendientes-count');
+            const completadasElement = document.getElementById('completadas-count');
+            const canceladasElement = document.getElementById('canceladas-count');
+            
+            if (pendientesElement) pendientesElement.textContent = pendientes;
+            if (completadasElement) completadasElement.textContent = completadas;
+            if (canceladasElement) canceladasElement.textContent = canceladas;
+        }
+
+        function verDetalle(transaccionId) {
+            // Por ahora, mostrar un placeholder
+            // En el futuro, hacer una llamada AJAX para obtener detalles
+            document.getElementById('detail-content').innerHTML = `
+                <div class="space-y-3">
+                    <div><strong>ID:</strong> ${transaccionId}</div>
+                    <div class="alert alert-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Funcionalidad de detalle en desarrollo. Por ahora puede procesar la transacción directamente.</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('detail-modal').classList.add('modal-open');
+        }
+
+        function cerrarDetalle() {
+            document.getElementById('detail-modal').classList.remove('modal-open');
+        }
+
+        // Cerrar modal al hacer click fuera
+        document.getElementById('detail-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarDetalle();
+            }
+        });
+
+        // Ejecutar al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            actualizarEstadisticas();
+        });
+    </script>
+{% endblock content %}

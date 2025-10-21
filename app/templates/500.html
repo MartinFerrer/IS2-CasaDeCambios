@@ -1,0 +1,51 @@
+{% extends "error_base.html" %}
+{% block title %}Error 500 - Global Exchange{% endblock %}
+{% block body_gradient %}from-orange-50 via-orange-100 to-gray-50{% endblock %}
+{% block error_icon %}
+    <svg class="w-20 h-20 text-orange-500"
+         fill="currentColor"
+         viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
+        <path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12zm-13 5h-2v-2h2v2zm0-4h-2V7h2v6z" />
+    </svg>
+{% endblock %}
+{% block error_title %}Error del Servidor{% endblock %}
+{% block error_code %}Error 500{% endblock %}
+{% block alert_class %}bg-orange-50 border border-orange-200{% endblock %}
+{% block text_class %}text-orange-700{% endblock %}
+{% block text_muted_class %}text-orange-600{% endblock %}
+{% block error_message %}Algo salió mal en nuestro servidor.{% endblock %}
+{% block error_description %}Estamos trabajando para resolver este problema. Por favor:{% endblock %}
+{% block error_list %}
+    <ul class="text-orange-600 text-left mt-2 space-y-1">
+        <li>• Intenta recargar la página en unos minutos</li>
+        <li>• Verifica tu conexión a internet</li>
+        <li>• Si el problema persiste, contacta al soporte técnico</li>
+    </ul>
+{% endblock %}
+{% block action_buttons %}
+    <button onclick="window.location.reload()"
+            class="inline-block w-full py-3 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 transition">
+        Recargar Página
+    </button>
+    <button onclick="window.history.back()"
+            class="inline-block w-full py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition">
+        Volver Atrás
+    </button>
+    <a href="{% url 'presentacion:home' %}"
+       class="inline-block w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition">
+        Ir al Inicio
+    </a>
+{% endblock %}
+{% block footer_message %}
+    <p>
+        Código de error: 500 | Fecha: <span id="error-time"></span>
+    </p>
+    <p class="mt-2">Si necesitas ayuda, proporciona este código al soporte técnico.</p>
+{% endblock %}
+{% block extra_scripts %}
+    <script>
+    // Mostrar fecha y hora del error
+    document.getElementById('error-time').textContent = new Date().toLocaleString('es-ES');
+    </script>
+{% endblock %}

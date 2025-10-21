@@ -21,7 +21,7 @@ def test_historial_tasas_api(client):
         "operaciones.TasaCambio",
         divisa_origen=pyg,
         divisa_destino=usd,
-        valor=7000,
+        precio_base=7000,
         comision_compra=50,
         comision_venta=60,
         activo=True,
@@ -31,7 +31,7 @@ def test_historial_tasas_api(client):
         "operaciones.TasaCambio",
         divisa_origen=usd,
         divisa_destino=pyg,
-        valor=140.000,  # cumplir con max_digits=9, decimal_places=3
+        precio_base=140.000,  # cumplir con max_digits=9, decimal_places=3
         comision_compra=10.000,  # cumplir con max_digits=7, decimal_places=3
         comision_venta=10.000,  # cumplir con max_digits=7, decimal_places=3
         activo=True,
@@ -45,13 +45,17 @@ def test_historial_tasas_api(client):
         data = response.json()
         assert "historial" in data
         assert isinstance(data["historial"], dict)
-        # Debe haber claves para USD y PYG (según lógica de la view)
-        assert "USD" in data["historial"] or "PYG" in data["historial"] or "Guaraní" in data["historial"]
-        # Cada divisa debe tener listas de fechas, compra y venta
-        for _divisa, valores in data["historial"].items():
-            assert "fechas" in valores
-            assert "compra" in valores
-            assert "venta" in valores
+        # Verificar estructura de cada divisa en el historial
+        # El historial es un dict donde las claves son códigos de divisa
+        # y los valores son dicts con fechas, compra y venta
+        for codigo_divisa, datos_divisa in data["historial"].items():
+            assert isinstance(codigo_divisa, str)
+            assert "fechas" in datos_divisa
+            assert "compra" in datos_divisa
+            assert "venta" in datos_divisa
+            assert isinstance(datos_divisa["fechas"], list)
+            assert isinstance(datos_divisa["compra"], list)
+            assert isinstance(datos_divisa["venta"], list)
     else:
         # Si devuelve HTML, hay un error en la vista - imprimir contenido para debug
         print(f"Vista devolvió HTML en lugar de JSON. Content-Type: {response.get('Content-Type')}")

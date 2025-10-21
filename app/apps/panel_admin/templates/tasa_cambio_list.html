@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block title %}
+    Listado de Tasas de Cambio
+{% endblock title %}
+{% block body_class %}
+    bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
+{% endblock body_class %}
+{% block header %}
+    {% include "includes/header_admin_conditional.html" %}
+{% endblock header %}
+{% block content %}
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-blue-800">Gestión de Tasas de Cambio</h1>
+            <a href="{% url 'tasa_cambio_crear' %}"
+               class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-5 w-5 mr-2"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Crear Tasa
+            </a>
+        </div>
+        <div class="card bg-white shadow-xl overflow-auto">
+            <div class="card-body">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr>
+                            <th class="bg-blue-100">Divisa de Destino</th>
+                            <th class="bg-blue-100">Precio Base (Gs.)</th>
+                            <th class="bg-blue-100">Comisión Compra (Gs.)</th>
+                            <th class="bg-blue-100">Comisión Venta (Gs.)</th>
+                            <th class="bg-blue-100">Fecha de Actualización</th>
+                            <th class="bg-blue-100">Estado</th>
+                            <th class="bg-blue-100 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if tasas_de_cambio %}
+                            {% for tasa in tasas_de_cambio %}
+                                {% if tasa.activo %}
+                                    <tr>
+                                        <td>{{ tasa.divisa_destino }}</td>
+                                        <td>{{ tasa.precio_base|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_compra|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_venta|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.fecha_actualizacion|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <span class="badge badge-success">Activa</span>
+                                        </td>
+                                        <td class="text-center flex justify-center space-x-2">
+                                            <!-- Botón Editar -->
+                                            <a href="{% url 'tasa_cambio_editar' tasa.id_tasa_cambio %}"
+                                               class="btn btn-sm btn-info"
+                                               title="Editar">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-4 w-4"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                    </path>
+                                                </svg>
+                                            </a>
+                                            <!-- Botón Desactivar -->
+                                            <form action="{% url 'tasa_cambio_desactivar' tasa.id_tasa_cambio %}"
+                                                  method="post"
+                                                  class="inline-block">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-warning" title="Desactivar">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-4 w-4"
+                                                         fill="currentColor"
+                                                         viewBox="0 0 24 24"
+                                                         stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                            <tr class="bg-gray-50">
+                                <td colspan="7" class="text-center py-4">
+                                    <hr class="my-2 border-t border-gray-300">
+                                    <span class="text-xs font-semibold uppercase text-gray-500">Tasas Inactivas</span>
+                                </td>
+                            </tr>
+                            {% for tasa in tasas_de_cambio %}
+                                {% if not tasa.activo %}
+                                    <tr>
+                                        <td>{{ tasa.divisa_destino }}</td>
+                                        <td>{{ tasa.precio_base|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_compra|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.comision_venta|strip_trailing_zeros }}</td>
+                                        <td>{{ tasa.fecha_actualizacion|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            <span class="badge badge-error">Inactiva</span>
+                                        </td>
+                                        <td class="text-center flex justify-center space-x-2">
+                                            <!-- Botón Editar -->
+                                            <a href="{% url 'tasa_cambio_editar' tasa.id_tasa_cambio %}"
+                                               class="btn btn-sm btn-info"
+                                               title="Editar">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="h-4 w-4"
+                                                     fill="none"
+                                                     viewBox="0 0 24 24"
+                                                     stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                                    </path>
+                                                </svg>
+                                            </a>
+                                            <!-- Botón Activar -->
+                                            <form action="{% url 'tasa_cambio_activar' tasa.id_tasa_cambio %}"
+                                                  method="post"
+                                                  class="inline-block">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-success" title="Activar">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-4 w-4"
+                                                         fill="none"
+                                                         viewBox="0 0 24 24"
+                                                         stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">No hay tasas de cambio registradas.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

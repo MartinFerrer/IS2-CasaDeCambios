@@ -19,10 +19,6 @@ dependencies = [
     "psycopg[binary]",
     "plotly==6.3.0",
     "gunicorn==23.0",
-    "dj-database-url",        # parse DATABASE_URL easily
-    "python-dotenv",          # load .env in dev if desired
-    "pytest>=8.4.1",
-    "pytest-django>=4.11.1",
     "environ>=1.0",
     "pycountry>=24.6.1",
     "forex-python>=1.9.2",
@@ -30,6 +26,11 @@ dependencies = [
     "whitenoise>=6.8.2",
     "pyotp>=2.9.0",
     "qrcode[pil]>=7.4.2",
+    "stripe>=8.0.0",
+    "sqlparse>=0.4.4",
+    # Simulador externo/API externa
+    "flask>=2.3.3",
+    "flask-cors>=4.0.0",
 ]
 
 [project.optional-dependencies]

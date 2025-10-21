@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 {% block title %}Editar Tarjeta - {{ cliente.nombre }}{% endblock %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
@@ -69,6 +70,21 @@
                                    required
                                    maxlength="100">
                         </div>
+                        <!-- Entidad emisora de tarjeta -->
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium">Entidad Emisora *</span>
+                            </label>
+                            <select name="entidad" class="select select-bordered w-full" required>
+                                <option value="">Seleccione la entidad emisora</option>
+                                {% for entidad in entidades_tarjeta %}
+                                    <option value="{{ entidad.id }}"
+                                            {% if tarjeta.entidad and tarjeta.entidad.id == entidad.id %}selected{% endif %}>
+                                        {{ entidad.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <!-- Fecha de Expiración y CVV -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="form-control w-full">
@@ -95,6 +111,7 @@
                                             {% endif %}
                                         {% endfor %}
                                     </select>
+                                    {% localize off %}
                                     <select name="fecha_expiracion_ano"
                                             class="select select-bordered flex-1"
                                             title="Elija el año de expiración."
@@ -110,64 +127,64 @@
                                             {% endwith %}
                                         {% endfor %}
                                     </select>
-                                </div>
-                                <input type="hidden"
-                                       name="fecha_expiracion"
-                                       value="{{ tarjeta.fecha_expiracion|date:'Y-m-d' }}"
-                                       id="fecha_expiracion_hidden">
+                                {% endlocalize %}
                             </div>
-                            <div class="form-control w-full">
-                                <label class="label">
-                                    <span class="label-text font-medium">CVV/CVC *</span>
-                                </label>
-                                <input type="text"
-                                       name="cvv"
-                                       class="input input-bordered w-full font-mono"
-                                       placeholder="Ej: 123"
-                                       value="{{ tarjeta.cvv }}"
-                                       required
-                                       maxlength="4"
-                                       pattern="[0-9]{3,4}"
-                                       title="El CVV/CVC debe tener 3 o 4 dígitos."
-                                       id="cvv">
-                            </div>
+                            <input type="hidden"
+                                   name="fecha_expiracion"
+                                   value="{{ tarjeta.fecha_expiracion|date:'Y-m-d' }}"
+                                   id="fecha_expiracion_hidden">
                         </div>
-                        <!-- Alias -->
                         <div class="form-control w-full">
                             <label class="label">
-                                <span class="label-text font-medium">Alias personalizado</span>
-                                <span class="label-text-alt text-gray-500">(Opcional)</span>
+                                <span class="label-text font-medium">CVV/CVC *</span>
                             </label>
                             <input type="text"
-                                   name="alias"
-                                   class="input input-bordered w-full"
-                                   placeholder="Ej: Tarjeta Principal"
-                                   value="{{ tarjeta.alias }}"
-                                   maxlength="50">
-                            <label class="label">
-                                <span class="label-text-alt text-gray-500">Si se deja vacío, se generará automáticamente</span>
-                            </label>
+                                   name="cvv"
+                                   class="input input-bordered w-full font-mono"
+                                   placeholder="Ej: 123"
+                                   value="{{ tarjeta.cvv }}"
+                                   required
+                                   maxlength="4"
+                                   pattern="[0-9]{3,4}"
+                                   title="El CVV/CVC debe tener 3 o 4 dígitos."
+                                   id="cvv">
                         </div>
-                        <!-- Botones -->
-                        <div class="card-actions justify-end pt-6">
-                            <a href="{% url 'transacciones:medios_pago_cliente' cliente.pk %}"
-                               class="btn btn-outline">Cancelar</a>
-                            <button type="submit" class="btn btn-primary">
-                                <svg class="w-4 h-4 mr-2"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                Actualizar Tarjeta
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <!-- Alias -->
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text font-medium">Alias personalizado</span>
+                            <span class="label-text-alt text-gray-500">(Opcional)</span>
+                        </label>
+                        <input type="text"
+                               name="alias"
+                               class="input input-bordered w-full"
+                               placeholder="Ej: Tarjeta Principal"
+                               maxlength="50">
+                        <label class="label">
+                            <span class="label-text-alt text-gray-500">Si se deja vacío, se generará automáticamente</span>
+                        </label>
+                    </div>
+                    <!-- Botones -->
+                    <div class="card-actions justify-end pt-6">
+                        <a href="{% url 'transacciones:medios_pago_cliente' cliente.pk %}"
+                           class="btn btn-outline">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <svg class="w-4 h-4 mr-2"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Actualizar Tarjeta
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-    <script>
+</div>
+<script>
         // Formatear número de tarjeta mientras se escribe con espacios cada 4 dígitos
         document.querySelector('input[name="numero_tarjeta"]').addEventListener('input', function(e) {
             // Remover todo lo que no sea número
@@ -214,5 +231,5 @@
 
         document.querySelector('select[name="fecha_expiracion_mes"]').addEventListener('change', updateFechaExpiracion);
         document.querySelector('select[name="fecha_expiracion_ano"]').addEventListener('change', updateFechaExpiracion);
-    </script>
+</script>
 {% endblock %}

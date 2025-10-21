@@ -52,4 +52,39 @@ urlpatterns = [
         views.eliminar_medio_pago,
         name="eliminar_medio_pago",
     ),
+    # URLs para realizar transacciones reales
+    path("realizar-transaccion/", views.realizar_transaccion_view, name="realizar_transaccion"),
+    path("api/crear-transaccion", views.api_crear_transaccion, name="api_crear_transaccion"),
+    path(
+        "api/cancelar-transaccion/<str:transaccion_id>/",
+        views.api_cancelar_transaccion,
+        name="api_cancelar_transaccion",
+    ),
+    path("api/procesar-pago-bancario/", views.api_procesar_pago_bancario, name="api_procesar_pago_bancario"),
+    path("popup-banco/<str:transaccion_id>/", views.popup_banco_simulado, name="popup_banco_simulado"),
+    path(
+        "popup-tauser-retiro/<str:transaccion_id>/", views.popup_codigo_tauser_retiro, name="popup_codigo_tauser_retiro"
+    ),
+    path("procesar/<str:transaccion_id>/", views.procesar_transaccion_view, name="procesar_transaccion"),
+    # URLs para verificación y cancelación por cotización
+    path(
+        "api/verificar-cotizacion/<str:transaccion_id>/",
+        views.api_verificar_cotizacion,
+        name="api_verificar_cotizacion",
+    ),
+    path(
+        "api/cancelar-por-cotizacion/<str:transaccion_id>/",
+        views.api_cancelar_por_cotizacion,
+        name="api_cancelar_por_cotizacion",
+    ),
+    path(
+        "api/aceptar-nueva-cotizacion/<str:transaccion_id>/",
+        views.api_aceptar_nueva_cotizacion,
+        name="api_aceptar_nueva_cotizacion",
+    ),
+    # URLs para Stripe
+    path("api/stripe/create-payment-intent/", views.create_stripe_payment_intent, name="stripe_create_payment_intent"),
+    path("api/stripe/confirm-payment/", views.confirm_stripe_payment, name="stripe_confirm_payment"),
+    path("stripe/webhook/", views.stripe_webhook_handler, name="stripe_webhook"),
+    path("", views.vista_transacciones, name="lista"),
 ]
