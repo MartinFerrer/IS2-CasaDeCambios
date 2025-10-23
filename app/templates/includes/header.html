@@ -48,6 +48,12 @@
                                 <a href="{% url 'transacciones:simular_cambio' %}"
                                    class="hover:bg-neutral-200">Simulador</a>
                             </li>
+                            {% if perms.transacciones.view_transaccion %}
+                            <li>
+                                <a href="{% url 'reportes:dashboard' %}"
+                                   class="hover:bg-neutral-200">Dashboard de Ganancias</a>
+                            </li>
+                            {% endif %}
                             <li>
                                 <a href="{% url 'usuarios:configuracion_usuario' %}"
                                    class="hover:bg-neutral-200">

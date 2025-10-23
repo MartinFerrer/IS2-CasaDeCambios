@@ -1,0 +1,375 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Ganancias{% endblock %}
+
+{% block extra_css %}
+<style>
+    .fade-in {
+        animation: fadeIn 0.5s;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .hover-scale {
+        transition: transform 0.2s;
+    }
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Dashboard de Ganancias</h1>
+            <p class="mt-1 text-sm text-gray-600">Monitoreo de métricas financieras en tiempo real</p>
+        </div>
+
+        <!-- Filtros -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8 fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700" for="start_date">Fecha Inicio</label>
+                    <input type="date" id="start_date" name="start_date" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                           value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700" for="end_date">Fecha Fin</label>
+                    <input type="date" id="end_date" name="end_date" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                           value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700" for="currency">Divisa</label>
+                    <select id="currency" name="currency" 
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="all">Todas las divisas</option>
+                        {% for divisa in divisas %}
+                            <option value="{{ divisa.codigo }}" {% if divisa.codigo == selected_currency %}selected{% endif %}>
+                                {{ divisa.nombre }} ({{ divisa.codigo }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Ganancias Totales -->
+            <div class="bg-white overflow-hidden shadow rounded-lg hover-scale">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Ganancias Totales</dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900">{{ total_profits|floatformat:2 }}</div>
+                                    <div class="ml-2 flex items-baseline text-sm font-semibold {% if growth_rate >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if growth_rate >= 0 %}↑{% else %}↓{% endif %}
+                                        {{ growth_rate|floatformat:1 }}%
+                                    </div>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Transacciones -->
+            <div class="bg-white overflow-hidden shadow rounded-lg hover-scale">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Total Transacciones</dt>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ total_transactions }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ganancia Promedio -->
+            <div class="bg-white overflow-hidden shadow rounded-lg hover-scale">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Ganancia Promedio</dt>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ avg_profit|floatformat:2 }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasa de Conversión -->
+            <div class="bg-white overflow-hidden shadow rounded-lg hover-scale">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Tasa de Conversión</dt>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ conversion_rate|floatformat:1 }}%</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Gráfico de Ganancias por Tiempo -->
+            <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Ganancias a lo largo del tiempo</h3>
+                <div class="relative" style="height: 350px;">
+                    <canvas id="profitsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Gráfico de Distribución por Divisa -->
+            <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Distribución por Divisa</h3>
+                <div class="relative" style="height: 350px;">
+                    <canvas id="currencyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Transacciones Recientes -->
+        <div class="bg-white shadow rounded-lg overflow-hidden fade-in">
+            <div class="px-6 py-5 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Transacciones Recientes</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origen</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ganancia</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for transaction in recent_transactions %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ transaction.fecha_creacion|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if transaction.tipo_operacion == 'compra' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    {{ transaction.tipo_operacion|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ transaction.divisa_origen.codigo }} {{ transaction.monto_origen|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ transaction.divisa_destino.codigo }} {{ transaction.monto_destino|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+                                {{ transaction.monto_origen|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <span class="{% if transaction.ganancia >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {{ transaction.ganancia|floatformat:2 }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if recent_transactions %}
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <nav class="flex items-center justify-between">
+                    <div class="flex-1 flex justify-between">
+                        <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Anterior
+                        </a>
+                        <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Siguiente
+                        </a>
+                    </div>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configuración de colores
+    const colors = {
+        primary: '#4F46E5',
+        secondary: '#10B981',
+        accent: '#8B5CF6',
+        success: '#34D399',
+        warning: '#FBBF24',
+        danger: '#EF4444',
+        gray: '#9CA3AF'
+    };
+
+    // Gráfico de ganancias por tiempo
+    const profitsCtx = document.getElementById('profitsChart').getContext('2d');
+    new Chart(profitsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ dates_labels|safe }},
+            datasets: [{
+                label: 'Ganancias',
+                data: {{ profits_data|safe }},
+                borderColor: colors.primary,
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Ganancia: ' + new Intl.NumberFormat('es-PY').format(context.raw);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('es-PY').format(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Gráfico de distribución por divisa
+    const currencyCtx = document.getElementById('currencyChart').getContext('2d');
+    new Chart(currencyCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ currency_labels|safe }},
+            datasets: [{
+                data: {{ currency_data|safe }},
+                backgroundColor: [
+                    colors.primary,
+                    colors.secondary,
+                    colors.accent,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.gray
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${context.label}: ${new Intl.NumberFormat('es-PY').format(value)} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Event listeners para los filtros
+    const filters = ['start_date', 'end_date', 'currency'];
+    filters.forEach(filter => {
+        document.getElementById(filter).addEventListener('change', updateDashboard);
+    });
+
+    function updateDashboard() {
+        const filters = {
+            start_date: document.getElementById('start_date').value,
+            end_date: document.getElementById('end_date').value,
+            currency: document.getElementById('currency').value
+        };
+
+        fetch(`/reportes/dashboard/data?${new URLSearchParams(filters)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Actualizar las métricas
+                updateMetrics(data);
+                // Actualizar los gráficos
+                updateCharts(data);
+                // Actualizar la tabla
+                updateTable(data);
+            });
+    }
+
+    function updateMetrics(data) {
+        // Implementar actualización de métricas
+    }
+
+    function updateCharts(data) {
+        // Implementar actualización de gráficos
+    }
+
+    function updateTable(data) {
+        // Implementar actualización de tabla
+    }
+});
+</script>
+{% endblock %}
