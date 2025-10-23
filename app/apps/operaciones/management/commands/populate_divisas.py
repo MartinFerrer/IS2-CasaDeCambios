@@ -27,7 +27,7 @@ class Command(BaseCommand):
 
     """
 
-    help = "Genera historial de tasas de cambio realista desde el 2 de octubre hasta hoy."
+    help = "Genera historial de tasas de cambio realista desde el 2 de setiembre hasta hoy."
 
     def handle(self, *args, **options):
         """Ejecuta el proceso de generación de historial.
@@ -35,7 +35,7 @@ class Command(BaseCommand):
         :param args: Argumentos posicionales del comando.
         :param options: Opciones adicionales (no utilizadas).
         """
-        start_date = datetime(2025, 10, 2)
+        start_date = datetime(2025, 9, 2)
         end_date = datetime.today()
         delta = timedelta(days=1)
 
