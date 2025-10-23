@@ -561,11 +561,15 @@ class TasasManager {
                 showgrid: true,
                 gridcolor: '#f3f4f6',
                 gridwidth: 1,
-                tickangle: 0,
-                tickfont: { size: 11, color: '#6b7280' },
+                tickangle: -45,
+                tickfont: { size: 10, color: '#6b7280' },
+                tickmode: 'auto',
+                nticks: 10,
+                automargin: true,
                 type: 'category',
                 fixedrange: true
             },
+
             plot_bgcolor: '#ffffff',
             paper_bgcolor: '#ffffff',
             margin: { l: 60, r: 20, t: 60, b: 60 },
