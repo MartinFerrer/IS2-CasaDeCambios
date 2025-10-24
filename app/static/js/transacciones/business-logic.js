@@ -221,10 +221,85 @@ function calculateExchangeAmount(montoOrigen, tasaCambio, tipoOperacion, comisio
     };
 }
 
+/**
+ * Módulo loadDivisasFromAPI - Carga de divisas desde API con formato específico
+ *
+ * Carga divisas desde un endpoint que devuelve {divisas: [...]}.
+ * Esta función está adaptada para el formato de respuesta específico
+ * del endpoint api_divisas_disponibles.
+ *
+ * Args:
+ *   selectElement (HTMLSelectElement): Elemento select a poblar con divisas
+ *   apiEndpoint (string): URL del endpoint para obtener divisas
+ *   storageVar (object): Objeto con propiedad 'divisas' donde guardar el array
+ *
+ * Retorna:
+ *   Promise<boolean>: Promise que resuelve true si carga exitosa, false si error
+ *
+ * Efectos secundarios:
+ *   - Actualiza opciones del select
+ *   - Guarda divisas en storageVar.divisas si se proporciona
+ *
+ * Ejemplo:
+ *   const storage = { divisas: [] };
+ *   await loadDivisasFromAPI(
+ *     document.getElementById('divisa-select'),
+ *     '/api/divisas/',
+ *     storage
+ *   );
+ */
+async function loadDivisasFromAPI(selectElement, apiEndpoint, storageVar = null) {
+    try {
+        // Obtener divisas del endpoint
+        const response = await fetch(apiEndpoint);
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Validar estructura de respuesta
+        if (!data.divisas || !Array.isArray(data.divisas)) {
+            throw new Error('Formato de respuesta inválido: se esperaba {divisas: [...]}');
+        }
+
+        // Guardar las divisas disponibles si se proporciona storage
+        if (storageVar !== null) {
+            storageVar.divisas = data.divisas;
+        }
+
+        // Limpiar el select
+        selectElement.innerHTML = '';
+
+        // Agregar opción por defecto
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Seleccione una divisa';
+        selectElement.appendChild(defaultOption);
+
+        // Agregar opciones de divisas
+        data.divisas.forEach(divisa => {
+            const option = document.createElement('option');
+            option.value = divisa.codigo;
+            option.textContent = `${divisa.codigo} - ${divisa.nombre}`;
+            selectElement.appendChild(option);
+        });
+
+        return true;
+
+    } catch (error) {
+        console.error('Error loading divisas:', error);
+        selectElement.innerHTML = '<option disabled>Error cargando divisas</option>';
+        return false;
+    }
+}
+
 // Exportar funciones para uso en otros módulos
 window.TransaccionesBusinessLogic = {
     getTipoOperacion,
     updateLabels,
     loadDivisas,
+    loadDivisasFromAPI,
     calculateExchangeAmount
 };

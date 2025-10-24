@@ -386,7 +386,7 @@
         // Importar funciones desde módulos
         const { formatNumber, formatRate, parseInputNumber, formatInputNumber } = window.TransaccionesFormatters;
         const { validateIntegerInput, setupIntegerValidation } = window.TransaccionesValidators;
-        const { updateLabels, loadDivisas, calculateExchangeAmount } = window.TransaccionesBusinessLogic;
+        const { loadDivisasFromAPI, calculateExchangeAmount } = window.TransaccionesBusinessLogic;
         // Elementos del DOM
         const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
         const divisaSelect = document.getElementById('divisa-select');
@@ -524,36 +524,20 @@
             montoFinalLabel.textContent = labels.montoFinal;
         }
 
-        // Función local que usa el módulo loadDivisas
+        // Objeto para almacenar divisas disponibles
+        const divisasStorage = { divisas: [] };
+
+        // Función local que usa el módulo loadDivisasFromAPI
         async function loadDivisasLocal() {
-            try {
-                // Primero obtener las divisas del endpoint
-                const response = await fetch('{% url "transacciones:api_divisas_disponibles" %}');
-                const data = await response.json();
+            const success = await loadDivisasFromAPI(
+                divisaSelect,
+                '{% url "transacciones:api_divisas_disponibles" %}',
+                divisasStorage
+            );
 
-                // Guardar las divisas disponibles
-                availableDivisas = data.divisas;
-
-                // Limpiar el select
-                divisaSelect.innerHTML = '';
-
-                // Agregar opción por defecto
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = 'Seleccione una divisa';
-                divisaSelect.appendChild(defaultOption);
-
-                // Agregar opciones de divisas
-                data.divisas.forEach(divisa => {
-                    const option = document.createElement('option');
-                    option.value = divisa.codigo;
-                    option.textContent = `${divisa.codigo} - ${divisa.nombre}`;
-                    divisaSelect.appendChild(option);
-                });
-
-            } catch (error) {
-                console.error('Error loading divisas:', error);
-                divisaSelect.innerHTML = '<option disabled>Error cargando divisas</option>';
+            // Actualizar referencia para compatibilidad
+            if (success) {
+                availableDivisas = divisasStorage.divisas;
             }
         }
 
