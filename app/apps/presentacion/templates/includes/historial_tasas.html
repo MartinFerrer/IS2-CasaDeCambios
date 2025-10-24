@@ -1,0 +1,28 @@
+<!-- Vista de historial -->
+<div id="historial-view" class="hidden">
+    <h3 class="text-2xl font-semibold mb-4 text-center">Historial de Tasas</h3>
+    <div class="mb-4 flex flex-wrap gap-2 justify-center">
+        <select id="divisa-select" class="select select-bordered select-sm">
+            <option value="">Seleccionar divisa</option>
+        </select>
+        <select id="periodo-select" class="select select-bordered select-sm">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+        </select>
+        <button id="actualizar-grafica-btn" class="btn btn-sm btn-primary">Actualizar</button>
+    </div>
+    <div id="loading-historial" class="flex justify-center items-center py-8 hidden">
+        <div class="loading loading-spinner loading-md"></div>
+        <span class="ml-2">Cargando historial...</span>
+    </div>
+    <div id="error-historial" class="alert alert-error hidden">
+        <span>Error al cargar el historial. Por favor, intenta de nuevo.</span>
+    </div>
+    <div id="empty-historial" class="text-center py-8 text-gray-500 hidden">
+        <p>No hay datos de historial disponibles para esta divisa.</p>
+    </div>
+    <!-- djlint:off H021 -->
+    <div id="historial_plotly" class="bg-gray-50 w-full rounded-box historial-plotly min-h-[500px]"></div>
+    <!-- djlint:on H021 -->
+</div>
