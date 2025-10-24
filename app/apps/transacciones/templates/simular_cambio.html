@@ -233,7 +233,7 @@
             // Importar funciones desde módulos
             const { formatNumber, formatRate, parseInputNumber, formatInputNumber } = window.TransaccionesFormatters;
             const { validateIntegerInput, setupIntegerValidation } = window.TransaccionesValidators;
-            const { getTipoOperacion, updateLabels, loadDivisas, calculateExchangeAmount } = window.TransaccionesBusinessLogic;
+            const { updateLabels, loadDivisas, calculateExchangeAmount } = window.TransaccionesBusinessLogic;
             // Elementos del DOM
             const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
             const divisaSelect = document.getElementById('divisa-select');
@@ -267,6 +267,12 @@
             const currentCliente = {% if request.cliente %}{{ request.cliente.id }}{% else %}null{% endif %};
             let availableDivisas = [];
 
+            // Función local para obtener tipo de operación desde radio buttons
+            function getTipoOperacion() {
+                const radioChecked = document.querySelector('input[name="tipo_operacion"]:checked');
+                return radioChecked ? radioChecked.value : 'compra';
+            }
+
             // Configuración específica para formateo
             const isoDecimals = { PYG: 0, USD: 2, EUR: 2, BRL: 2 };
 
@@ -277,7 +283,7 @@
 
             // Función adaptada para labels usando lógica del módulo business-logic
             function updateLabelsLocal() {
-                const tipo = getTipoOperacion(tipoOperacionInputs);
+                const tipo = getTipoOperacion();
                 const labelMap = {
                     compra: {
                         divisa: 'Quiero',
@@ -299,26 +305,38 @@
                 montoOriginalLabel.textContent = labels.montoOriginal;
                 montoFinalLabel.textContent = labels.montoFinal;
             }
-            }
+
 
             // Función local que usa el módulo loadDivisas
             async function loadDivisasLocal() {
                 try {
-                    // Usar el módulo de business logic para cargar divisas
-                    const success = await loadDivisas(
-                        [divisaSelect],
-                        '{% url "transacciones:api_divisas_disponibles" %}',
-                        {}
-                    );
+                    // Primero obtener las divisas del endpoint
+                    const response = await fetch('{% url "transacciones:api_divisas_disponibles" %}');
+                    const data = await response.json();
 
-                    if (success) {
-                        // Cargar disponibleDivisas desde el response personalizado
-                        const response = await fetch('{% url "transacciones:api_divisas_disponibles" %}');
-                        const data = await response.json();
-                        availableDivisas = data.divisas;
-                    }
+                    // Guardar las divisas disponibles
+                    availableDivisas = data.divisas;
+
+                    // Limpiar el select
+                    divisaSelect.innerHTML = '';
+
+                    // Agregar opción por defecto
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Seleccione una divisa';
+                    divisaSelect.appendChild(defaultOption);
+
+                    // Agregar opciones de divisas
+                    data.divisas.forEach(divisa => {
+                        const option = document.createElement('option');
+                        option.value = divisa.codigo;
+                        option.textContent = `${divisa.codigo} - ${divisa.nombre}`;
+                        divisaSelect.appendChild(option);
+                    });
+
                 } catch (error) {
                     console.error('Error loading divisas:', error);
+                    divisaSelect.innerHTML = '<option disabled>Error cargando divisas</option>';
                 }
             }
 
@@ -510,7 +528,7 @@
             // Event listeners
             tipoOperacionInputs.forEach(input => {
                 input.addEventListener('change', function() {
-                    updateLabels();
+                    updateLabelsLocal();
                     // Recargar medios de pago porque las opciones de cobro cambian según el tipo
                     if (currentCliente) {
                         loadMediosPago();
