@@ -10,6 +10,7 @@
  *
  * Formatea un número según la divisa especificada usando formato latinoamericano
  * (espacios como separadores de miles, coma como separador decimal).
+ * Elimina ceros decimales finales innecesarios.
  *
  * Args:
  *   value (number|string): Valor numérico a formatear
@@ -20,6 +21,8 @@
  *
  * Ejemplos:
  *   formatNumber(1234567.89, "USD") → "1 234 567,89"
+ *   formatNumber(1234567.00, "USD") → "1 234 567"
+ *   formatNumber(1234567.50, "USD") → "1 234 567,5"
  *   formatNumber(1234567, "PYG") → "1 234 567"
  */
 function formatNumber(value, currency) {
@@ -28,14 +31,22 @@ function formatNumber(value, currency) {
     const num = Number(value);
     if (!isFinite(num)) return value;
 
+    // Obtener representación con decimales máximos
+    let strNum = num.toFixed(dec);
+
+    // Eliminar ceros decimales finales y punto/coma si es necesario
+    if (dec > 0) {
+        strNum = strNum.replace(/\.?0+$/, '');
+    }
+
     // Separar la parte entera y decimal
-    const [integerPart, decimalPart] = num.toFixed(dec).split('.');
+    const [integerPart, decimalPart] = strNum.split('.');
 
     // Formatear parte entera con espacios como separadores de miles
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
     // Combinar con coma como separador decimal
-    if (dec > 0) {
+    if (decimalPart) {
         return `${formattedInteger},${decimalPart}`;
     } else {
         return formattedInteger;
