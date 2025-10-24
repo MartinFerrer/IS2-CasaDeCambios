@@ -377,8 +377,16 @@
             </div>
         </div>
         <script src="https://js.stripe.com/v3/"></script>
+        <!-- Módulos JavaScript para transacciones -->
+        <script src="{% static 'js/transacciones/formatters.js' %}"></script>
+        <script src="{% static 'js/transacciones/validators.js' %}"></script>
+        <script src="{% static 'js/transacciones/business-logic.js' %}"></script>
         <script>
     (function() {
+        // Importar funciones desde módulos
+        const { formatNumber, formatRate, parseInputNumber, formatInputNumber } = window.TransaccionesFormatters;
+        const { validateIntegerInput, setupIntegerValidation } = window.TransaccionesValidators;
+        const { getTipoOperacion, updateLabels, loadDivisas, calculateExchangeAmount } = window.TransaccionesBusinessLogic;
         // Elementos del DOM
         const tipoOperacionInputs = document.querySelectorAll('input[name="tipo_operacion"]');
         const divisaSelect = document.getElementById('divisa-select');
@@ -477,128 +485,55 @@
         let availableDivisas = [];
         let lastSimulationData = null;
 
-        // Funciones de formateo
+        // Configuración específica para formateo
         const isoDecimals = { PYG: 0, USD: 2, EUR: 2, BRL: 2 };
 
-        function formatNumber(value, currency) {
-            const dec = isoDecimals[currency] !== undefined ? isoDecimals[currency] : 2;
-            const num = Number(value);
-            if (!isFinite(num)) return value;
-
-            // Separar la parte entera y decimal
-            const [integerPart, decimalPart] = num.toFixed(dec).split('.');
-
-            // Formatear parte entera con espacios como separadores de miles
-            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-
-            // Combinar con coma como separador decimal
-            if (dec > 0) {
-                return `${formattedInteger},${decimalPart}`;
-            } else {
-                return formattedInteger;
-            }
+        // Función adaptada para usar el módulo de formatters con configuración específica
+        function formatNumberWithCurrency(value, currency) {
+            return formatNumber(value, isoDecimals[currency] || 2);
         }
 
-        // Formatea la tasa mostrando los decimales necesarios y quitando ceros finales
-        function formatRate(rate) {
-            const num = Number(rate);
-            if (!isFinite(num)) return rate;
+        // Función adaptada para labels usando lógica del módulo business-logic
+        function updateLabelsLocal() {
+            const tipo = getTipoOperacion(tipoOperacionInputs);
+            const labelMap = {
+                compra: {
+                    divisa: 'Quiero',
+                    monto: 'Monto que Deseo',
+                    montoOriginal: 'Monto que Deseo:',
+                    montoFinal: 'Total a Pagar:'
+                },
+                venta: {
+                    divisa: 'Tengo',
+                    monto: 'Monto que Tengo',
+                    montoOriginal: 'Monto que Tengo:',
+                    montoFinal: 'Monto a Recibir:'
+                }
+            };
 
-            // Obtener representación con suficientes decimales
-            let s = num.toFixed(12);
-            // Quitar ceros finales y punto si corresponde
-            s = s.replace(/(?:\.0+|(?<=\.[0-9]*?)0+)$/, '');
-
-            // Convertir a formato latinoamericano
-            const [integerPart, decimalPart] = s.split('.');
-            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-
-            if (decimalPart) {
-                return `${formattedInteger},${decimalPart}`;
-            } else {
-                return formattedInteger;
-            }
+            const labels = labelMap[tipo];
+            divisaLabel.textContent = labels.divisa;
+            montoLabel.textContent = labels.monto;
+            montoOriginalLabel.textContent = labels.montoOriginal;
+            montoFinalLabel.textContent = labels.montoFinal;
         }
 
-        // Parsear input en formato latinoamericano a número
-        function parseInputNumber(value) {
-            if (!value) return 0;
-            // Remover espacios (separadores de miles) y reemplazar coma por punto
-            const normalized = value.replace(/\s/g, '').replace(',', '.');
-            return parseFloat(normalized) || 0;
-        }
-
-        // Formatear input en tiempo real
-        function formatInputNumber(value) {
-            if (!value) return '';
-
-            // Limpiar valor: solo números y una coma
-            let cleanValue = value.replace(/[^\d,]/g, '');
-
-            // Asegurar solo una coma
-            const commaIndex = cleanValue.indexOf(',');
-            if (commaIndex !== -1) {
-                const beforeComma = cleanValue.substring(0, commaIndex);
-                const afterComma = cleanValue.substring(commaIndex + 1).replace(/,/g, '');
-                cleanValue = beforeComma + ',' + afterComma;
-            }
-
-            // Separar parte entera y decimal
-            const [integerPart, decimalPart] = cleanValue.split(',');
-
-            // Formatear parte entera con espacios
-            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-
-            // Limitar decimales a 2 dígitos
-            if (decimalPart !== undefined) {
-                const limitedDecimal = decimalPart.substring(0, 2);
-                return `${formattedInteger},${limitedDecimal}`;
-            } else {
-                return formattedInteger;
-            }
-        }
-
-        // Obtener tipo de operación seleccionado
-        function getTipoOperacion() {
-            for (const input of tipoOperacionInputs) {
-                if (input.checked) return input.value;
-            }
-            return 'compra';
-        }
-
-        // Actualizar labels según tipo de operación
-        function updateLabels() {
-            const tipo = getTipoOperacion();
-            if (tipo === 'compra') {
-                divisaLabel.textContent = 'Quiero';
-                montoLabel.textContent = 'Monto que Deseo';
-                montoOriginalLabel.textContent = 'Monto que Deseo:';
-                montoFinalLabel.textContent = 'Total a Pagar:';
-            } else {
-                divisaLabel.textContent = 'Tengo';
-                montoLabel.textContent = 'Monto que Tengo';
-                montoOriginalLabel.textContent = 'Monto que Tengo:';
-                montoFinalLabel.textContent = 'Monto a Recibir:';
-            }
-        }
-
-        // Cargar divisas disponibles
-        async function loadDivisas() {
+        // Función local que usa el módulo loadDivisas
+        async function loadDivisasLocal() {
             try {
-                const response = await fetch('{% url "transacciones:api_divisas_disponibles" %}');
-                const data = await response.json();
+                // Usar el módulo de business logic para cargar divisas
+                const success = await loadDivisas(
+                    [divisaSelect],
+                    '{% url "transacciones:api_divisas_disponibles" %}',
+                    {}
+                );
 
-                divisaSelect.innerHTML = '<option value="">Seleccione una divisa</option>';
-
-                // Solo mostrar las divisas disponibles (excluyendo PYG)
-                data.divisas.forEach(divisa => {
-                    const option = document.createElement('option');
-                    option.value = divisa.codigo;
-                    option.textContent = `${divisa.codigo} - ${divisa.nombre}`;
-                    divisaSelect.appendChild(option);
-                });
-
-                availableDivisas = data.divisas;
+                if (success) {
+                    // Cargar disponibleDivisas desde el response personalizado
+                    const response = await fetch('{% url "transacciones:api_divisas_disponibles" %}');
+                    const data = await response.json();
+                    availableDivisas = data.divisas;
+                }
             } catch (error) {
                 console.error('Error loading divisas:', error);
             }
@@ -728,7 +663,7 @@
                 // Mostrar montos con formato y énfasis
                 const tipo = getTipoOperacion();
 
-                montoOriginalVal.textContent = formatNumber(data.monto_original, data.moneda_origen);
+                montoOriginalVal.textContent = formatNumberWithCurrency(data.monto_original, data.moneda_origen);
                 monedaOrigenVal.textContent = data.moneda_origen;
 
 
@@ -740,11 +675,11 @@
                     tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
                 }
 
-                montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumber(data.total, "PYG")}</span>`;
+                montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumberWithCurrency(data.total, "PYG")}</span>`;
                 monedaDestinoVal.textContent = "PYG";
-                comisionBaseVal.textContent = formatNumber(data.comision_base, data.moneda_destino);
+                comisionBaseVal.textContent = formatNumberWithCurrency(data.comision_base, data.moneda_destino);
                 descuentoVal.textContent = data.descuento;
-                comisionFinalVal.textContent = formatNumber(data.comision_final, data.moneda_destino);
+                comisionFinalVal.textContent = formatNumberWithCurrency(data.comision_final, data.moneda_destino);
 
                 // Mostrar comisión de medio de pago si aplica
                 const metodoPago = metodoPagoSelect.value;
@@ -756,20 +691,20 @@
                     stripeFeeSection.classList.remove('hidden');
 
                     // Comisión variable (2.9%)
-                    stripeVariableFee.textContent = formatNumber(data.comision_medio_pago_monto, "PYG");
+                    stripeVariableFee.textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, "PYG");
 
                     // Comisión fija (0.30 USD en PYG)
-                    stripeFixedFee.textContent = formatNumber(data.stripe_fixed_fee, "PYG");
+                    stripeFixedFee.textContent = formatNumberWithCurrency(data.stripe_fixed_fee, "PYG");
 
                     // Total Stripe
                     const totalStripeFee = data.comision_medio_pago_monto + data.stripe_fixed_fee;
-                    stripeTotalFee.textContent = formatNumber(totalStripeFee, "PYG");
+                    stripeTotalFee.textContent = formatNumberWithCurrency(totalStripeFee, "PYG");
 
                 } else if (data.comision_medio_pago_monto > 0) {
                     // Para otros medios de pago
                     comisionMedioPagoSection.classList.remove('hidden');
                     stripeFeeSection.classList.add('hidden');
-                    comisionMedioPagoVal.textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
+                    comisionMedioPagoVal.textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, data.moneda_destino);
                     comisionMedioPagoPct.textContent = data.comision_medio_pago_porcentaje;
                 } else {
                     comisionMedioPagoSection.classList.add('hidden');
@@ -779,12 +714,12 @@
                 // Actualizar comisiones en el panel colapsable
                 const cb = document.getElementById('commission-breakdown');
                 if (cb) {
-                    cb.querySelector('#comision-base-val').textContent = formatNumber(data.comision_base, data.moneda_destino);
+                    cb.querySelector('#comision-base-val').textContent = formatNumberWithCurrency(data.comision_base, data.moneda_destino);
                     cb.querySelector('#descuento-val').textContent = data.descuento;
-                    cb.querySelector('#comision-final-val').textContent = formatNumber(data.comision_final, data.moneda_destino);
+                    cb.querySelector('#comision-final-val').textContent = formatNumberWithCurrency(data.comision_final, data.moneda_destino);
                     if (data.comision_medio_pago_monto > 0) {
                         cb.querySelector('#comision-medio-pago-section').classList.remove('hidden');
-                        cb.querySelector('#comision-medio-pago-val').textContent = formatNumber(data.comision_medio_pago_monto, data.moneda_destino);
+                        cb.querySelector('#comision-medio-pago-val').textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, data.moneda_destino);
                         cb.querySelector('#comision-medio-pago-pct').textContent = data.comision_medio_pago_porcentaje;
                     } else {
                         cb.querySelector('#comision-medio-pago-section').classList.add('hidden');
@@ -841,8 +776,8 @@
             // Actualizar contenido
             document.getElementById('modal-tipo').textContent = tipoText;
             document.getElementById('modal-divisa').textContent = divisa;
-            document.getElementById('modal-monto').textContent = `${formatNumber(lastSimulationData.monto_original, lastSimulationData.moneda_origen)} ${lastSimulationData.moneda_origen}`;
-            document.getElementById('modal-total').textContent = `${formatNumber(lastSimulationData.total, "PYG")} PYG`;
+            document.getElementById('modal-monto').textContent = `${formatNumberWithCurrency(lastSimulationData.monto_original, lastSimulationData.moneda_origen)} ${lastSimulationData.moneda_origen}`;
+            document.getElementById('modal-total').textContent = `${formatNumberWithCurrency(lastSimulationData.total, "PYG")} PYG`;
             document.getElementById('modal-metodo-pago').textContent = metodoPago;
             document.getElementById('modal-metodo-cobro').textContent = metodoCobro;
 
@@ -971,11 +906,11 @@
                 const granTotal = lastSimulationData.total;
 
                 // Actualizar elementos del modal
-                stripeAmountDisplay.textContent = `${formatNumber(montoTransaccion, "PYG")} PYG`;
-                stripeModalVariableFee.textContent = `${formatNumber(comisionVariable, "PYG")} PYG`;
-                stripeModalFixedFee.textContent = `${formatNumber(comisionFija, "PYG")} PYG`;
-                stripeModalTotalFees.textContent = `${formatNumber(totalComisiones, "PYG")} PYG`;
-                stripeModalGrandTotal.textContent = `${formatNumber(granTotal, "PYG")} PYG`;
+                stripeAmountDisplay.textContent = `${formatNumberWithCurrency(montoTransaccion, "PYG")} PYG`;
+                stripeModalVariableFee.textContent = `${formatNumberWithCurrency(comisionVariable, "PYG")} PYG`;
+                stripeModalFixedFee.textContent = `${formatNumberWithCurrency(comisionFija, "PYG")} PYG`;
+                stripeModalTotalFees.textContent = `${formatNumberWithCurrency(totalComisiones, "PYG")} PYG`;
+                stripeModalGrandTotal.textContent = `${formatNumberWithCurrency(granTotal, "PYG")} PYG`;
 
                 // Limpiar errores previos
                 hideStripeError();
@@ -1137,7 +1072,7 @@
         // Event listeners
         tipoOperacionInputs.forEach(input => {
             input.addEventListener('change', function() {
-                updateLabels();
+                updateLabelsLocal();
                 // Recargar medios de pago porque las opciones de cobro cambian según el tipo
                 if (currentCliente) {
                     loadMediosPago();
@@ -1217,8 +1152,8 @@
 
 
         // Inicialización
-        updateLabels();
-        loadDivisas();
+        updateLabelsLocal();
+        loadDivisasLocal();
         if (currentCliente) {
             loadMediosPago();
         }

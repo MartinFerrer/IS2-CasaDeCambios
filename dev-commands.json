@@ -390,6 +390,94 @@
         "bash"
       ],
       "cwd": "."
+    },
+    "populate-data": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "run",
+        "--rm",
+        "--no-deps",
+        "web",
+        "uv",
+        "run",
+        "python",
+        "manage.py",
+        "populate_data"
+      ],
+      "cwd": "."
+    },
+    "populate-data-full": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "run",
+        "--rm",
+        "--no-deps",
+        "web",
+        "uv",
+        "run",
+        "python",
+        "manage.py",
+        "populate_data",
+        "--full"
+      ],
+      "cwd": "."
+    },
+    "populate-data-clear": {
+      "cmd": [
+        "docker",
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "run",
+        "--rm",
+        "--no-deps",
+        "web",
+        "uv",
+        "run",
+        "python",
+        "manage.py",
+        "populate_data",
+        "--clear"
+      ],
+      "cwd": "."
+    },
+    "populate-data-local": {
+      "cmd": [
+        "python",
+        "manage.py",
+        "populate_data"
+      ],
+      "cwd": "app"
+    },
+    "populate-data-local-full": {
+      "cmd": [
+        "python",
+        "manage.py",
+        "populate_data",
+        "--full"
+      ],
+      "cwd": "app"
+    },
+    "populate-data-local-clear": {
+      "cmd": [
+        "python",
+        "manage.py",
+        "populate_data",
+        "--clear"
+      ],
+      "cwd": "app"
     }
   }
 }

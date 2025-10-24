@@ -24,6 +24,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
+from .utils.commission_calculator import get_collection_commission, get_payment_commission
 
 
 def obtener_medio_financiero_por_identificador(identificador, cliente):
@@ -126,102 +127,107 @@ def _get_stripe_fixed_fee_pyg() -> Decimal:
 
 
 def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
-    """Calcula la comisión del medio de pago."""
+    """Calcula la comisión del medio de pago.
+
+    Se usa utils.commission_calculator cuando sea posible hacerlo
+    manteniendo la lógica específica para entidades financieras.
+    """
     from django.conf import settings
 
     # Stripe (tarjetas internacionales)
     if metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
         return settings.STRIPE_COMMISSION_RATE
 
+    # Lógica específica para medios de pago con entidades financieras
     if metodo_pago.startswith("tarjeta_") and cliente:
         try:
             tarjeta_id = int(metodo_pago.split("_")[1])
             tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
             if tarjeta.entidad:
                 return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
-            return Decimal("5.0")
+            # Usar módulo para tarjetas sin entidad específica
+            return get_payment_commission("tarjeta_credito", Decimal("100"))  # Monto de referencia
         except (ValueError, TarjetaCredito.DoesNotExist):
-            return Decimal("5.0")
+            return get_payment_commission("tarjeta_credito", Decimal("100"))
+
     elif metodo_pago.startswith("cuenta_") and cliente:
         try:
             cuenta_id = int(metodo_pago.split("_")[1])
             cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
             if cuenta.entidad:
                 return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
-            return Decimal("0.0")
+            return get_payment_commission("cuenta_bancaria", Decimal("100"))
         except (ValueError, CuentaBancaria.DoesNotExist):
-            return Decimal("0.0")
+            return get_payment_commission("cuenta_bancaria", Decimal("100"))
+
     elif metodo_pago.startswith("billetera_") and cliente:
         try:
             billetera_id = int(metodo_pago.split("_")[1])
             billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
             if billetera.entidad:
                 return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
-            return Decimal("3.0")
+            return get_payment_commission("billetera_digital", Decimal("100"))
         except (ValueError, BilleteraElectronica.DoesNotExist):
-            return Decimal("3.0")
+            return get_payment_commission("billetera_digital", Decimal("100"))
     else:
-        comisiones_medios = {
-            "efectivo": Decimal("0.0"),
-            "cuenta": Decimal("0.0"),
-            "tarjeta": Decimal("5.0"),
-            "billetera": Decimal("3.0"),
-            "stripe": settings.STRIPE_COMMISSION_RATE,
-        }
+        # Usar módulo utils para casos genéricos
         if metodo_pago.startswith("tarjeta"):
-            return comisiones_medios["tarjeta"]
+            return get_payment_commission("tarjeta_credito", Decimal("100"))
         elif metodo_pago.startswith("cuenta"):
-            return comisiones_medios["cuenta"]
+            return get_payment_commission("cuenta_bancaria", Decimal("100"))
         elif metodo_pago.startswith("billetera"):
-            return comisiones_medios["billetera"]
+            return get_payment_commission("billetera_digital", Decimal("100"))
         elif metodo_pago.startswith("stripe"):
-            return comisiones_medios["stripe"]
-        return comisiones_medios["efectivo"]
+            return settings.STRIPE_COMMISSION_RATE
+        return Decimal("0.0")  # efectivo
 
 
 def _get_collection_commission(metodo_cobro: str, cliente, tipo: str) -> Decimal:
-    """Calcula la comisión del medio de cobro."""
+    """Calcula la comisión del medio de cobro.
+
+    Se usa utils.commission_calculator cuando sea posible hacerlo
+    manteniendo la lógica específica para entidades financieras.
+    """
+    # Lógica específica para medios de cobro con entidades financieras
     if metodo_cobro.startswith("tarjeta_") and cliente:
         try:
             tarjeta_id = int(metodo_cobro.split("_")[1])
             tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
             if tarjeta.entidad:
                 return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
-            return Decimal("5.0")
+            # Usar módulo para tarjetas sin entidad específica
+            return get_collection_commission("tarjeta_credito", Decimal("100"))  # Monto de referencia
         except (ValueError, TarjetaCredito.DoesNotExist):
-            return Decimal("5.0")
+            return get_collection_commission("tarjeta_credito", Decimal("100"))
+
     elif metodo_cobro.startswith("cuenta_") and cliente:
         try:
             cuenta_id = int(metodo_cobro.split("_")[1])
             cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
             if cuenta.entidad:
                 return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
-            return Decimal("0.0")
+            return get_collection_commission("cuenta_bancaria", Decimal("100"))
         except (ValueError, CuentaBancaria.DoesNotExist):
-            return Decimal("0.0")
+            return get_collection_commission("cuenta_bancaria", Decimal("100"))
+
     elif metodo_cobro.startswith("billetera_") and cliente:
         try:
             billetera_id = int(metodo_cobro.split("_")[1])
             billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
             if billetera.entidad:
                 return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
-            return Decimal("3.0")
+            return get_collection_commission("billetera_digital", Decimal("100"))
         except (ValueError, BilleteraElectronica.DoesNotExist):
-            return Decimal("3.0")
+            return get_collection_commission("billetera_digital", Decimal("100"))
     else:
-        comisiones_medios = {
-            "efectivo": Decimal("0.0"),
-            "cuenta": Decimal("0.0"),
-            "tarjeta": Decimal("5.0"),
-            "billetera": Decimal("3.0"),
-        }
+        # Usar módulo utils para casos genéricos
         if metodo_cobro.startswith("tarjeta"):
-            return comisiones_medios["tarjeta"]
+            return get_collection_commission("tarjeta_credito", Decimal("100"))
         elif metodo_cobro.startswith("cuenta"):
-            return comisiones_medios["cuenta"]
+            return get_collection_commission("cuenta_bancaria", Decimal("100"))
         elif metodo_cobro.startswith("billetera"):
-            return comisiones_medios["billetera"]
-        return comisiones_medios["efectivo"]
+            return get_collection_commission("billetera_digital", Decimal("100"))
+        return Decimal("0.0")  # efectivo
 
 
 def _compute_simulation(params: Dict, request) -> Dict:
