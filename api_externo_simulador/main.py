@@ -265,6 +265,107 @@ def procesar_transaccion():
         }, 500)
 
 
+@app.route("/api/procesar-transferencia", methods=["POST"])
+def procesar_transferencia():
+    """
+    Procesa una transferencia al medio de cobro del cliente (para ventas).
+    
+    Expected JSON:
+    {
+        "transaccion_id": "string",
+        "monto": float,
+        "divisa": "string",
+        "medio_cobro": "string",
+        "identificador_cobro": "string",
+        "cliente_nombre": "string",
+        "datos_adicionales": {}
+    }
+    
+    Returns:
+    {
+        "exito": bool,
+        "codigo_transferencia": "string",
+        "mensaje": "string",
+        "transaccion_id": "string",
+        "tiempo_procesamiento": float
+    }
+    """
+    try:
+        datos = request.get_json()
+        
+        print("=" * 80)
+        print(f"[{datetime.now()}] NUEVA TRANSFERENCIA RECIBIDA")
+        print("=" * 80)
+        
+        if not datos:
+            print("ERROR: No se enviaron datos en el request")
+            return jsonResponse({"error": "No se enviaron datos"}, 400)
+        
+        # Log completo de todos los datos recibidos
+        print("DATOS COMPLETOS DE TRANSFERENCIA:")
+        for key, value in datos.items():
+            print(f"   {key}: {value} (tipo: {type(value).__name__})")
+        
+        transaccion_id = datos.get("transaccion_id")
+        monto = datos.get("monto")
+        divisa = datos.get("divisa", "PYG")
+        medio_cobro = datos.get("medio_cobro", "efectivo")
+        identificador_cobro = datos.get("identificador_cobro", "")
+        cliente_nombre = datos.get("cliente_nombre", "Cliente")
+        
+        print("\nINFORMACIÓN DE TRANSFERENCIA:")
+        print(f"   Monto a transferir: {monto} {divisa}")
+        print(f"   Cliente: {cliente_nombre}")
+        print(f"   Medio de cobro: {medio_cobro}")
+        print(f"   Identificador: {identificador_cobro}")
+        
+        # Validaciones básicas
+        if not transaccion_id:
+            print("VALIDACIÓN FALLIDA: transaccion_id es requerido")
+            return jsonResponse({"error": "transaccion_id es requerido"}, 400)
+        
+        if not monto or float(monto) <= 0:
+            print("VALIDACIÓN FALLIDA: monto debe ser mayor a 0")
+            return jsonResponse({"error": "monto debe ser mayor a 0"}, 400)
+        
+        print("VALIDACIONES DE TRANSFERENCIA PASADAS")
+        
+        # Simular tiempo de procesamiento 
+        tiempo_procesamiento = random.uniform(1.0, 3.0)
+        print(f"Simulando transferencia por {tiempo_procesamiento:.2f} segundos...")
+        time.sleep(tiempo_procesamiento)
+        
+        # Generar código de transferencia único
+        codigo_transferencia = f"{random.randint(100000, 999999)}"
+        print(f"   Código de transferencia generado: {codigo_transferencia}")
+        resultado = {
+            "exito": True,
+            "codigo_transferencia": codigo_transferencia,
+            "mensaje": f"Transferencia exitosa a {medio_cobro} por {monto} {divisa}",
+            "transaccion_id": transaccion_id,
+            "tiempo_procesamiento": round(tiempo_procesamiento, 2)
+        }
+        
+        print("\nRESULTADO DE LA TRANSFERENCIA:")
+        print("   Estado: ÉXITO")
+        print(f"   Código transferencia: {codigo_transferencia}")
+        print(f"   Tiempo procesamiento: {tiempo_procesamiento:.2f}s")
+        
+        print("=" * 80)
+        print()
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"   ERROR CRÍTICO procesando transferencia: {e}")
+        print(f"   Tipo de error: {type(e).__name__}")
+        print(f"   Detalles: {str(e)}")
+        return jsonResponse({
+            "error": "Error interno del simulador",
+            "detalle": str(e)
+        }, 500)
+
+
 @app.route("/api/configuracion", methods=["GET"])
 def obtener_configuracion():
     """Obtiene la configuración actual del simulador."""
@@ -338,6 +439,7 @@ if __name__ == "__main__":
     print("\nEndpoints disponibles:")
     print("  GET  /health")
     print("  POST /api/procesar-transaccion")
+    print("  POST /api/procesar-transferencia")
     print("  GET  /api/configuracion")
     print("  POST /api/configuracion")
     print("  GET  /api/cuentas-prueba")

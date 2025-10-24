@@ -303,7 +303,7 @@ def procesar_compra(request: HttpRequest) -> HttpResponse:
         # Renderizar página de confirmación
         context = {
             'transaccion': transaccion,
-            'success': True
+            'success': True,
         }
         return render(request, 'tauser/transaccion_completada.html', context)
 
@@ -354,7 +354,9 @@ def procesar_billetes_venta(request: HttpRequest) -> HttpResponse:
     transaccion = None
     try:
         transaccion = Transaccion.objects.get(id_transaccion=transaccion_id)
-
+        if transaccion.estado != 'pendiente':
+            messages.error(request, 'La transacción ya ha sido procesada.')
+            return redirect('tauser:bienvenida')
         # Verificar que sea una operación de venta
         if transaccion.tipo_operacion != 'venta':
             messages.error(request, 'Esta operación no es de venta.')
@@ -421,6 +423,7 @@ def procesar_billetes_venta(request: HttpRequest) -> HttpResponse:
 
         # Actualizar estado de la transacción
         transaccion.estado = 'completada'
+        transaccion.fecha_pago = timezone.now()
         transaccion.fecha_completada = timezone.now()
         transaccion.save()
 
@@ -430,11 +433,16 @@ def procesar_billetes_venta(request: HttpRequest) -> HttpResponse:
             if key in request.session:
                 del request.session[key]
 
+        # Obtener medio de cobro para mostrar en la confirmación
+        from apps.transacciones.views import obtener_medio_financiero_por_identificador
+        medio_cobro = obtener_medio_financiero_por_identificador(transaccion.medio_cobro, transaccion.cliente)
+
         # Renderizar página de confirmación con mensaje específico
         context = {
             'transaccion': transaccion,
             'success': True,
-            'mensaje_personalizado': 'En breve se realizará su transferencia en su medio de cobro.'
+            'mensaje_personalizado': 'En breve se realizará su transferencia en su medio de cobro.',
+            'medio_cobro': medio_cobro,
         }
         return render(request, 'tauser/transaccion_completada.html', context)
 

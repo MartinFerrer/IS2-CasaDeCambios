@@ -17,13 +17,14 @@ from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.seguridad.decorators import client_required
-from apps.stock.models import MovimientoStock, StockDivisaTauser
-from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.stock.models import MovimientoStock
+from apps.stock.services import cancelar_movimiento, monto_valido
 from apps.tauser.models import Tauser
 from apps.usuarios.models import Cliente
 
@@ -1421,31 +1422,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
                 {"error": "No se permite comprar divisas usando PYG en efectivo como medio de pago"}, status=400
             )
 
-        # Verificar si el usuario requiere MFA para transacciones ANTES de crear
-        from apps.seguridad.models import PerfilMFA
-
-        mfa_requerido = False
-        try:
-            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
-            mfa_requerido = perfil_mfa.mfa_habilitado_transacciones
-        except PerfilMFA.DoesNotExist:
-            pass
-
-        # Si se requiere MFA, verificar si ya fue validado para esta sesión
-        if mfa_requerido:
-            mfa_token = request.GET.get("mfa_token")
-            if not mfa_token or not request.session.get(f"mfa_token_valido_{mfa_token}"):
-                # Guardar los datos de la transacción en la sesión y requerir MFA
-                request.session["datos_transaccion_mfa"] = params
-                return JsonResponse(
-                    {
-                        "error": "MFA_REQUIRED",
-                        "mensaje": "Se requiere verificación MFA para crear transacciones",
-                        "redirect_url": reverse("seguridad:verificar_mfa_transaccion"),
-                    },
-                    status=400,
-                )
-
         # Realizar la simulación para obtener los datos calculados
         simulation_data = _compute_simulation(params, request)
 
@@ -1480,21 +1456,15 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         except Divisa.DoesNotExist:
             return JsonResponse({"error": "Divisa no válida"}, status=400)
 
-        # Validar si el monto es soportada por el tauser
-        # Compra: Si el tauser tiene stock suficiente de la divisa destino
+        # Validar si el valor del monto es válido según las denominaciones disponibles
         if tipo_operacion == "compra":
-            lista_denominaciones = StockDivisaTauser.seleccionar_denominaciones_optimas(tauser, divisa_destino, int(monto))
-            if not lista_denominaciones:
-                return JsonResponse(
-                    {"error": "Monto no disponible en stock del Tauser para la divisa seleccionada o el monto es inválido"}, status=400
-                )
-        # Venta: Si el valor del monto es válido según las denominaciones disponibles
+            resultado = monto_valido(divisa_destino.codigo, int(monto))
         else:
             resultado = monto_valido(divisa_origen.codigo, int(monto))
-            if not resultado:
-                return JsonResponse(
-                    {"error": "Monto inválido según las denominaciones disponibles para la divisa seleccionada"}, status=400
-                )
+        if not resultado:
+            return JsonResponse(
+                {"error": "Monto inválido según las denominaciones disponibles para la divisa seleccionada"}, status=400
+            )
 
         # Crear la transacción
         from .models import Transaccion
@@ -1531,6 +1501,35 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
                 status=400,
             )
 
+        # Verificar si el usuario requiere MFA para transacciones ANTES de crear
+        from apps.seguridad.models import PerfilMFA
+
+        mfa_requerido = False
+        try:
+            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+            mfa_requerido = perfil_mfa.mfa_habilitado_transacciones
+        except PerfilMFA.DoesNotExist:
+            pass
+
+        # Si se requiere MFA, verificar si ya fue validado para esta sesión
+        if mfa_requerido:
+            mfa_token = request.GET.get("mfa_token")
+            if not mfa_token or not request.session.get(f"mfa_token_valido_{mfa_token}"):
+                # Guardar los datos de la transacción en la sesión y requerir MFA
+                request.session["datos_transaccion_mfa"] = params
+                return JsonResponse(
+                    {
+                        "error": "MFA_REQUIRED",
+                        "mensaje": "Se requiere verificación MFA para crear transacciones",
+                        "redirect_url": reverse("seguridad:verificar_mfa_transaccion"),
+                    },
+                    status=400,
+                )
+        # Limpiar token MFA si se usó
+        mfa_token = request.GET.get("mfa_token")
+        if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
+            del request.session[f"mfa_token_valido_{mfa_token}"]
+
         # Obtener la tasa de cambio actual para almacenar como tasa original
         tasa_actual = Decimal(str(simulation_data["tasa_cambio"]))
 
@@ -1550,16 +1549,11 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             tauser=Tauser.objects.get(id=tauser),
         )
 
-        # Actualizar el stock del Tauser según la operación
+        '''# Actualizar el stock del Tauser según la operación  
         # Si es venta, el movimiento se realiza en el sistema de tauser
         if tipo_operacion == "compra":
             extraer_divisas(tauser_id=tauser, divisa_id=divisa_destino.codigo, transaccion=transaccion, denominaciones_cantidades=lista_denominaciones, panel_admin=False)
-
-        # Limpiar token MFA si se usó
-        mfa_token = request.GET.get("mfa_token")
-        if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
-            del request.session[f"mfa_token_valido_{mfa_token}"]
-
+        '''
         return JsonResponse(
             {
                 "success": True,
@@ -1719,7 +1713,6 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
 
     """
     import json
-    from datetime import datetime
 
     if not request.user.is_authenticated:
         return JsonResponse({"success": False, "message": "Usuario no autenticado"}, status=401)
@@ -1754,7 +1747,7 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         # Procesar según el resultado del banco
         if exito:
             # Pago exitoso
-            transaccion.fecha_pago = datetime.now()
+            transaccion.fecha_pago = timezone.now()
             mensaje_log = "Pago procesado exitosamente"
 
         else:
@@ -1938,10 +1931,9 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
                     break
 
             # Actualizar la transacción con el código de verificación y fecha de procesado
-            from datetime import datetime
             print(f"Generando código TAUSER {codigo_tauser} para transacción {transaccion.id_transaccion}")
             transaccion.codigo_verificacion = codigo_tauser
-            transaccion.fecha_procesamiento = datetime.now()
+            transaccion.fecha_procesamiento = timezone.now()
 
             try:
                 transaccion.save(update_fields=['codigo_verificacion', 'fecha_procesamiento'])
@@ -2234,6 +2226,17 @@ def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> Json
                 "fecha": transaccion.fecha_actualizacion.isoformat(),
                 "detalle": f"Motivo: {motivo}"
             })
+
+        # Fecha de reserva del monto si la operación es de compra
+        from apps.stock.models import MovimientoStock
+        if transaccion.tipo_operacion == "compra":
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).first():
+                historial.append({
+                    "accion": "Monto reservado en stock",
+                    "fecha": movimiento.fecha_creacion.isoformat() if movimiento else transaccion.fecha_creacion,
+                    "detalle": movimiento.resumen_denominaciones()
+                })
+
         historial = sorted(historial, key=lambda x: x["fecha"])
         return JsonResponse({
             "success": True,
