@@ -690,7 +690,11 @@
                         });
                     } else {
                         // No hay cambio, proceder con el pago
-                        continuarConPago(transaccionId);
+                        if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                            verificarDisponibilidadTauser(transaccionId);
+                        } else {
+                            continuarConPago(transaccionId);
+                        }
                     }
                 } else {
                     // Error en verificación, mostrar advertencia pero permitir continuar
@@ -706,6 +710,29 @@
             });
         }
 
+        function verificarDisponibilidadTauser(transaccionId) {
+            fetch(`/transacciones/api/verificar-disponibilidad-tauser/${transaccionId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.warn('Error:', data.message);
+                    showToast(`Error: ${data.message || 'No hay stock suficiente en el Tauser para completar la transacción.'} Intente nuevamente más tarde.`, 'error');
+                    restaurarBotonPagar();
+                }
+                else {
+                    // Proceder con el pago si hay disponibilidad
+                    continuarConPago(transaccionId);
+                }
+            })
+            .catch(error => {
+                console.error('Error al verificar disponibilidad del Tauser:', error);
+            });
+        }
         function continuarConPago(transaccionId) {
             const btnPagar = document.getElementById('btnPagarTransaccion');
             btnPagar.innerHTML = `
@@ -800,8 +827,6 @@
                     <div class="text-xs opacity-60">Validando tasa actual</div>
                 </div>
             `;
-
-            // Verificar cotización antes de proceder al pago
             verificarCotizacionPrePago(transaccionId);
         }
 
@@ -909,10 +934,38 @@
             console.log('Ventana cerrada después de completar:', data);
             // No hacer nada especial, el proceso ya se completó
         }
-
+        
+        function cancelarReserva(transaccionId) {
+            fetch(`/stock/api/cancelar-movimiento/${transaccionId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log('Reserva cancelada exitosamente');
+                } else {
+                    console.warn('No se pudo cancelar la reserva:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error al cancelar la reserva:', error);
+            });
+        }
         function handleVentanaCerradaSinCompletar(data) {
             console.log('Ventana cerrada sin completar el proceso:', data);
             showToast('Proceso bancario cancelado por el usuario', 'warning');
+            if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                cancelarReserva(data.transaccionId);
+            }
             desbloquearPaginaPadre();
             restaurarBotonPagar();
         }

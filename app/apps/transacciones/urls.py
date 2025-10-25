@@ -72,6 +72,10 @@ urlpatterns = [
         views.api_verificar_cotizacion,
         name="api_verificar_cotizacion",
     ),
+    path("api/verificar-disponibilidad-tauser/<str:transaccion_id>/",
+        views.api_verificar_stock_tauser,
+        name="api_verificar_stock_tauser"
+    ),
     path(
         "api/cancelar-por-cotizacion/<str:transaccion_id>/",
         views.api_cancelar_por_cotizacion,

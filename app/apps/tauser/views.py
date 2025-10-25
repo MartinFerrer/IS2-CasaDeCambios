@@ -213,23 +213,20 @@ def procesar_venta(request: HttpRequest) -> HttpResponse:
         if transaccion.tipo_operacion != 'venta':
             messages.error(request, 'Esta operación no es de venta.')
             return redirect('tauser:bienvenida')
+        if transaccion.estado != 'pendiente':
+            messages.error(request, 'La transacción ya ha sido procesada o cancelada.')
+            return redirect('tauser:bienvenida')
 
         # Verificar cambios en la cotización
         resultado_verificacion = transaccion.verificar_cambio_cotizacion()
 
         if resultado_verificacion.get('cambio_detectado', False):
-            # Limpiar sesión ATM
-            session_keys = ['transaccion_atm_id', 'codigo_verificacion_validado', 'mfa_completado']
-            for key in session_keys:
-                if key in request.session:
-                    del request.session[key]
-
-            # Mensaje de error y redirección
-            messages.error(
-                request,
-                'Hubo un cambio en la tasa de cambio. Diríjase a la plataforma para aceptar los cambios o rechazar los cambios.'
-            )
-            return redirect('tauser:bienvenida')
+            context = {
+                'transaccion': transaccion,
+                'cambio_cotizacion': True,
+                'resultado_verificacion': resultado_verificacion,
+            }
+            return render(request, 'tauser/overview_operacion.html', context)
 
         # Si no hay cambios, proceder normalmente
         context = {
@@ -468,4 +465,81 @@ def procesar_billetes_venta(request: HttpRequest) -> HttpResponse:
                 'error': str(e)
             }
             return render(request, 'tauser/transaccion_completada.html', context)
+        return redirect('tauser:bienvenida')
+
+
+@require_http_methods(["POST"])
+def aceptar_nueva_cotizacion(request: HttpRequest) -> HttpResponse:
+    """Acepta la nueva cotización y continúa con la operación.
+
+    Args:
+        request (HttpRequest): Solicitud HTTP.
+
+    Returns:
+        HttpResponse: Redirección a procesar_venta o error.
+
+    """
+    # Validar sesión ATM
+    transaccion_id = request.session.get('transaccion_atm_id')
+    if not transaccion_id:
+        messages.error(request, 'Sesión no válida. Vuelva a iniciar la operación.')
+        return redirect('tauser:bienvenida')
+
+    try:
+        transaccion = Transaccion.objects.get(id_transaccion=transaccion_id)
+
+        # Aceptar la nueva cotización usando el método del modelo
+        transaccion.verificar_cambio_cotizacion()  # Actualiza la cotización
+        transaccion.aceptar_nueva_cotizacion()
+
+        messages.success(request, 'Nueva cotización aceptada. Puede continuar con la operación.')
+
+        # Redirigir a overview_operacion para continuar normalmente
+        return redirect('tauser:overview_operacion')
+
+    except Transaccion.DoesNotExist:
+        messages.error(request, 'Transacción no encontrada.')
+        return redirect('tauser:bienvenida')
+    except Exception as e:
+        messages.error(request, f'Error al aceptar la cotización: {e!s}')
+        return redirect('tauser:overview_operacion')
+
+
+@require_http_methods(["POST"])
+def cancelar_por_cotizacion(request: HttpRequest) -> HttpResponse:
+    """Cancela la transacción por no aceptar la nueva cotización.
+
+    Args:
+        request (HttpRequest): Solicitud HTTP.
+
+    Returns:
+        HttpResponse: Redirección a bienvenida con transacción cancelada.
+
+    """
+    # Validar sesión ATM
+    transaccion_id = request.session.get('transaccion_atm_id')
+    if not transaccion_id:
+        messages.error(request, 'Sesión no válida. Vuelva a iniciar la operación.')
+        return redirect('tauser:bienvenida')
+
+    try:
+        transaccion = Transaccion.objects.get(id_transaccion=transaccion_id)
+
+        # Cancelar por cotización usando el método del modelo
+        transaccion.cancelar_por_cotizacion('Transacción cancelada por el cliente debido a cambio de cotización')
+
+        # Limpiar sesión ATM
+        session_keys = ['transaccion_atm_id', 'codigo_verificacion_validado', 'mfa_completado']
+        for key in session_keys:
+            if key in request.session:
+                del request.session[key]
+
+        messages.info(request, 'Transacción cancelada por cambio de cotización.')
+        return redirect('tauser:bienvenida')
+
+    except Transaccion.DoesNotExist:
+        messages.error(request, 'Transacción no encontrada.')
+        return redirect('tauser:bienvenida')
+    except Exception as e:
+        messages.error(request, f'Error al cancelar la transacción: {e!s}')
         return redirect('tauser:bienvenida')

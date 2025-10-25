@@ -23,8 +23,8 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.seguridad.decorators import client_required
-from apps.stock.models import MovimientoStock
-from apps.stock.services import cancelar_movimiento, monto_valido
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
 from apps.tauser.models import Tauser
 from apps.usuarios.models import Cliente
 
@@ -663,45 +663,37 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
 
 
 @require_GET
-def api_verificar_stock_tauser(request: HttpRequest) -> JsonResponse:
-    """Verifica la disponibilidad de stock en TAUSERs para una transacción.
+def api_verificar_stock_tauser(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """Verifica la disponibilidad de stock en TAUSERs para una transacción de compra.
     
     Args:
-        request: HttpRequest con parámetros GET:
-        - tipo_operacion : 'compra' o 'venta'
-        - divisa : código de la divisa (USD, EUR, etc.)
-        - monto: monto entero en la divisa especificada
-    
+        request: HttpRequest con parámetro GET:
+        transaccion_id: UUID de la transacción a verificar
+
     Returns:
-        JsonResponse con información de disponibilidad y TAUSERs disponibles
+        JsonResponse con información de disponibilidad del tauser asociado
 
     """
     try:
-        tipo_operacion = request.GET.get('tipo_operacion')
-        divisa_codigo = request.GET.get('divisa')
-        monto_str = request.GET.get('monto')
-
-        if not all([tipo_operacion, divisa_codigo, monto_str]):
-            return JsonResponse({
-                "error": "Faltan parámetros requeridos: tipo_operacion, divisa, monto"
-            }, status=400)
-
-        try:
-            monto = int(float(monto_str))
-        except (ValueError, TypeError):
-            return JsonResponse({
-                "error": "El monto debe ser un número válido"
-            }, status=400)
-
-        if monto <= 0:
-            return JsonResponse({
-                "error": "El monto debe ser mayor a cero"
-            }, status=400)
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+        divisa_codigo = transaccion.divisa_destino.codigo
+        monto = int(transaccion.monto_destino)
 
         # Verificar stock disponible
-        stock_info = _verificar_stock_disponible(tipo_operacion, divisa_codigo, monto)
-        print(stock_info)
-        return JsonResponse(stock_info)
+        stock_info = StockDivisaTauser.seleccionar_denominaciones_optimas(transaccion.tauser.id, divisa_codigo, monto)
+        if not stock_info:
+            return JsonResponse({
+                "success": False,
+                "message": "No hay stock suficiente en el Tauser para completar la transacción.",
+                "denominaciones": stock_info
+            }, status=400)
+
+        # Reservar las divisas en el tauser
+        extraer_divisas(tauser_id=transaccion.tauser.id, divisa_id=divisa_codigo, transaccion=transaccion, denominaciones_cantidades=stock_info, panel_admin=False)
+        return JsonResponse({
+            "success": True,
+            "denominaciones": stock_info
+        })
 
     except Exception as e:
         return JsonResponse({
@@ -1549,11 +1541,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             tauser=Tauser.objects.get(id=tauser),
         )
 
-        '''# Actualizar el stock del Tauser según la operación  
-        # Si es venta, el movimiento se realiza en el sistema de tauser
-        if tipo_operacion == "compra":
-            extraer_divisas(tauser_id=tauser, divisa_id=divisa_destino.codigo, transaccion=transaccion, denominaciones_cantidades=lista_denominaciones, panel_admin=False)
-        '''
         return JsonResponse(
             {
                 "success": True,
@@ -2230,7 +2217,7 @@ def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> Json
         # Fecha de reserva del monto si la operación es de compra
         from apps.stock.models import MovimientoStock
         if transaccion.tipo_operacion == "compra":
-            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).first():
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion, estado="pendiente").first():
                 historial.append({
                     "accion": "Monto reservado en stock",
                     "fecha": movimiento.fecha_creacion.isoformat() if movimiento else transaccion.fecha_creacion,

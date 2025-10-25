@@ -93,16 +93,78 @@
                             </div>
                         </div>
                     </div>
+                    {% if cambio_cotizacion %}
+                        <!-- Sección de cambio de cotización -->
+                        <div class="alert alert-warning mb-6">
+                            <div class="flex flex-col items-center text-center">
+                                <svg class="stroke-current w-6 h-6 mb-2" fill="none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <h3 class="font-bold text-lg mb-2">¡Cambio en la Cotización Detectada!</h3>
+                                <p class="text-sm mb-4">La tasa de cambio ha variado significativamente desde que se creó la transacción.</p>
+                                <!-- Comparación de tasas -->
+                                <div class="grid grid-cols-2 gap-4 w-full mb-4">
+                                    <div class="bg-base-100 p-3 rounded">
+                                        <div class="text-xs text-base-content/60 mb-1">Tasa Original:</div>
+                                        <div class="font-bold text-error">{{ resultado_verificacion.tasa_original|floatformat:4 }}</div>
+                                    </div>
+                                    <div class="bg-base-100 p-3 rounded">
+                                        <div class="text-xs text-base-content/60 mb-1">Tasa Actual:</div>
+                                        <div class="font-bold text-success">{{ resultado_verificacion.tasa_actual|floatformat:4 }}</div>
+                                    </div>
+                                </div>
+                                {% if resultado_verificacion.porcentaje_cambio %}
+                                    <div class="w-full text-center mb-4">
+                                        <div class="inline-block bg-base-100 px-4 py-2 rounded">
+                                            <span class="text-sm font-medium text-base-content/70">Variación:</span>
+                                            <span class="font-bold text-info">{{ resultado_verificacion.porcentaje_cambio|floatformat:2 }}%</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- Botones de decisión -->
+                                <div class="grid grid-cols-2 gap-3 w-full">
+                                    <form method="post" action="{% url 'tauser:aceptar_nueva_cotizacion' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm w-full">
+                                            <svg class="w-4 h-4 mr-2"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Aceptar Nueva Tasa
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'tauser:cancelar_por_cotizacion' %}">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-error btn-sm w-full"
+                                                onclick="return confirm('¿Está seguro de cancelar la transacción?')">
+                                            <svg class="w-4 h-4 mr-2"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                            Cancelar Transacción
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                     <!-- Botones de acción -->
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 gap-3 {% if cambio_cotizacion %}opacity-50{% endif %}">
                         {% if transaccion.tipo_operacion == 'compra' %}
                             <button type="button"
                                     class="btn btn-success btn-lg"
-                                    onclick="procederOperacion()">Retirar Divisa</button>
+                                    onclick="procederOperacion()"
+                                    {% if cambio_cotizacion %}disabled{% endif %}>Retirar Divisa</button>
                         {% else %}
                             <button type="button"
                                     class="btn btn-info btn-lg"
-                                    onclick="procederOperacion()">Depositar Billetes</button>
+                                    onclick="procederOperacion()"
+                                    {% if cambio_cotizacion %}disabled{% endif %}>Depositar Billetes</button>
                         {% endif %}
                         <form method="post"
                               action="{% url 'tauser:cancelar_operacion' %}"
@@ -110,7 +172,8 @@
                             {% csrf_token %}
                             <button type="submit"
                                     class="btn btn-secondary btn-lg w-full"
-                                    onclick="return confirm('¿Desea volver al inicio?')">Volver al Inicio</button>
+                                    onclick="return confirm('¿Desea volver al inicio?')"
+                                    {% if cambio_cotizacion %}disabled{% endif %}>Volver al Inicio</button>
                         </form>
                     </div>
                     <!-- ID de transacción -->
@@ -122,6 +185,12 @@
         </div>
         <script>
         function procederOperacion() {
+            // No permitir proceder si hay cambio de cotización pendiente
+            {% if cambio_cotizacion %}
+                alert('Debe aceptar o cancelar el cambio de cotización antes de continuar.');
+                return;
+            {% endif %}
+            
             const tipoOperacion = '{{ transaccion.tipo_operacion }}';
             
             if (tipoOperacion === 'compra') {
@@ -133,28 +202,53 @@
 
         // Auto focus para mejor accesibilidad
         document.addEventListener('DOMContentLoaded', function() {
-            // Focus en el primer botón después de 1 segundo
-            setTimeout(() => {
-                const firstButton = document.querySelector('button[onclick="procederOperacion()"]');
-                if (firstButton) {
-                    firstButton.focus();
-                }
-            }, 1000);
+            {% if cambio_cotizacion %}
+                // Si hay cambio de cotización, focus en el botón "Aceptar"
+                setTimeout(() => {
+                    const acceptButton = document.querySelector('button[type="submit"]:contains("Aceptar")') || 
+                                       document.querySelector('form[action*="aceptar"] button');
+                    if (acceptButton) {
+                        acceptButton.focus();
+                    }
+                }, 1000);
+            {% else %}
+                // Focus en el primer botón después de 1 segundo
+                setTimeout(() => {
+                    const firstButton = document.querySelector('button[onclick="procederOperacion()"]');
+                    if (firstButton) {
+                        firstButton.focus();
+                    }
+                }, 1000);
+            {% endif %}
         });
 
         // Navegación con teclado
         document.addEventListener('keydown', function(e) {
-            if (e.key === '1') {
-                procederOperacion();
-            } else if (e.key === '2') {
-                if (confirm('¿Desea volver al inicio? La transacción quedará pendiente.')) {
-                    document.querySelector('form[action*="cancelar"]').submit();
+            {% if cambio_cotizacion %}
+                // Navegación para modo de cambio de cotización
+                if (e.key === '1') {
+                    // Aceptar nueva cotización
+                    document.querySelector('form[action*="aceptar"] button').click();
+                } else if (e.key === '2') {
+                    // Cancelar transacción
+                    if (confirm('¿Está seguro de cancelar la transacción?')) {
+                        document.querySelector('form[action*="cancelar-cotizacion"] button').click();
+                    }
                 }
-            } else if (e.key === 'Escape') {
-                if (confirm('¿Desea volver al inicio? La transacción quedará pendiente.')) {
-                    document.querySelector('form[action*="cancelar"]').submit();
+            {% else %}
+                // Navegación normal
+                if (e.key === '1') {
+                    procederOperacion();
+                } else if (e.key === '2') {
+                    if (confirm('¿Desea volver al inicio? La transacción quedará pendiente.')) {
+                        document.querySelector('form[action*="cancelar"]').submit();
+                    }
+                } else if (e.key === 'Escape') {
+                    if (confirm('¿Desea volver al inicio? La transacción quedará pendiente.')) {
+                        document.querySelector('form[action*="cancelar"]').submit();
+                    }
                 }
-            }
+            {% endif %}
         });
         </script>
     </body>
