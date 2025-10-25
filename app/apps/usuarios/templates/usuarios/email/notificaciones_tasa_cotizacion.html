@@ -1,0 +1,41 @@
+<!-- usuarios/emails/notificacion_cambio_cotizacion.html -->
+<div class="cambios">
+    <h3>Cambio en {{ divisa_origen }} a {{ divisa_destino }}</h3>
+    
+    <p><strong>Cotización Base:</strong></p>
+    <p>
+        <span class="destacado">{{ cotizacion_anterior }}</span> → 
+        <span class="destacado">{{ cotizacion_nueva }}</span>
+        <span class="variacion {% if variacion_porcentaje > 0 %}mejora{% else %}deterioro{% endif %}">
+            ({{ variacion_porcentaje }}%)
+        </span>
+    </p>
+    
+    <!-- INFORMACIÓN ESPECÍFICA DE LA TRANSACCIÓN -->
+    <div class="impacto-transaccion">
+        <h4>📊 Impacto en su transacción:</h4>
+        
+        {% if tipo_operacion == "compra" %}
+        <p><strong>Compra de {{ monto_divisa }} {{ divisa_destino }}:</strong></p>
+        <p>Anterior: <span class="destacado">₲ {{ monto_anterior|floatformat:0 }}</span></p>
+        <p>Ahora: <span class="destacado {% if monto_nuevo > monto_anterior %}deterioro{% else %}mejora{% endif %}">
+            ₲ {{ monto_nuevo|floatformat:0 }}
+        </span></p>
+        
+        {% else %}
+        <p><strong>Venta de {{ monto_divisa }} {{ divisa_origen }}:</strong></p>
+        <p>Anterior: <span class="destacado">₲ {{ monto_anterior|floatformat:0 }}</span></p>
+        <p>Ahora: <span class="destacado {% if monto_nuevo > monto_anterior %}mejora{% else %}deterioro{% endif %}">
+            ₲ {{ monto_nuevo|floatformat:0 }}
+        </span></p>
+        {% endif %}
+        
+        <p class="importante">
+            {% if monto_nuevo > monto_anterior %}
+                ⚠️ Su transacción ahora es <strong>{{ diferencia_monto|floatformat:0 }} ₲ más {% if tipo_operacion == "compra" %}costosa{% else %}rentable{% endif %}</strong>
+            {% else %}
+                ✅ Su transacción ahora es <strong>{{ diferencia_monto|abs|floatformat:0 }} ₲ más {% if tipo_operacion == "compra" %}económica{% else %}costosa{% endif %}</strong>
+            {% endif %}
+        </p>
+    </div>
+</div>

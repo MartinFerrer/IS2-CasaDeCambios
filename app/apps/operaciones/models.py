@@ -10,6 +10,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django_q.tasks import async_task
 
 
 class Divisa(models.Model):
@@ -145,6 +146,22 @@ class TasaCambio(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+        # Obtener la instancia anterior para comparar cambios
+        instancia_anterior = None
+        if self.pk:
+            try:
+                instancia_anterior = TasaCambio.objects.get(pk=self.pk)
+            except TasaCambio.DoesNotExist:
+                pass
+
+        # Validar y guardar (esto reemplaza el save() anterior)
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+        # Activar notificaciones si la cotización cambió
+        if instancia_anterior and instancia_anterior.precio_base != self.precio_base:
+            self._notificar_cambio_cotizacion(instancia_anterior)
+
     # Las siguientes funciones no se definen como campos del modelo en Django,
     # sino como métodos de la clase para encapsular la lógica de negocio.
     def actualizar_tasa_compra(self, tasa: float):
@@ -177,6 +194,50 @@ class TasaCambio(models.Model):
         """Calcula la tasa de venta aplicando la comisión correspondiente."""
         # Para venta, el cliente recibe menos (precio_base - comisión)
         return self.precio_base - self.comision_venta
+
+    # Notificación de cambios en la cotización
+    def _notificar_cambio_cotizacion(self, instancia_anterior):
+        """Notifica automáticamente a clientes con transacciones pendientes sobre cambios en cotización"""
+        # Calcular variación porcentual
+        variacion_porcentaje = 0
+        if instancia_anterior.precio_base and instancia_anterior.precio_base > 0:
+            variacion_porcentaje = (
+                (self.precio_base - instancia_anterior.precio_base) / instancia_anterior.precio_base
+            ) * 100
+            variacion_porcentaje = round(variacion_porcentaje, 2)
+
+        datos_cambio = {
+            "divisa_origen": self.divisa_origen.codigo,
+            "divisa_destino": self.divisa_destino.codigo,
+            "fecha_actualizacion": self.fecha_actualizacion,
+            "cotizacion_anterior": instancia_anterior.precio_base,
+            "cotizacion_nueva": self.precio_base,
+            "tasa_compra_anterior": instancia_anterior.tasa_compra,
+            "tasa_compra_nueva": self.tasa_compra,
+            "tasa_venta_anterior": instancia_anterior.tasa_venta,
+            "tasa_venta_nueva": self.tasa_venta,
+            "variacion_porcentaje": variacion_porcentaje,
+        }
+
+        clientes_ids = self._obtener_clientes_con_transacciones_pendientes()
+
+        for cliente_id in clientes_ids:
+            async_task("apps.usuarios.tasks.enviar_notificacion_cambio_cotizacion", cliente_id, datos_cambio)
+
+    def _obtener_clientes_con_transacciones_pendientes(self):
+        """Obtiene IDs de clientes que tienen transacciones pendientes con esta tasa de cambio"""
+        try:
+            from apps.transacciones.models import Transaccion
+
+            # Buscar transacciones pendientes que usen esta tasa de cambio
+            transacciones_pendientes = Transaccion.objects.filter(
+                estado="pendiente", divisa_origen=self.divisa_origen, divisa_destino=self.divisa_destino
+            ).select_related("cliente")
+
+            return list(set(transaccion.cliente_id for transaccion in transacciones_pendientes))
+
+        except Exception:
+            return []
 
     class Meta:
         """Meta información para el modelo TasaCambio.

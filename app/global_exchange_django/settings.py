@@ -49,7 +49,29 @@ INSTALLED_APPS = [
     "apps.tauser",
     "apps.transacciones",
     "apps.usuarios",
+    "django_q",
 ]
+###########################################
+## Django Q2 Configuration
+###########################################
+
+Q_CLUSTER = {
+    "name": "GlobalExchange",
+    "workers": 2,  # Número de procesos worker
+    "timeout": 60,  # Timeout por tarea (segundos)
+    "retry": 120,  # Reintentar después de (segundos)
+    "queue_limit": 100,  # Límite de tareas en cola
+    "bulk": 10,  # Procesar tareas en lotes
+    "orm": "default",  # Usar base de datos Django
+    "sync": False,  # Modo asíncrono
+    "catch_up": False,  # No ejecutar tareas perdidas
+    "poll": 1,  # Intervalo de verificación (segundos)
+    "max_attempts": 3,  # Máximo de intentos por tarea
+    "attempt_count": 1,  # Contador de intentos inicial
+    "save_limit": 100,  # Guardar últimas 100 tareas completadas
+    "success_ttl": 3600,  # Tiempo de vida registros exitosos (segundos)
+    "recycle": 500,  # Reciclar workers después de N tareas
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -205,14 +227,10 @@ else:
 
 if not DEBUG:
     # HTTPS settings
-    SECURE_SSL_REDIRECT = (
-        os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
-    )
+    SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
 
     # Cookie security
-    SESSION_COOKIE_SECURE = (
-        os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
-    )
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
     CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "False").lower() == "true"
 
     # Additional security headers
@@ -226,16 +244,12 @@ if not DEBUG:
 # =============================================================================
 
 # Stripe API Keys (con valores por defecto para CI/documentación)
-STRIPE_PUBLISHABLE_KEY = env.str(
-    "STRIPE_PUBLISHABLE_KEY", default="pk_test_fake_key_for_ci"
-)
+STRIPE_PUBLISHABLE_KEY = env.str("STRIPE_PUBLISHABLE_KEY", default="pk_test_fake_key_for_ci")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY", default="sk_test_fake_key_for_ci")
 STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET", default="")
 
 # Configuración de comisiones Stripe
-STRIPE_COMMISSION_RATE = Decimal(
-    "2.9"
-)  # 2.9% comisión variable para pagos internacionales
+STRIPE_COMMISSION_RATE = Decimal("2.9")  # 2.9% comisión variable para pagos internacionales
 STRIPE_FIXED_FEE_USD = Decimal("0.30")  # 0.30 USD comisión fija por transacción exitosa
 
 # Configuración adicional de Stripe
