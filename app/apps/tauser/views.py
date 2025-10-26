@@ -114,6 +114,11 @@ def mfa_atm(request: HttpRequest) -> HttpResponse:
                 verificar_codigo_usuario(transaccion.usuario, codigo_mfa)):
                 request.session['mfa_completado'] = True
                 return redirect('tauser:overview_operacion')
+            # Si MFA está deshabilitado para transacciones, aceptar cualquier código de 4-6 dígitos
+            elif (perfil_mfa.mfa_habilitado_transacciones is False):
+                if len(codigo_mfa) >= 4:
+                    request.session['mfa_completado'] = True
+                    return redirect('tauser:overview_operacion')
             else:
                 messages.error(request, 'Código MFA no válido.')
         except PerfilMFA.DoesNotExist:
