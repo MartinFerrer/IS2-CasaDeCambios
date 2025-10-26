@@ -488,8 +488,7 @@ def aceptar_nueva_cotizacion(request: HttpRequest) -> HttpResponse:
     try:
         transaccion = Transaccion.objects.get(id_transaccion=transaccion_id)
 
-        # Aceptar la nueva cotización usando el método del modelo
-        transaccion.verificar_cambio_cotizacion()  # Actualiza la cotización
+        # Aceptar la nueva cotización
         transaccion.aceptar_nueva_cotizacion()
 
         messages.success(request, 'Nueva cotización aceptada. Puede continuar con la operación.')

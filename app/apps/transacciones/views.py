@@ -2105,12 +2105,7 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
 
         # Aceptar la nueva cotización
         transaccion.aceptar_nueva_cotizacion()
-        # Aplicar comisión de medio de pago nuevamente
-        if transaccion.tipo_operacion == "compra":
-            transaccion.monto_origen = Decimal(round((transaccion.monto_destino * transaccion.tasa_aplicada) * (1 + _get_payment_commission(transaccion.medio_pago, transaccion.cliente, "compra")/100)))
-        else:
-            transaccion.monto_destino = Decimal(round((transaccion.monto_origen * transaccion.tasa_aplicada) * (1 - _get_payment_commission(transaccion.medio_cobro, transaccion.cliente, "venta")/100)))
-        transaccion.save()
+
         return JsonResponse(
             {
                 "success": True,
@@ -2217,7 +2212,9 @@ def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> Json
         # Fecha de reserva del monto si la operación es de compra
         from apps.stock.models import MovimientoStock
         if transaccion.tipo_operacion == "compra":
-            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion, estado="pendiente").first():
+            if movimiento := MovimientoStock.objects.filter(
+                transaccion=transaccion, estado__in=["pendiente", "confirmado"]
+            ).first():
                 historial.append({
                     "accion": "Monto reservado en stock",
                     "fecha": movimiento.fecha_creacion.isoformat() if movimiento else transaccion.fecha_creacion,

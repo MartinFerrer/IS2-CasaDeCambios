@@ -204,11 +204,66 @@ class TestTransaccionModel:
         transaccion.tasa_actual = nueva_tasa
         transaccion.cambio_cotizacion_notificado = True
 
+        # Guardar valores originales para comparar
+        monto_origen_original = transaccion.monto_origen
+        monto_destino_original = transaccion.monto_destino
+
         transaccion.aceptar_nueva_cotizacion()
 
+        # Verificar que se actualizaron las tasas
         assert transaccion.tasa_aplicada == nueva_tasa
         assert transaccion.tasa_original == nueva_tasa
         assert transaccion.cambio_cotizacion_notificado is False
+
+        # Verificar que se recalcularon los montos
+        # Para compra: monto_origen debería cambiar, monto_destino se mantiene
+        assert transaccion.monto_destino == monto_destino_original  # Se mantiene
+        assert transaccion.monto_origen != monto_origen_original  # Se recalcula
+
+        # Verificar que el cálculo es correcto (monto_destino * nueva_tasa)
+        # Para transacción de compra sin comisiones de medios (efectivo = 0%)
+        monto_esperado = transaccion.monto_destino * nueva_tasa
+        assert abs(transaccion.monto_origen - monto_esperado) < Decimal("0.01")
+
+    def test_aceptar_nueva_cotizacion_venta(self, usuario, cliente, divisas, tasa_cambio):
+        """Test aceptar nueva cotización para operación de venta."""
+        # Crear transacción de venta
+        tasa_efectiva = Decimal("6925.0")
+        transaccion_venta = Transaccion.objects.create(
+            cliente=cliente,
+            usuario=usuario,
+            tipo_operacion="venta",
+            divisa_origen=divisas["USD"],
+            divisa_destino=divisas["PYG"],
+            tasa_aplicada=tasa_efectiva,
+            monto_origen=Decimal("10.0"),
+            monto_destino=Decimal("69250.0"),
+            tasa_original=tasa_efectiva,
+        )
+
+        nueva_tasa = Decimal("7000.0")
+        transaccion_venta.tasa_actual = nueva_tasa
+        transaccion_venta.cambio_cotizacion_notificado = True
+
+        # Guardar valores originales
+        monto_origen_original = transaccion_venta.monto_origen
+        monto_destino_original = transaccion_venta.monto_destino
+
+        transaccion_venta.aceptar_nueva_cotizacion()
+
+        # Verificar que se actualizaron las tasas
+        assert transaccion_venta.tasa_aplicada == nueva_tasa
+        assert transaccion_venta.tasa_original == nueva_tasa
+        assert transaccion_venta.cambio_cotizacion_notificado is False
+
+        # Para venta: monto_destino debería cambiar, monto_origen se mantiene
+        assert transaccion_venta.monto_origen == monto_origen_original  # Se mantiene
+        assert transaccion_venta.monto_destino != monto_destino_original  # Se recalcula
+
+        # Verificar que el cálculo es correcto (monto_origen * nueva_tasa)
+        # Para transacción de venta sin comisiones de medios (efectivo = 0%)
+        monto_esperado = transaccion_venta.monto_origen * nueva_tasa
+        assert abs(transaccion_venta.monto_destino - monto_esperado) < Decimal("0.01")
 
     def test_aceptar_nueva_cotizacion_sin_tasa_actual(self, transaccion):
         """Test aceptar nueva cotización sin tasa_actual establecida."""

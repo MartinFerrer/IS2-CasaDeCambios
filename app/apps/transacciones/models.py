@@ -817,19 +817,57 @@ class Transaccion(models.Model):
     def aceptar_nueva_cotizacion(self):
         """Acepta la nueva cotización y actualiza la transacción.
 
-        Nota: Los montos originales se mantienen ya que fueron calculados
-        con todos los factores (comisiones de medios, descuentos, etc.).
-        Solo se actualiza la tasa aplicada para reflejar el cambio aceptado.
-        La nueva tasa también se establece como tasa original para futuras comparaciones.
+        Recalcula los montos usando la nueva tasa y las comisiones de los medios
+        de pago/cobro configurados en la transacción.
         """
         if self.tasa_actual:
             self.tasa_original = self.tasa_actual  # Nueva tasa como base para futuras comparaciones
             self.tasa_aplicada = self.tasa_actual
             self.cambio_cotizacion_notificado = False  # Reset notification flag
-            # Los montos se mantienen como fueron calculados originalmente
-            # ya que incluyen comisiones de medios de pago/cobro y otros factores
+
+            # Recalcular montos con la nueva tasa aplicando las comisiones correspondientes
+            self._recalcular_montos_con_nueva_tasa()
+
             self.tasa_actual = None
             self.save()
+
+    def _recalcular_montos_con_nueva_tasa(self):
+        """Recalcula los montos de la transacción con la nueva tasa aplicada.
+
+        Aplica las comisiones de medios de pago/cobro usando las funciones existentes.
+        """
+        from decimal import ROUND_HALF_UP, Decimal
+
+        from apps.transacciones.views import _get_collection_commission, _get_payment_commission
+
+        # Obtener comisiones de los medios configurados
+        comision_medio_pago = _get_payment_commission(
+            self.medio_pago or "efectivo",
+            self.cliente,
+            self.tipo_operacion
+        )
+        comision_medio_cobro = _get_collection_commission(
+            self.medio_cobro or "efectivo",
+            self.cliente,
+            self.tipo_operacion
+        )
+
+        if self.tipo_operacion == "compra":
+            # Para compra: recalcular monto_origen (PYG a pagar) basado en monto_destino (divisa a recibir)
+            # Fórmula: monto_origen = monto_destino * tasa_aplicada * (1 + comision_medio_pago/100)
+            monto_base = self.monto_destino * self.tasa_aplicada
+            comision_aplicada = monto_base * (comision_medio_pago / Decimal("100"))
+            self.monto_origen = (monto_base + comision_aplicada).quantize(
+                Decimal('1'), rounding=ROUND_HALF_UP
+            )
+        else:  # venta
+            # Para venta: recalcular monto_destino (PYG a recibir) basado en monto_origen (divisa a entregar)
+            # Fórmula: monto_destino = monto_origen * tasa_aplicada * (1 - comision_medio_cobro/100)
+            monto_base = self.monto_origen * self.tasa_aplicada
+            comision_aplicada = monto_base * (comision_medio_cobro / Decimal("100"))
+            self.monto_destino = (monto_base - comision_aplicada).quantize(
+                Decimal('1'), rounding=ROUND_HALF_UP
+            )
 
     def save(self, *args, **kwargs):
         """Guarda la instancia realizando validaciones completas.
