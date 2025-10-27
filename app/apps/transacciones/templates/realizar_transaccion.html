@@ -320,6 +320,40 @@
                 </div>
             </div>
         </div>
+        <!-- Modal de MFA para Transacciones -->
+        <div id="mfa-verification-modal" class="modal">
+            <div class="modal-box max-w-md">
+                <h3 class="font-bold text-lg mb-4">🔒 Verificación de Seguridad</h3>
+                <p class="mb-4">
+                    Por favor, ingresa el código de autenticación de 6 dígitos de tu aplicación autenticadora (Google Authenticator, Authy, etc.).
+                </p>
+                <div id="mfa-error" class="alert alert-error mb-4 hidden">
+                    <span id="mfa-error-message"></span>
+                </div>
+                <form id="mfa-verification-form">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Código de Autenticación</span>
+                        </label>
+                        <input type="text"
+                               id="mfa-code-input"
+                               placeholder="000000"
+                               class="input input-bordered text-center text-2xl tracking-widest"
+                               maxlength="6"
+                               pattern="[0-9]{6}"
+                               required
+                               autocomplete="off">
+                    </div>
+                    <div class="modal-action">
+                        <button type="button" id="cancel-mfa" class="btn btn-outline">Cancelar</button>
+                        <button type="submit" id="verify-mfa" class="btn btn-primary">
+                            <span id="mfa-verify-text">Verificar</span>
+                            <span id="mfa-loading" class="loading loading-spinner loading-sm hidden"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
         <!-- Modal de Pago Stripe -->
         <div id="stripe-payment-modal" class="modal">
             <div class="modal-box max-w-md">
@@ -453,6 +487,8 @@
         const stripeModalGrandTotal = document.getElementById('stripe-modal-grand-total');
 
         let currentTransactionId = null;
+        let mfaToken = null; // Token MFA válido
+        let pendingStripeFlow = false; // Bandera para saber si venimos de MFA hacia Stripe
 
         // Labels dinámicos
         const divisaLabel = document.getElementById('divisa-label');
@@ -793,12 +829,83 @@
             // Verificar si el método de pago es Stripe
             const metodoPago = metodoPagoSelect.value;
             if (metodoPago === 'stripe_new' || metodoPago.startsWith('stripe_')) {
-                // Cerrar modal de confirmación y mostrar modal de Stripe
+                // Primero verificar si requiere MFA
+                const requiresMFA = await checkIfMFARequired();
+                if (requiresMFA) {
+                    // Cerrar modal de confirmación y mostrar modal MFA
+                    confirmationModal.classList.remove('modal-open');
+                    pendingStripeFlow = true; // Marcar que después de MFA vamos a Stripe
+                    showMFAModal();
+                    return;
+                }
+
+                // Si no requiere MFA, ir directo a Stripe
                 confirmationModal.classList.remove('modal-open');
                 await showStripePaymentModal();
                 return;
             }
 
+            // Para otros métodos de pago, verificar MFA también
+            const requiresMFA = await checkIfMFARequired();
+            if (requiresMFA) {
+                confirmationModal.classList.remove('modal-open');
+                pendingStripeFlow = false;
+                showMFAModal();
+                return;
+            }
+
+            // Si no requiere MFA, proceder normalmente
+            await createAndProcessTransaction();
+        }
+
+        // Verificar si el usuario requiere MFA
+        async function checkIfMFARequired() {
+            try {
+                const response = await fetch('{% url "seguridad:check_mfa_required" %}', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                const data = await response.json();
+                return data.mfa_required || false;
+            } catch (error) {
+                console.error('Error checking MFA requirement:', error);
+                return false; // En caso de error, continuar sin MFA
+            }
+        }
+
+        // Mostrar modal MFA
+        function showMFAModal() {
+            const mfaModal = document.getElementById('mfa-verification-modal');
+            const mfaInput = document.getElementById('mfa-code-input');
+            const mfaError = document.getElementById('mfa-error');
+
+            // Limpiar estado previo
+            mfaInput.value = '';
+            mfaError.classList.add('hidden');
+
+            // Mostrar modal y enfocar input
+            mfaModal.classList.add('modal-open');
+            setTimeout(() => mfaInput.focus(), 100);
+        }
+
+        // Ocultar modal MFA
+        function hideMFAModal() {
+            const mfaModal = document.getElementById('mfa-verification-modal');
+            mfaModal.classList.remove('modal-open');
+        }
+
+        // Mostrar error MFA
+        function showMFAError(message) {
+            const mfaError = document.getElementById('mfa-error');
+            const mfaErrorMessage = document.getElementById('mfa-error-message');
+            mfaErrorMessage.textContent = message;
+            mfaError.classList.remove('hidden');
+        }
+
+        // Crear y procesar transacción (flujo sin Stripe)
+        async function createAndProcessTransaction() {
             // Show loading state
             confirmBtn.textContent = 'Procesando...';
             confirmBtn.disabled = true;
@@ -812,6 +919,11 @@
                     metodo_pago: metodoPagoSelect.value,
                     metodo_cobro: metodoCobroSelect.value
                 });
+
+                // Agregar token MFA si existe
+                if (mfaToken) {
+                    params.append('mfa_token', mfaToken);
+                }
 
                 const response = await fetch(`{% url "transacciones:api_crear_transaccion" %}?${params.toString()}`, {
                     method: 'GET',
@@ -830,8 +942,8 @@
                     });
                     window.location.href = `${data.redirect_url}?${redirectParams.toString()}`;
                 } else if (data.error === 'MFA_REQUIRED') {
-                    // Se requiere verificación MFA - redirigir a la vista Django
-                    window.location.href = data.redirect_url;
+                    // Esto no debería pasar si verificamos MFA antes, pero por si acaso
+                    showError('Se requiere verificación MFA. Por favor, intente nuevamente.');
                 } else {
                     showError('Error al crear la transacción: ' + (data.error || 'Error desconocido'));
                 }
@@ -879,6 +991,11 @@
                     metodo_cobro: metodoCobroSelect.value
                 });
 
+                // Agregar token MFA si existe
+                if (mfaToken) {
+                    params.append('mfa_token', mfaToken);
+                }
+
                 const response = await fetch(`{% url "transacciones:api_crear_transaccion" %}?${params.toString()}`, {
                     method: 'GET',
                     headers: {
@@ -889,8 +1006,9 @@
                 const data = await response.json();
 
                 if (!data.success) {
+                    // Esto no debería pasar si verificamos MFA antes
                     if (data.error === 'MFA_REQUIRED') {
-                        window.location.href = data.redirect_url;
+                        showError('Error de verificación MFA. Por favor, intente nuevamente.');
                         return;
                     }
                     showError('Error al crear la transacción: ' + (data.error || 'Error desconocido'));
@@ -1046,6 +1164,88 @@
                 confirmStripeBtn.disabled = false;
             }
         });
+
+        // ===== EVENT LISTENERS PARA MODAL MFA =====
+
+        const mfaForm = document.getElementById('mfa-verification-form');
+        const mfaCodeInput = document.getElementById('mfa-code-input');
+        const mfaVerifyBtn = document.getElementById('verify-mfa');
+        const mfaVerifyText = document.getElementById('mfa-verify-text');
+        const mfaLoadingSpinner = document.getElementById('mfa-loading');
+        const cancelMfaBtn = document.getElementById('cancel-mfa');
+
+        // Validar solo números en el input MFA
+        mfaCodeInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // Manejar envío del formulario MFA
+        mfaForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const codigo = mfaCodeInput.value.trim();
+
+            if (codigo.length !== 6) {
+                showMFAError('El código debe tener 6 dígitos');
+                return;
+            }
+
+            // Mostrar loading
+            mfaVerifyText.classList.add('hidden');
+            mfaLoadingSpinner.classList.remove('hidden');
+            mfaVerifyBtn.disabled = true;
+
+            try {
+                const response = await fetch('{% url "seguridad:verify_mfa_code" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ codigo: codigo })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Código válido - guardar token
+                    mfaToken = data.mfa_token;
+
+                    // Cerrar modal MFA
+                    hideMFAModal();
+
+                    // Continuar con el flujo correspondiente
+                    if (pendingStripeFlow) {
+                        // Si venimos de un flujo Stripe, mostrar modal de Stripe
+                        pendingStripeFlow = false;
+                        await showStripePaymentModal();
+                    } else {
+                        // Si no es Stripe, crear y procesar transacción
+                        await createAndProcessTransaction();
+                    }
+                } else {
+                    showMFAError(data.error || 'Código incorrecto. Intente nuevamente.');
+                }
+
+            } catch (error) {
+                console.error('Error verifying MFA:', error);
+                showMFAError('Error de conexión. Intente nuevamente.');
+            } finally {
+                // Restaurar botón
+                mfaVerifyText.classList.remove('hidden');
+                mfaLoadingSpinner.classList.add('hidden');
+                mfaVerifyBtn.disabled = false;
+            }
+        });
+
+        // Cancelar MFA
+        cancelMfaBtn.addEventListener('click', function() {
+            hideMFAModal();
+            pendingStripeFlow = false;
+            mfaToken = null;
+        });
+
+        // ===== FIN EVENT LISTENERS MFA =====
 
         // Función para mostrar éxito
         function showSuccess(message) {

@@ -75,14 +75,16 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
 
     tasas_data = []
     for tasa in tasas:
-        # Calcular precio de compra y venta
+        # Calcular precio de compra y venta desde la perspectiva de la casa de cambio
+        # Casa COMPRA divisa del cliente (cliente VENDE): precio_base - comision_compra
+        # Casa VENDE divisa al cliente (cliente COMPRA): precio_base + comision_venta
         if tasa.divisa_origen.codigo == "PYG":
-            # Si la divisa origen es PYG, entonces vendemos la divisa destino
-            precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)
-            precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)
+            # Tasa almacenada como PYG -> Divisa extranjera
+            precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)  # Casa compra divisa
+            precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)  # Casa vende divisa
             divisa_mostrar = tasa.divisa_destino
         else:
-            # Si la divisa destino es PYG, entonces compramos la divisa origen
+            # Si la divisa destino es PYG (caso raro, pero por compatibilidad)
             precio_compra = float(tasa.precio_base) - float(tasa.comision_compra)
             precio_venta = float(tasa.precio_base) + float(tasa.comision_venta)
             divisa_mostrar = tasa.divisa_origen
@@ -97,6 +99,8 @@ def tasas_cambio_api(request: HttpRequest) -> JsonResponse:
         historial_procesado = []
         for registro in historial_queryset:
             # Calcular precios de compra y venta para cada registro histórico
+            # Casa COMPRA (cliente vende) = base - comision_compra
+            # Casa VENDE (cliente compra) = base + comision_venta
             if tasa.divisa_origen.codigo == "PYG":
                 hist_compra = float(registro["precio_base"]) - float(registro["comision_compra"])
                 hist_venta = float(registro["precio_base"]) + float(registro["comision_venta"])

@@ -298,9 +298,9 @@ def _compute_simulation(params: Dict, request) -> Dict:
 
     # Calcular según las fórmulas corregidas
     if tipo == "compra":
-        # Para compra: el usuario especifica cuánta divisa extranjera desea
-        # y calculamos cuántos guaraníes necesita
-        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
+        # Cliente COMPRA divisa extranjera (nosotros le VENDEMOS)
+        # Aplicamos comision_venta y SUMAMOS al precio base
+        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
         tc_efectiva = pb_dolar + comision_efectiva
 
         # monto = cantidad de divisa extranjera deseada
@@ -317,7 +317,9 @@ def _compute_simulation(params: Dict, request) -> Dict:
         tasa_display = float(tc_efectiva)
         comision_medio_cobro = Decimal("0.0")
     else:  # venta
-        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
+        # Cliente VENDE divisa extranjera (nosotros le COMPRAMOS)
+        # Aplicamos comision_compra y RESTAMOS del precio base
+        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
         tc_efectiva = pb_dolar - comision_efectiva
         converted = monto * float(tc_efectiva)
         comision_final = float(comision_efectiva)
