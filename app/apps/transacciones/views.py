@@ -71,6 +71,13 @@ def obtener_nombre_medio(medio_id, cliente):
     :param cliente: Instancia del cliente para buscar el medio
     :return: Nombre legible del medio con alias (ej: 'TC - Visa *1234')
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if not medio_id:
+        return "Efectivo"
+
     if medio_id == "efectivo":
         return "Efectivo"
     elif medio_id == "stripe_new":
@@ -82,27 +89,33 @@ def obtener_nombre_medio(medio_id, cliente):
         elif medio_id.startswith("tarjeta_"):
             medio_pk = medio_id.replace("tarjeta_", "")
             tarjeta = TarjetaCredito.objects.get(pk=medio_pk, cliente=cliente)
-            return "TC - " + tarjeta.alias
+            # Mostrar información detallada de la tarjeta
+            ultimos_digitos = tarjeta.numero_tarjeta[-4:] if tarjeta.numero_tarjeta else "****"
+            return f"TC - {tarjeta.alias} (*{ultimos_digitos})"
         elif medio_id.startswith("cuenta_"):
             medio_pk = medio_id.replace("cuenta_", "")
             cuenta = CuentaBancaria.objects.get(pk=medio_pk, cliente=cliente)
-            return "Cuenta - " + cuenta.alias
+            # Mostrar información detallada de la cuenta
+            ultimos_digitos = cuenta.numero_cuenta[-4:] if cuenta.numero_cuenta else "****"
+            return f"Cuenta - {cuenta.alias} ({cuenta.banco.nombre} *{ultimos_digitos})"
         elif medio_id.startswith("billetera_"):
             medio_pk = medio_id.replace("billetera_", "")
             billetera = BilleteraElectronica.objects.get(pk=medio_pk, cliente=cliente)
-            return "Billetera - " + billetera.alias
-    except Exception:
-        # Si no se encuentra el medio, mostrar nombre genérico
+            return f"Billetera - {billetera.alias} ({billetera.proveedor.nombre})"
+    except Exception as e:
+        # Registrar el error para debugging
+        logger.warning(f"Error al obtener detalles del medio '{medio_id}': {e!s}")
+        # Si no se encuentra el medio, mostrar nombre genérico con el ID
         if medio_id.startswith("stripe_"):
             return "Tarjeta Internacional"
         elif medio_id.startswith("tarjeta_"):
-            return "Tarjeta de Crédito"
+            return f"Tarjeta de Crédito (ID: {medio_id})"
         elif medio_id.startswith("cuenta_"):
-            return "Cuenta Bancaria"
+            return f"Cuenta Bancaria (ID: {medio_id})"
         elif medio_id.startswith("billetera_"):
-            return "Billetera Electrónica"
+            return f"Billetera Electrónica (ID: {medio_id})"
 
-    return "Método desconocido"
+    return f"Método desconocido ({medio_id})"
 
 
 def _get_stripe_fixed_fee_pyg() -> Decimal:
@@ -299,7 +312,7 @@ def _compute_simulation(params: Dict, request) -> Dict:
     # Calcular según las fórmulas corregidas
     if tipo == "compra":
         # Cliente COMPRA divisa extranjera (nosotros le VENDEMOS)
-        # Aplicamos comision_venta y SUMAMOS al precio base
+        # Aplicamos comision_venta y SUMAMOS al precio base para darle un precio más bajo
         comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
         tc_efectiva = pb_dolar + comision_efectiva
 
@@ -318,7 +331,7 @@ def _compute_simulation(params: Dict, request) -> Dict:
         comision_medio_cobro = Decimal("0.0")
     else:  # venta
         # Cliente VENDE divisa extranjera (nosotros le COMPRAMOS)
-        # Aplicamos comision_compra y RESTAMOS del precio base
+        # Aplicamos comision_compra y RESTAMOS del precio base, para darle ventaja en la tasa
         comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
         tc_efectiva = pb_dolar - comision_efectiva
         converted = monto * float(tc_efectiva)
@@ -349,13 +362,19 @@ def _compute_simulation(params: Dict, request) -> Dict:
     elif metodo_cobro.startswith("billetera"):
         tipo_medio_cobro = "billetera"
 
+    # Obtener información del tipo de cliente para display
+    tipo_cliente_nombre = ""
+    if cliente and cliente.tipo_cliente:
+        tipo_cliente_nombre = cliente.tipo_cliente.nombre
+
     return {
         "monto_original": round(monto, 6),
         "moneda_origen": moneda_origen,
         "moneda_destino": moneda_destino,
-        "tasa_cambio": tasa_display,
+        "tasa_base": tc_efectiva,  # Tasa de venta o compra según operación
+        "tasa_cambio": tasa_display,  # Tasa efectiva (con descuento aplicado)
         "monto_convertido": round(converted, 6),
-        "comision_base": round(float(comision_com if tipo == "compra" else comision_vta), 6),
+        "comision_base": round(float(comision_vta if tipo == "compra" else comision_com), 6),
         "descuento": round(float(pordes), 2),
         "comision_final": round(comision_final, 6),
         "comision_medio_pago_tipo": tipo_medio_pago,
@@ -372,6 +391,8 @@ def _compute_simulation(params: Dict, request) -> Dict:
         # Campos específicos para Stripe
         "stripe_fixed_fee": round(float(stripe_fixed_fee), 6),
         "stripe_fixed_fee_usd": float(settings.STRIPE_FIXED_FEE_USD) if stripe_fixed_fee > 0 else 0.0,
+        # Información del cliente
+        "tipo_cliente": tipo_cliente_nombre,
     }
 
 

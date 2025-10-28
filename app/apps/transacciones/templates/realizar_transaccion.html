@@ -158,51 +158,53 @@
         <div id="simulation-results"
              class="card bg-base-100 shadow-lg mt-6 hidden">
             <div class="card-body">
-                <h3 class="card-title text-primary">Detalles de la Tansacción</h3>
+                <h3 class="card-title text-primary">Detalles de la Transacción</h3>
                 <div class="flex justify-center">
                     <div class="w-full md:w-2/3 lg:w-1/2 text-left space-y-3">
                         <p>
-                            <strong id="monto-original-label">Monto que Tengo:</strong>
+                            <strong id="monto-original-label">Monto que Deseo:</strong>
                             <span id="monto-original-val">0</span> <span id="moneda-origen-val">-</span>
                         </p>
                         <p>
-                            <strong>Tasa de Cambio Efectiva:</strong> <span id="tasa-val">-</span>
+                            <strong>Tasa Base:</strong> <span id="tasa-base-val">-</span>
                         </p>
-                        <p class="text-2xl font-extrabold text-primary">
-                            <strong id="monto-final-label">Monto a Recibir:</strong>
-                            <span id="monto-final-val">0</span> <span id="moneda-destino-val">PYG</span>
+                        <!-- Tasa VIP o Corporativa (solo si aplica) -->
+                        <p id="tasa-especial-section" class="hidden">
+                            <strong id="tasa-especial-label">Tasa VIP:</strong> <span id="tasa-especial-val">-</span>
                         </p>
-                    </div>
-                </div>
-                <!-- Sección colapsable para desglose de comisiones -->
-                <div class="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box mt-4">
-                    <input type="checkbox" />
-                    <div class="collapse-title font-medium">Comisión (ver desglose)</div>
-                    <div class="collapse-content" id="commission-breakdown">
-                        <p>
-                            <strong>Comisión Base:</strong> <span id="comision-base-val">0</span>
+                        <p class="text-xl font-bold text-secondary">
+                            <strong>Cambio Calculado:</strong>
+                            <span id="cambio-calculado-val">0</span> <span id="moneda-destino-val">PYG</span>
                         </p>
-                        <p>
-                            <strong>Descuento por Segmento:</strong> <span id="descuento-val">0</span>%
+                        <!-- Comisión Medio de Pago (si aplica - solo para compra) -->
+                        <p id="comision-medio-pago-display"
+                           class="hidden text-lg font-semibold text-info">
+                            <strong>Comisión Medio de Pago:</strong>
+                            <span id="comision-medio-pago-display-val">0</span> (<span id="comision-medio-pago-display-pct">0</span>%)
                         </p>
-                        <p>
-                            <strong>Comisión Final:</strong> <span id="comision-final-val">0</span>
+                        <!-- Comisión Medio de Cobro (si aplica - solo para venta) -->
+                        <p id="comision-medio-cobro-display"
+                           class="hidden text-lg font-semibold text-info">
+                            <strong>Comisión Medio de Cobro:</strong>
+                            <span id="comision-medio-cobro-display-val">0</span> (<span id="comision-medio-cobro-display-pct">0</span>%)
                         </p>
-                        <p id="comision-medio-pago-section" class="hidden">
-                            <strong>Comisión Medio de Pago:</strong> <span id="comision-medio-pago-val">0</span> (<span id="comision-medio-pago-pct">0</span>%)
-                        </p>
-                        <div id="stripe-fees-section" class="hidden border-t pt-2 mt-2">
+                        <div id="stripe-fees-display"
+                             class="hidden border-l-4 border-purple-400 pl-4 py-2 bg-purple-50">
                             <p class="text-sm font-medium text-purple-700 mb-1">💳 Comisiones Stripe (Tarjeta Internacional):</p>
-                            <p class="text-sm pl-4">
-                                • <strong>Comisión Variable:</strong> <span id="stripe-variable-fee">0</span> PYG (2.9%)
+                            <p class="text-sm">
+                                • Comisión Variable: <span id="stripe-variable-fee-display">0</span> PYG (2.9%)
                             </p>
-                            <p class="text-sm pl-4">
-                                • <strong>Comisión Fija:</strong> <span id="stripe-fixed-fee">0</span> PYG (0.30 USD)
+                            <p class="text-sm">
+                                • Comisión Fija: <span id="stripe-fixed-fee-display">0</span> PYG (0.30 USD)
                             </p>
-                            <p class="text-sm pl-4 font-medium text-purple-800">
-                                <strong>Total Stripe:</strong> <span id="stripe-total-fee">0</span> PYG
+                            <p class="text-sm font-bold text-purple-800 mt-1">
+                                Total Stripe: <span id="stripe-total-fee-display">0</span> PYG
                             </p>
                         </div>
+                        <p class="text-2xl font-extrabold text-primary">
+                            <strong id="total-label">Total a Pagar:</strong>
+                            <span id="total-val">0</span> <span id="moneda-total-val">PYG</span>
+                        </p>
                     </div>
                 </div>
                 <!-- Advertencia para billeteras electrónicas -->
@@ -497,22 +499,27 @@
         // Elementos de resultados
         const resultsCard = document.getElementById('simulation-results');
         const montoOriginalLabel = document.getElementById('monto-original-label');
-        const montoFinalLabel = document.getElementById('monto-final-label');
         const montoOriginalVal = document.getElementById('monto-original-val');
         const monedaOrigenVal = document.getElementById('moneda-origen-val');
-        const tasaVal = document.getElementById('tasa-val');
-        const montoFinalVal = document.getElementById('monto-final-val');
+        const tasaBaseVal = document.getElementById('tasa-base-val');
+        const tasaEspecialSection = document.getElementById('tasa-especial-section');
+        const tasaEspecialLabel = document.getElementById('tasa-especial-label');
+        const tasaEspecialVal = document.getElementById('tasa-especial-val');
+        const cambioCalculadoVal = document.getElementById('cambio-calculado-val');
         const monedaDestinoVal = document.getElementById('moneda-destino-val');
-        const comisionBaseVal = document.getElementById('comision-base-val');
-        const descuentoVal = document.getElementById('descuento-val');
-        const comisionFinalVal = document.getElementById('comision-final-val');
-        const comisionMedioPagoSection = document.getElementById('comision-medio-pago-section');
-        const comisionMedioPagoVal = document.getElementById('comision-medio-pago-val');
-        const comisionMedioPagoPct = document.getElementById('comision-medio-pago-pct');
-        const stripeFeeSection = document.getElementById('stripe-fees-section');
-        const stripeVariableFee = document.getElementById('stripe-variable-fee');
-        const stripeFixedFee = document.getElementById('stripe-fixed-fee');
-        const stripeTotalFee = document.getElementById('stripe-total-fee');
+        const comisionMedioPagoDisplay = document.getElementById('comision-medio-pago-display');
+        const comisionMedioPagoDisplayVal = document.getElementById('comision-medio-pago-display-val');
+        const comisionMedioPagoDisplayPct = document.getElementById('comision-medio-pago-display-pct');
+        const comisionMedioCobroDisplay = document.getElementById('comision-medio-cobro-display');
+        const comisionMedioCobroDisplayVal = document.getElementById('comision-medio-cobro-display-val');
+        const comisionMedioCobroDisplayPct = document.getElementById('comision-medio-cobro-display-pct');
+        const stripeFeesDisplay = document.getElementById('stripe-fees-display');
+        const stripeVariableFeeDisplay = document.getElementById('stripe-variable-fee-display');
+        const stripeFixedFeeDisplay = document.getElementById('stripe-fixed-fee-display');
+        const stripeTotalFeeDisplay = document.getElementById('stripe-total-fee-display');
+        const totalLabel = document.getElementById('total-label');
+        const totalVal = document.getElementById('total-val');
+        const monedaTotalVal = document.getElementById('moneda-total-val');
         const walletWarning = document.getElementById('wallet-warning');
         const proceedBtn = document.getElementById('proceed-btn');
 
@@ -543,13 +550,13 @@
                     divisa: 'Quiero',
                     monto: 'Monto que Deseo',
                     montoOriginal: 'Monto que Deseo:',
-                    montoFinal: 'Total a Pagar:'
+                    total: 'Total a Pagar:'
                 },
                 venta: {
                     divisa: 'Tengo',
                     monto: 'Monto que Tengo',
                     montoOriginal: 'Monto que Tengo:',
-                    montoFinal: 'Monto a Recibir:'
+                    total: 'Total a Recibir:'
                 }
             };
 
@@ -557,7 +564,7 @@
             divisaLabel.textContent = labels.divisa;
             montoLabel.textContent = labels.monto;
             montoOriginalLabel.textContent = labels.montoOriginal;
-            montoFinalLabel.textContent = labels.montoFinal;
+            totalLabel.textContent = labels.total;
         }
 
         // Objeto para almacenar divisas disponibles
@@ -697,71 +704,95 @@
                 // Guardar datos para el modal
                 lastSimulationData = data;
 
-                // Actualizar resultados
-                // Mostrar montos con formato y énfasis
+                // Actualizar resultados con nueva estructura
                 const tipo = getTipoOperacion();
 
+                // Monto original
                 montoOriginalVal.textContent = formatNumberWithCurrency(data.monto_original, data.moneda_origen);
                 monedaOrigenVal.textContent = data.moneda_origen;
 
+                // Tasa base
+                tasaBaseVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_base)} PYG`;
 
-                if (tipo === 'compra') {
+                // Tasa especial (VIP o Corporativa) - solo mostrar si hay descuento
+                if (data.tipo_cliente && data.descuento > 0) {
+                    tasaEspecialSection.classList.remove('hidden');
 
-                    tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
+                    // Determinar el label según el tipo de cliente
+                    if (data.tipo_cliente.toUpperCase().includes('VIP')) {
+                        tasaEspecialLabel.textContent = 'Tasa VIP:';
+                    } else if (data.tipo_cliente.toUpperCase().includes('CORPORAT')) {
+                        tasaEspecialLabel.textContent = 'Tasa Corporativa:';
+                    } else {
+                        tasaEspecialLabel.textContent = 'Tasa Especial:';
+                    }
+
+                    tasaEspecialVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
                 } else {
-
-                    tasaVal.textContent = `1 ${data.moneda_origen} = ${formatRate(data.tasa_cambio)} PYG`;
+                    tasaEspecialSection.classList.add('hidden');
                 }
 
-                montoFinalVal.innerHTML = `<span class="text-xl font-extrabold text-primary">${formatNumberWithCurrency(data.total, "PYG")}</span>`;
+                // Cambio calculado (monto convertido sin comisión de medio de pago)
+                cambioCalculadoVal.textContent = formatNumberWithCurrency(data.total_antes_comision_medio, "PYG");
                 monedaDestinoVal.textContent = "PYG";
-                comisionBaseVal.textContent = formatNumberWithCurrency(data.comision_base, data.moneda_destino);
-                descuentoVal.textContent = data.descuento;
-                comisionFinalVal.textContent = formatNumberWithCurrency(data.comision_final, data.moneda_destino);
 
-                // Mostrar comisión de medio de pago si aplica
+                // Verificar si es pago con Stripe
                 const metodoPago = metodoPagoSelect.value;
                 const isStripePayment = metodoPago === 'stripe_new' || metodoPago.startsWith('stripe_');
 
-                if (isStripePayment) {
-                    // Para Stripe, mostrar desglose detallado
-                    comisionMedioPagoSection.classList.add('hidden');
-                    stripeFeeSection.classList.remove('hidden');
+                if (tipo === 'compra') {
+                    // Para COMPRA: mostrar comisión de medio de pago
+                    comisionMedioCobroDisplay.classList.add('hidden');
 
-                    // Comisión variable (2.9%)
-                    stripeVariableFee.textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, "PYG");
+                    if (isStripePayment) {
+                        // Para Stripe, mostrar desglose detallado
+                        comisionMedioPagoDisplay.classList.add('hidden');
+                        stripeFeesDisplay.classList.remove('hidden');
 
-                    // Comisión fija (0.30 USD en PYG)
-                    stripeFixedFee.textContent = formatNumberWithCurrency(data.stripe_fixed_fee, "PYG");
+                        // Comisión variable (2.9%)
+                        stripeVariableFeeDisplay.textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, "PYG");
 
-                    // Total Stripe
-                    const totalStripeFee = data.comision_medio_pago_monto + data.stripe_fixed_fee;
-                    stripeTotalFee.textContent = formatNumberWithCurrency(totalStripeFee, "PYG");
+                        // Comisión fija (0.30 USD en PYG)
+                        stripeFixedFeeDisplay.textContent = formatNumberWithCurrency(data.stripe_fixed_fee, "PYG");
 
-                } else if (data.comision_medio_pago_monto > 0) {
-                    // Para otros medios de pago
-                    comisionMedioPagoSection.classList.remove('hidden');
-                    stripeFeeSection.classList.add('hidden');
-                    comisionMedioPagoVal.textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, data.moneda_destino);
-                    comisionMedioPagoPct.textContent = data.comision_medio_pago_porcentaje;
+                        // Total Stripe
+                        const totalStripeFee = data.comision_medio_pago_monto + data.stripe_fixed_fee;
+                        stripeTotalFeeDisplay.textContent = formatNumberWithCurrency(totalStripeFee, "PYG");
+
+                    } else if (data.comision_medio_pago_monto > 0) {
+                        // Para otros medios de pago con comisión
+                        comisionMedioPagoDisplay.classList.remove('hidden');
+                        stripeFeesDisplay.classList.add('hidden');
+                        comisionMedioPagoDisplayVal.textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, "PYG");
+                        comisionMedioPagoDisplayPct.textContent = data.comision_medio_pago_porcentaje;
+                    } else {
+                        // Sin comisión de medio de pago
+                        comisionMedioPagoDisplay.classList.add('hidden');
+                        stripeFeesDisplay.classList.add('hidden');
+                    }
                 } else {
-                    comisionMedioPagoSection.classList.add('hidden');
-                    stripeFeeSection.classList.add('hidden');
+                    // Para VENTA: mostrar comisión de medio de cobro
+                    comisionMedioPagoDisplay.classList.add('hidden');
+                    stripeFeesDisplay.classList.add('hidden');
+
+                    if (data.comision_medio_cobro_monto > 0) {
+                        comisionMedioCobroDisplay.classList.remove('hidden');
+                        comisionMedioCobroDisplayVal.textContent = formatNumberWithCurrency(data.comision_medio_cobro_monto, "PYG");
+                        comisionMedioCobroDisplayPct.textContent = data.comision_medio_cobro_porcentaje;
+                    } else {
+                        comisionMedioCobroDisplay.classList.add('hidden');
+                    }
                 }
 
-                // Actualizar comisiones en el panel colapsable
-                const cb = document.getElementById('commission-breakdown');
-                if (cb) {
-                    cb.querySelector('#comision-base-val').textContent = formatNumberWithCurrency(data.comision_base, data.moneda_destino);
-                    cb.querySelector('#descuento-val').textContent = data.descuento;
-                    cb.querySelector('#comision-final-val').textContent = formatNumberWithCurrency(data.comision_final, data.moneda_destino);
-                    if (data.comision_medio_pago_monto > 0) {
-                        cb.querySelector('#comision-medio-pago-section').classList.remove('hidden');
-                        cb.querySelector('#comision-medio-pago-val').textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, data.moneda_destino);
-                        cb.querySelector('#comision-medio-pago-pct').textContent = data.comision_medio_pago_porcentaje;
-                    } else {
-                        cb.querySelector('#comision-medio-pago-section').classList.add('hidden');
-                    }
+                // Total a pagar
+                totalVal.textContent = formatNumberWithCurrency(data.total, "PYG");
+                monedaTotalVal.textContent = "PYG";
+
+                // Actualizar label del total según el tipo de operación
+                if (tipo === 'compra') {
+                    totalLabel.textContent = 'Total a Pagar:';
+                } else {
+                    totalLabel.textContent = 'Total a Recibir:';
                 }
 
                 // Mostrar advertencia de billeteras

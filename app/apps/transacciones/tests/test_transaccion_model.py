@@ -143,8 +143,9 @@ class TestTransaccionModel:
 
         resultado = transaccion.verificar_cambio_cotizacion()
 
-        # Debe incluir el descuento del 5% del cliente
-        expected_comision = Decimal("50.0") - (Decimal("50.0") * Decimal("5.0") / Decimal("100"))
+        # Para COMPRA: cliente compra divisa (nosotros vendemos)
+        # Debe incluir el descuento del 5% del cliente sobre la comisión de VENTA
+        expected_comision = Decimal("75.0") - (Decimal("75.0") * Decimal("5.0") / Decimal("100"))
         expected_tasa = Decimal("8000.0") + expected_comision
 
         assert resultado["tasa_actual"] == expected_tasa.quantize(Decimal("0.001"))
@@ -169,8 +170,9 @@ class TestTransaccionModel:
 
         resultado = transaccion_venta.verificar_cambio_cotizacion()
 
-        # Para venta: precio_base - comisión_efectiva
-        expected_comision = Decimal("75.0") - (Decimal("75.0") * Decimal("5.0") / Decimal("100"))
+        # Para VENTA: cliente vende divisa (nosotros compramos)
+        # Usamos comisión de COMPRA y restamos del precio base
+        expected_comision = Decimal("50.0") - (Decimal("50.0") * Decimal("5.0") / Decimal("100"))
         expected_tasa = Decimal("8000.0") - expected_comision
 
         assert resultado["tasa_actual"] == expected_tasa.quantize(Decimal("0.001"))

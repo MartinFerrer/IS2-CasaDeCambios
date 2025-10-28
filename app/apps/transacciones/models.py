@@ -725,14 +725,16 @@ class Transaccion(models.Model):
                 porcentaje_descuento = self.cliente.tipo_cliente.descuento_sobre_comision
 
             if self.tipo_operacion == "compra":
-                # Para compra: precio_base + comisión_compra (menos descuento)
-                comision_compra = tasa_cambio_actual.comision_compra
-                comision_efectiva = comision_compra - (comision_compra * porcentaje_descuento / Decimal("100"))
-                tasa_actual = precio_base + comision_efectiva
-            else:  # venta
-                # Para venta: precio_base - comisión_venta (menos descuento)
+                # Para compra: cliente COMPRA divisa (nosotros VENDEMOS)
+                # Usamos comision_venta y SUMAMOS al precio base
                 comision_venta = tasa_cambio_actual.comision_venta
                 comision_efectiva = comision_venta - (comision_venta * porcentaje_descuento / Decimal("100"))
+                tasa_actual = precio_base + comision_efectiva
+            else:  # venta
+                # Para venta: cliente VENDE divisa (nosotros COMPRAMOS)
+                # Usamos comision_compra y RESTAMOS del precio base
+                comision_compra = tasa_cambio_actual.comision_compra
+                comision_efectiva = comision_compra - (comision_compra * porcentaje_descuento / Decimal("100"))
                 tasa_actual = precio_base - comision_efectiva
 
             tasa_original = self.tasa_original or self.tasa_aplicada
