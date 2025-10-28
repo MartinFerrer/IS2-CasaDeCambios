@@ -469,6 +469,68 @@
             </div>
         </div>
     </dialog>
+    <!-- Modal de verificación MFA -->
+    <dialog id="mfaModal" class="modal">
+        <div class="modal-box w-11/12 max-w-md">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="cerrarModalMFA()">✕</button>
+            </form>
+            <h3 class="font-bold text-lg text-blue-600 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-6 w-6 inline mr-2"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Verificación de Seguridad
+            </h3>
+            <p class="mb-4 text-gray-700">
+                Para proceder con el pago, ingresa el código de verificación de tu aplicación de autenticación (Google Authenticator, Authy, etc.)
+            </p>
+            <div class="form-control mb-6">
+                <label class="label" for="mfaCode">
+                    <span class="label-text font-semibold">Código de 6 dígitos</span>
+                </label>
+                <input type="text"
+                       id="mfaCode"
+                       class="input input-bordered w-full text-center text-2xl tracking-widest font-mono"
+                       placeholder="000000"
+                       maxlength="6"
+                       pattern="[0-9]{6}"
+                       autocomplete="off" />
+                <label class="label">
+                    <span class="label-text-alt text-gray-500">El código cambia cada 30 segundos</span>
+                </label>
+            </div>
+            <div id="mfaError" class="alert alert-error mb-4 hidden">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="stroke-current shrink-0 h-6 w-6"
+                     fill="none"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="mfaErrorMessage">Código incorrecto</span>
+            </div>
+            <div class="modal-action mt-4 flex justify-end space-x-2">
+                <button id="confirmMFABtn"
+                        class="btn btn-primary"
+                        onclick="verificarCodigoMFA()">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-4 w-4 mr-1"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Verificar y Continuar
+                </button>
+                <button type="button" class="btn btn-ghost" onclick="cerrarModalMFA()">Cancelar</button>
+            </div>
+        </div>
+    </dialog>
     <!-- Popup de simulación bancaria se abre en ventana separada -->
     <script>
         function copyToClipboard(text) {
@@ -603,16 +665,35 @@
 
         function continuarConPago(transaccionId) {
             const btnPagar = document.getElementById('btnPagarTransaccion');
-            btnPagar.innerHTML = `
-                <span class="loading loading-spinner loading-sm"></span>
-                <div class="text-left">
-                    <div class="font-semibold">Procesando...</div>
-                    <div class="text-xs opacity-60">Abriendo banco</div>
-                </div>
-            `;
 
-            // Proceder con el proceso bancario original
-            abrirVentanaBanco(transaccionId);
+            // Verificar si MFA está habilitado
+            const mfaHabilitado = {{ mfa_habilitado|yesno:"true,false" }};
+
+            if (mfaHabilitado) {
+                // Si MFA está habilitado, solicitar verificación
+                btnPagar.innerHTML = `
+                    <span class="loading loading-spinner loading-sm"></span>
+                    <div class="text-left">
+                        <div class="font-semibold">Procesando...</div>
+                        <div class="text-xs opacity-60">Solicitando verificación MFA</div>
+                    </div>
+                `;
+
+                // Abrir modal de MFA
+                abrirModalMFA(transaccionId);
+            } else {
+                // Si MFA no está habilitado, ir directo al banco
+                btnPagar.innerHTML = `
+                    <span class="loading loading-spinner loading-sm"></span>
+                    <div class="text-left">
+                        <div class="font-semibold">Procesando...</div>
+                        <div class="text-xs opacity-60">Abriendo banco</div>
+                    </div>
+                `;
+
+                // Proceder directo con el banco
+                abrirVentanaBanco(transaccionId);
+            }
         }
 
         function abrirVentanaBanco(transaccionId) {
@@ -1130,6 +1211,154 @@
                 btnCancelar.disabled = false;
             });
         }
+
+        // ===== FUNCIONES MFA =====
+
+        let transaccionPendienteMFA = null;
+
+        function abrirModalMFA(transaccionId) {
+            transaccionPendienteMFA = transaccionId;
+
+            // Limpiar el campo de código
+            const mfaCodeInput = document.getElementById('mfaCode');
+            mfaCodeInput.value = '';
+
+            // Ocultar mensaje de error
+            document.getElementById('mfaError').classList.add('hidden');
+
+            // Abrir modal
+            document.getElementById('mfaModal').showModal();
+
+            // Focus en el input
+            setTimeout(() => {
+                mfaCodeInput.focus();
+            }, 100);
+        }
+
+        function cerrarModalMFA() {
+            document.getElementById('mfaModal').close();
+            transaccionPendienteMFA = null;
+
+            // Restaurar botón de pagar
+            restaurarBotonPagar();
+        }
+
+        function verificarCodigoMFA() {
+            const mfaCodeInput = document.getElementById('mfaCode');
+            const codigo = mfaCodeInput.value.trim();
+
+            // Validar que el código tenga 6 dígitos
+            if (!codigo || codigo.length !== 6 || !/^\d{6}$/.test(codigo)) {
+                mostrarErrorMFA('El código debe tener exactamente 6 dígitos numéricos');
+                return;
+            }
+
+            const confirmBtn = document.getElementById('confirmMFABtn');
+            const originalText = confirmBtn.innerHTML;
+
+            // Deshabilitar el botón mientras se verifica
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                Verificando...
+            `;
+
+            // Enviar código al servidor
+            fetch(`/transacciones/api/verificar-mfa-pago/${transaccionPendienteMFA}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    codigo: codigo
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Código correcto, cerrar modal y proceder con el pago
+                    document.getElementById('mfaModal').close();
+                    showToast('Código MFA verificado correctamente', 'success');
+
+                    // Actualizar el botón de pagar
+                    const btnPagar = document.getElementById('btnPagarTransaccion');
+                    btnPagar.innerHTML = `
+                        <span class="loading loading-spinner loading-sm"></span>
+                        <div class="text-left">
+                            <div class="font-semibold">Procesando...</div>
+                            <div class="text-xs opacity-60">Abriendo banco</div>
+                        </div>
+                    `;
+
+                    // Proceder con el pago
+                    setTimeout(() => {
+                        abrirVentanaBanco(transaccionPendienteMFA);
+                    }, 500);
+                } else {
+                    // Código incorrecto
+                    mostrarErrorMFA(data.message || 'Código MFA incorrecto. Por favor, inténtalo de nuevo.');
+
+                    // Restaurar botón
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = originalText;
+
+                    // Limpiar el campo
+                    mfaCodeInput.value = '';
+                    mfaCodeInput.focus();
+                }
+            })
+            .catch(error => {
+                console.error('Error al verificar MFA:', error);
+                mostrarErrorMFA('Error de conexión. Por favor, inténtalo de nuevo.');
+
+                // Restaurar botón
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalText;
+            });
+        }
+
+        function mostrarErrorMFA(mensaje) {
+            const errorDiv = document.getElementById('mfaError');
+            const errorMessage = document.getElementById('mfaErrorMessage');
+
+            errorMessage.textContent = mensaje;
+            errorDiv.classList.remove('hidden');
+
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Permitir solo números en el campo MFA
+        document.addEventListener('DOMContentLoaded', function() {
+            const mfaCodeInput = document.getElementById('mfaCode');
+
+            if (mfaCodeInput) {
+                // Solo permitir números
+                mfaCodeInput.addEventListener('input', function(e) {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                });
+
+                // Auto-enviar cuando se completan 6 dígitos
+                mfaCodeInput.addEventListener('input', function(e) {
+                    if (e.target.value.length === 6) {
+                        setTimeout(() => {
+                            verificarCodigoMFA();
+                        }, 300);
+                    }
+                });
+
+                // Permitir Enter para enviar
+                mfaCodeInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        verificarCodigoMFA();
+                    }
+                });
+            }
+        });
 
         // Inicializar verificación al cargar la página
         window.addEventListener('load', function() {

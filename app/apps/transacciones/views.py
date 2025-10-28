@@ -20,7 +20,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
@@ -1394,31 +1393,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
                 {"error": "No se permite comprar divisas usando PYG en efectivo como medio de pago"}, status=400
             )
 
-        # Verificar si el usuario requiere MFA para transacciones ANTES de crear
-        from apps.seguridad.models import PerfilMFA
-
-        mfa_requerido = False
-        try:
-            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
-            mfa_requerido = perfil_mfa.mfa_habilitado_transacciones
-        except PerfilMFA.DoesNotExist:
-            pass
-
-        # Si se requiere MFA, verificar si ya fue validado para esta sesión
-        if mfa_requerido:
-            mfa_token = request.GET.get("mfa_token")
-            if not mfa_token or not request.session.get(f"mfa_token_valido_{mfa_token}"):
-                # Guardar los datos de la transacción en la sesión y requerir MFA
-                request.session["datos_transaccion_mfa"] = params
-                return JsonResponse(
-                    {
-                        "error": "MFA_REQUIRED",
-                        "mensaje": "Se requiere verificación MFA para crear transacciones",
-                        "redirect_url": reverse("seguridad:verificar_mfa_transaccion"),
-                    },
-                    status=400,
-                )
-
         # Realizar la simulación para obtener los datos calculados
         simulation_data = _compute_simulation(params, request)
 
@@ -1579,12 +1553,23 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
         nombre_metodo_pago = obtener_nombre_medio(metodo_pago, transaccion.cliente)
         nombre_metodo_cobro = obtener_nombre_medio(metodo_cobro, transaccion.cliente)
 
+        # Verificar si el usuario tiene MFA habilitado para transacciones
+        from apps.seguridad.models import PerfilMFA
+
+        mfa_habilitado = False
+        try:
+            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+            mfa_habilitado = perfil_mfa.mfa_habilitado_transacciones
+        except PerfilMFA.DoesNotExist:
+            pass
+
         context = {
             "transaccion": transaccion,
             "metodo_pago": metodo_pago,
             "metodo_cobro": metodo_cobro,
             "nombre_metodo_pago": nombre_metodo_pago,
             "nombre_metodo_cobro": nombre_metodo_cobro,
+            "mfa_habilitado": mfa_habilitado,
         }
 
         return render(request, "procesar_transaccion.html", context)
@@ -1648,6 +1633,112 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
     except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+@login_required
+def verificar_mfa_pago(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """Verifica el código MFA antes de proceder con el pago.
+
+    Args:
+        request: HttpRequest object con el código MFA en el body
+        transaccion_id: UUID de la transacción que se va a pagar
+
+    Returns:
+        JsonResponse con el resultado de la verificación
+
+    """
+    try:
+        import json
+
+        from apps.seguridad.models import PerfilMFA, RegistroMFA
+
+        # Obtener la transacción
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Verificar que el usuario tiene un cliente activo
+        if not request.cliente:
+            return JsonResponse({"success": False, "message": "No tienes un cliente asociado"}, status=403)
+
+        # Verificar que la transacción pertenece al cliente actual
+        if transaccion.cliente != request.cliente:
+            return JsonResponse({"success": False, "message": "No tienes permisos para esta transacción"}, status=403)
+
+        # Verificar que la transacción está pendiente
+        if transaccion.estado != "pendiente":
+            return JsonResponse({"success": False, "message": "La transacción no está en estado pendiente"}, status=400)
+
+        # Obtener el código MFA del body
+        try:
+            data = json.loads(request.body)
+            codigo = data.get("codigo", "").strip()
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "message": "Datos inválidos"}, status=400)
+
+        if not codigo:
+            return JsonResponse({"success": False, "message": "El código MFA es requerido"}, status=400)
+
+        # Verificar que el código tiene 6 dígitos
+        if not codigo.isdigit() or len(codigo) != 6:
+            return JsonResponse({"success": False, "message": "El código debe tener 6 dígitos"}, status=400)
+
+        # Verificar que el usuario tiene MFA configurado
+        try:
+            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+        except PerfilMFA.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "message": "No tienes configurado MFA. Por favor configúralo primero."}, status=400
+            )
+
+        # Verificar si el MFA está habilitado para transacciones
+        if not perfil_mfa.mfa_habilitado_transacciones:
+            return JsonResponse({"success": False, "message": "MFA no está habilitado para transacciones"}, status=400)
+
+        # Verificar el código TOTP
+        if perfil_mfa.verificar_codigo(codigo):
+            # Registrar el intento exitoso
+            RegistroMFA.objects.create(
+                usuario=request.user,
+                tipo_operacion="transaccion",
+                resultado="exitoso",
+                direccion_ip=request.META.get("REMOTE_ADDR"),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                referencia_transaccion=transaccion.id_transaccion,
+            )
+
+            # Generar un token de sesión válido por tiempo limitado (5 minutos)
+            import time
+
+            mfa_token = f"{transaccion_id}_{int(time.time())}"
+            request.session[f"mfa_verified_{transaccion_id}"] = mfa_token
+            request.session.modified = True
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Código MFA verificado correctamente",
+                    "mfa_token": mfa_token,
+                }
+            )
+        else:
+            # Registrar el intento fallido
+            RegistroMFA.objects.create(
+                usuario=request.user,
+                tipo_operacion="transaccion",
+                resultado="fallido",
+                direccion_ip=request.META.get("REMOTE_ADDR"),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                referencia_transaccion=transaccion.id_transaccion,
+            )
+
+            return JsonResponse(
+                {"success": False, "message": "Código MFA incorrecto. Por favor, inténtalo de nuevo."}, status=400
+            )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        return JsonResponse({"success": False, "message": f"Error interno del servidor: {e!s}"}, status=500)
 
 
 @require_POST
