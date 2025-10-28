@@ -1790,10 +1790,25 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
 
         # Procesar según el resultado del banco
         if exito:
-            # Pago exitoso
-            transaccion.estado = "completada"
-            transaccion.fecha_pago = datetime.now()
-            mensaje_log = "Pago procesado exitosamente"
+            # Pago exitoso en el banco
+            # Para COMPRA de divisa (medio_cobro es efectivo/TAUSER), la transacción queda pendiente
+            # hasta que el cliente retire el dinero del TAUSER
+
+            # Verificar si es compra de divisa con cobro en efectivo (TAUSER)
+            es_compra_con_tauser = (
+                transaccion.tipo_operacion == "compra"
+                and transaccion.medio_cobro
+                and transaccion.medio_cobro.lower() == "efectivo"
+            )
+
+            if es_compra_con_tauser:
+                # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
+                transaccion.estado = "pendiente"
+                transaccion.fecha_pago = datetime.now()
+            else:
+                # Otros casos: completar la transacción
+                transaccion.estado = "completada"
+                transaccion.fecha_pago = datetime.now()
 
         else:
             # Pago fallido
@@ -2332,9 +2347,22 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
         stripe_payment.status = intent.status
 
         if intent.status == "succeeded":
-            # Pago exitoso
-            transaccion.estado = "completada"
-            mensaje = "Pago procesado exitosamente con Stripe"
+            # Pago exitoso con Stripe
+            # Aplicar la misma lógica que con el banco: si es compra con cobro en TAUSER, queda pendiente
+            es_compra_con_tauser = (
+                transaccion.tipo_operacion == "compra"
+                and transaccion.medio_cobro
+                and transaccion.medio_cobro.lower() == "efectivo"
+            )
+
+            if es_compra_con_tauser:
+                # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
+                transaccion.estado = "pendiente"
+                mensaje = "Pago procesado exitosamente con Stripe. Pendiente de retiro en TAUSER"
+            else:
+                # Otros casos: completar la transacción
+                transaccion.estado = "completada"
+                mensaje = "Pago procesado exitosamente con Stripe"
 
         elif intent.status in ["requires_payment_method", "requires_confirmation"]:
             # Pago requiere acción adicional
@@ -2449,7 +2477,21 @@ def _handle_payment_intent_succeeded(payment_intent):
 
         # Actualizar transacción
         transaccion = stripe_payment.transaccion
-        transaccion.estado = "completada"
+
+        # Aplicar la misma lógica que con el banco: si es compra con cobro en TAUSER, queda pendiente
+        es_compra_con_tauser = (
+            transaccion.tipo_operacion == "compra"
+            and transaccion.medio_cobro
+            and transaccion.medio_cobro.lower() == "efectivo"
+        )
+
+        if es_compra_con_tauser:
+            # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
+            transaccion.estado = "pendiente"
+        else:
+            # Otros casos: completar la transacción
+            transaccion.estado = "completada"
+
         transaccion.save()
 
     except StripePayment.DoesNotExist:

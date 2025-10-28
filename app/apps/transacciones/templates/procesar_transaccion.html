@@ -179,9 +179,9 @@
                             <div>
                                 <span class="font-semibold">Estado:</span>
                                 {% if transaccion.estado == 'completada' %}
-                                    <span class="badge badge-success ml-2">{{ transaccion.get_estado_display }}</span>
+                                    <span class="badge badge-success ml-2">Completada</span>
                                 {% elif transaccion.estado == 'pendiente' %}
-                                    <span class="badge badge-warning ml-2">{{ transaccion.get_estado_display }}</span>
+                                    <span class="badge badge-warning ml-2">Pendiente</span>
                                 {% elif transaccion.estado == 'cancelada' or transaccion.estado == 'cancelada_cotizacion' %}
                                     <span class="badge badge-error ml-2">{{ transaccion.get_estado_display }}</span>
                                 {% elif transaccion.estado == 'vencida' %}
