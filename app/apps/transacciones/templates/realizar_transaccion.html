@@ -451,6 +451,7 @@
         const stripeModal = document.getElementById('stripe-payment-modal');
         const stripeForm = document.getElementById('stripe-payment-form');
         const stripeCardElement = elements.create('card', {
+            hidePostalCode: true,
             style: {
                 base: {
                     fontSize: '16px',
