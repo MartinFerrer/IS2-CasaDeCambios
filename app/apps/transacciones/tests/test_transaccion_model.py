@@ -51,7 +51,7 @@ class TestTransaccionModel:
     @pytest.fixture
     def transaccion(self, usuario, cliente, divisas, tasa_cambio):
         """Transacción de prueba."""
-        tasa_efectiva = Decimal("7047.5")
+        tasa_efectiva = Decimal("7071.25")
         return Transaccion.objects.create(
             cliente=cliente,
             usuario=usuario,
@@ -59,7 +59,7 @@ class TestTransaccionModel:
             divisa_origen=divisas["PYG"],
             divisa_destino=divisas["USD"],
             tasa_aplicada=tasa_efectiva,
-            monto_origen=Decimal("70475.0"),
+            monto_origen=Decimal("70712.5"),
             monto_destino=Decimal("10.0"),
             tasa_original=tasa_efectiva,
         )
