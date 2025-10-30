@@ -1,41 +1,90 @@
-<!-- usuarios/emails/notificacion_cambio_cotizacion.html -->
-<div class="cambios">
-    <h3>Cambio en {{ divisa_origen }} a {{ divisa_destino }}</h3>
-    
-    <p><strong>Cotización Base:</strong></p>
-    <p>
-        <span class="destacado">{{ cotizacion_anterior }}</span> → 
-        <span class="destacado">{{ cotizacion_nueva }}</span>
-        <span class="variacion {% if variacion_porcentaje > 0 %}mejora{% else %}deterioro{% endif %}">
-            ({{ variacion_porcentaje }}%)
-        </span>
-    </p>
-    
-    <!-- INFORMACIÓN ESPECÍFICA DE LA TRANSACCIÓN -->
-    <div class="impacto-transaccion">
-        <h4>📊 Impacto en su transacción:</h4>
-        
-        {% if tipo_operacion == "compra" %}
-        <p><strong>Compra de {{ monto_divisa }} {{ divisa_destino }}:</strong></p>
-        <p>Anterior: <span class="destacado">₲ {{ monto_anterior|floatformat:0 }}</span></p>
-        <p>Ahora: <span class="destacado {% if monto_nuevo > monto_anterior %}deterioro{% else %}mejora{% endif %}">
-            ₲ {{ monto_nuevo|floatformat:0 }}
-        </span></p>
-        
-        {% else %}
-        <p><strong>Venta de {{ monto_divisa }} {{ divisa_origen }}:</strong></p>
-        <p>Anterior: <span class="destacado">₲ {{ monto_anterior|floatformat:0 }}</span></p>
-        <p>Ahora: <span class="destacado {% if monto_nuevo > monto_anterior %}mejora{% else %}deterioro{% endif %}">
-            ₲ {{ monto_nuevo|floatformat:0 }}
-        </span></p>
-        {% endif %}
-        
-        <p class="importante">
-            {% if monto_nuevo > monto_anterior %}
-                ⚠️ Su transacción ahora es <strong>{{ diferencia_monto|floatformat:0 }} ₲ más {% if tipo_operacion == "compra" %}costosa{% else %}rentable{% endif %}</strong>
-            {% else %}
-                ✅ Su transacción ahora es <strong>{{ diferencia_monto|abs|floatformat:0 }} ₲ más {% if tipo_operacion == "compra" %}económica{% else %}costosa{% endif %}</strong>
-            {% endif %}
-        </p>
-    </div>
-</div>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de Cotización</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8f9fa;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                            <h1 style="color: white; margin: 0; font-size: 28px;">Global Exchange Services</h1>
+                            <p style="color: white; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Actualización de Cotización</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="padding: 30px;">
+                            <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                Hola <strong style="color: #667eea;">{{ nombre_cliente }}</strong>,
+                            </p>
+                            
+                            <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                                Le informamos que ha habido un cambio en la cotización de divisas:
+                            </p>
+
+                            <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea;">
+                                <h3 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">
+                                    Cambio en {{ divisa_origen }} a {{ divisa_destino }}
+                                </h3>
+                                
+                                <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;"><strong>Cotización Base:</strong></p>
+                                <p style="color: #333; margin: 0 0 15px 0; font-size: 16px;">
+                                    <span style="font-weight: bold; font-size: 1.2em;">{{ cotizacion_anterior }}</span> → 
+                                    <span style="font-weight: bold; font-size: 1.2em;">{{ cotizacion_nueva }}</span>
+                                    <span style="color: {% if variacion_porcentaje > 0 %}#dc3545{% else %}#28a745{% endif %}; margin-left: 10px;">
+                                        ({{ variacion_porcentaje }}%)
+                                    </span>
+                                </p>
+
+                                <div style="background-color: #ffffff; border-radius: 4px; padding: 15px; margin: 15px 0; border: 1px solid #e9ecef;">
+                                    <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">📊 Nuevas Tasas de Cambio:</h4>
+                                    
+                                    <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">
+                                        <strong>Tasa de Compra:</strong> 
+                                        <span style="font-weight: bold;">{{ tasa_compra_anterior }}</span> → 
+                                        <span style="font-weight: bold; color: {% if tasa_compra_nueva > tasa_compra_anterior %}#dc3545{% else %}#28a745{% endif %};">
+                                            {{ tasa_compra_nueva }}
+                                        </span>
+                                    </p>
+                                    
+                                    <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">
+                                        <strong>Tasa de Venta:</strong> 
+                                        <span style="font-weight: bold;">{{ tasa_venta_anterior }}</span> → 
+                                        <span style="font-weight: bold; color: {% if tasa_venta_nueva > tasa_venta_anterior %}#28a745{% else %}#dc3545{% endif %};">
+                                            {{ tasa_venta_nueva }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 25px 0 0 0;">
+                                <strong>Nota:</strong> Si tiene transacciones pendientes, estas podrían verse afectadas por este cambio.
+                            </p>
+                            
+                            <p style="color: #999; font-size: 12px; margin: 20px 0 0 0;">
+                                Fecha de actualización: {{ fecha_actualizacion }}
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+                            <p style="color: #999; font-size: 12px; margin: 0 0 10px 0;">
+                                Este es un mensaje automático. Por favor no responda a este correo.
+                            </p>
+                            <p style="color: #667eea; font-size: 12px; margin: 0; font-weight: bold;">
+                                Global Exchange Services
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
