@@ -10,6 +10,13 @@ from decimal import Decimal
 from typing import Dict
 
 import stripe
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -20,34 +27,27 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
-from apps.seguridad.decorators import client_required
-from apps.stock.models import MovimientoStock, StockDivisaTauser
-from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
-from apps.tauser.models import Tauser
-from apps.usuarios.models import Cliente
-
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
+from .utils.commission_calculator import get_collection_commission, get_payment_commission
 
 
 def obtener_medio_financiero_por_identificador(identificador, cliente):
     """Obtiene el objeto de medio financiero basado en el identificador.
-    
+
     Args:
         identificador: String como 'tarjeta_1', 'cuenta_2', 'billetera_3', etc.
         cliente: Objeto Cliente al que pertenece el medio
-        
+
     Returns:
         Objeto del medio financiero (TarjetaCredito, CuentaBancaria, BilleteraElectronica) o None
-        
+
     """
     if not identificador or identificador == "efectivo":
         return None
 
     try:
         # Separar tipo y ID del identificador
-        partes = identificador.split('_')
+        partes = identificador.split("_")
         if len(partes) != 2:
             return None
 
@@ -75,6 +75,13 @@ def obtener_nombre_medio(medio_id, cliente):
     :param cliente: Instancia del cliente para buscar el medio
     :return: Nombre legible del medio con alias (ej: 'TC - Visa *1234')
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if not medio_id:
+        return "Efectivo"
+
     if medio_id == "efectivo":
         return "Efectivo"
     elif medio_id == "stripe_new":
@@ -86,27 +93,33 @@ def obtener_nombre_medio(medio_id, cliente):
         elif medio_id.startswith("tarjeta_"):
             medio_pk = medio_id.replace("tarjeta_", "")
             tarjeta = TarjetaCredito.objects.get(pk=medio_pk, cliente=cliente)
-            return "TC - " + tarjeta.alias
+            # Mostrar información detallada de la tarjeta
+            ultimos_digitos = tarjeta.numero_tarjeta[-4:] if tarjeta.numero_tarjeta else "****"
+            return f"TC - {tarjeta.alias} (*{ultimos_digitos})"
         elif medio_id.startswith("cuenta_"):
             medio_pk = medio_id.replace("cuenta_", "")
             cuenta = CuentaBancaria.objects.get(pk=medio_pk, cliente=cliente)
-            return "Cuenta - " + cuenta.alias
+            # Mostrar información detallada de la cuenta
+            ultimos_digitos = cuenta.numero_cuenta[-4:] if cuenta.numero_cuenta else "****"
+            return f"Cuenta - {cuenta.alias} ({cuenta.banco.nombre} *{ultimos_digitos})"
         elif medio_id.startswith("billetera_"):
             medio_pk = medio_id.replace("billetera_", "")
             billetera = BilleteraElectronica.objects.get(pk=medio_pk, cliente=cliente)
-            return "Billetera - " + billetera.alias
-    except Exception:
-        # Si no se encuentra el medio, mostrar nombre genérico
+            return f"Billetera - {billetera.alias} ({billetera.proveedor.nombre})"
+    except Exception as e:
+        # Registrar el error para debugging
+        logger.warning(f"Error al obtener detalles del medio '{medio_id}': {e!s}")
+        # Si no se encuentra el medio, mostrar nombre genérico con el ID
         if medio_id.startswith("stripe_"):
             return "Tarjeta Internacional"
         elif medio_id.startswith("tarjeta_"):
-            return "Tarjeta de Crédito"
+            return f"Tarjeta de Crédito (ID: {medio_id})"
         elif medio_id.startswith("cuenta_"):
-            return "Cuenta Bancaria"
+            return f"Cuenta Bancaria (ID: {medio_id})"
         elif medio_id.startswith("billetera_"):
-            return "Billetera Electrónica"
+            return f"Billetera Electrónica (ID: {medio_id})"
 
-    return "Método desconocido"
+    return f"Método desconocido ({medio_id})"
 
 
 def _get_stripe_fixed_fee_pyg() -> Decimal:
@@ -131,102 +144,107 @@ def _get_stripe_fixed_fee_pyg() -> Decimal:
 
 
 def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
-    """Calcula la comisión del medio de pago."""
+    """Calcula la comisión del medio de pago.
+
+    Se usa utils.commission_calculator cuando sea posible hacerlo
+    manteniendo la lógica específica para entidades financieras.
+    """
     from django.conf import settings
 
     # Stripe (tarjetas internacionales)
     if metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
         return settings.STRIPE_COMMISSION_RATE
 
+    # Lógica específica para medios de pago con entidades financieras
     if metodo_pago.startswith("tarjeta_") and cliente:
         try:
             tarjeta_id = int(metodo_pago.split("_")[1])
             tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
             if tarjeta.entidad:
                 return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
-            return Decimal("5.0")
+            # Usar módulo para tarjetas sin entidad específica
+            return get_payment_commission("tarjeta_credito", Decimal("100"))  # Monto de referencia
         except (ValueError, TarjetaCredito.DoesNotExist):
-            return Decimal("5.0")
+            return get_payment_commission("tarjeta_credito", Decimal("100"))
+
     elif metodo_pago.startswith("cuenta_") and cliente:
         try:
             cuenta_id = int(metodo_pago.split("_")[1])
             cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
             if cuenta.entidad:
                 return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
-            return Decimal("0.0")
+            return get_payment_commission("cuenta_bancaria", Decimal("100"))
         except (ValueError, CuentaBancaria.DoesNotExist):
-            return Decimal("0.0")
+            return get_payment_commission("cuenta_bancaria", Decimal("100"))
+
     elif metodo_pago.startswith("billetera_") and cliente:
         try:
             billetera_id = int(metodo_pago.split("_")[1])
             billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
             if billetera.entidad:
                 return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
-            return Decimal("3.0")
+            return get_payment_commission("billetera_digital", Decimal("100"))
         except (ValueError, BilleteraElectronica.DoesNotExist):
-            return Decimal("3.0")
+            return get_payment_commission("billetera_digital", Decimal("100"))
     else:
-        comisiones_medios = {
-            "efectivo": Decimal("0.0"),
-            "cuenta": Decimal("0.0"),
-            "tarjeta": Decimal("5.0"),
-            "billetera": Decimal("3.0"),
-            "stripe": settings.STRIPE_COMMISSION_RATE,
-        }
+        # Usar módulo utils para casos genéricos
         if metodo_pago.startswith("tarjeta"):
-            return comisiones_medios["tarjeta"]
+            return get_payment_commission("tarjeta_credito", Decimal("100"))
         elif metodo_pago.startswith("cuenta"):
-            return comisiones_medios["cuenta"]
+            return get_payment_commission("cuenta_bancaria", Decimal("100"))
         elif metodo_pago.startswith("billetera"):
-            return comisiones_medios["billetera"]
+            return get_payment_commission("billetera_digital", Decimal("100"))
         elif metodo_pago.startswith("stripe"):
-            return comisiones_medios["stripe"]
-        return comisiones_medios["efectivo"]
+            return settings.STRIPE_COMMISSION_RATE
+        return Decimal("0.0")  # efectivo
 
 
 def _get_collection_commission(metodo_cobro: str, cliente, tipo: str) -> Decimal:
-    """Calcula la comisión del medio de cobro."""
+    """Calcula la comisión del medio de cobro.
+
+    Se usa utils.commission_calculator cuando sea posible hacerlo
+    manteniendo la lógica específica para entidades financieras.
+    """
+    # Lógica específica para medios de cobro con entidades financieras
     if metodo_cobro.startswith("tarjeta_") and cliente:
         try:
             tarjeta_id = int(metodo_cobro.split("_")[1])
             tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
             if tarjeta.entidad:
                 return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
-            return Decimal("5.0")
+            # Usar módulo para tarjetas sin entidad específica
+            return get_collection_commission("tarjeta_credito", Decimal("100"))  # Monto de referencia
         except (ValueError, TarjetaCredito.DoesNotExist):
-            return Decimal("5.0")
+            return get_collection_commission("tarjeta_credito", Decimal("100"))
+
     elif metodo_cobro.startswith("cuenta_") and cliente:
         try:
             cuenta_id = int(metodo_cobro.split("_")[1])
             cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
             if cuenta.entidad:
                 return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
-            return Decimal("0.0")
+            return get_collection_commission("cuenta_bancaria", Decimal("100"))
         except (ValueError, CuentaBancaria.DoesNotExist):
-            return Decimal("0.0")
+            return get_collection_commission("cuenta_bancaria", Decimal("100"))
+
     elif metodo_cobro.startswith("billetera_") and cliente:
         try:
             billetera_id = int(metodo_cobro.split("_")[1])
             billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
             if billetera.entidad:
                 return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
-            return Decimal("3.0")
+            return get_collection_commission("billetera_digital", Decimal("100"))
         except (ValueError, BilleteraElectronica.DoesNotExist):
-            return Decimal("3.0")
+            return get_collection_commission("billetera_digital", Decimal("100"))
     else:
-        comisiones_medios = {
-            "efectivo": Decimal("0.0"),
-            "cuenta": Decimal("0.0"),
-            "tarjeta": Decimal("5.0"),
-            "billetera": Decimal("3.0"),
-        }
+        # Usar módulo utils para casos genéricos
         if metodo_cobro.startswith("tarjeta"):
-            return comisiones_medios["tarjeta"]
+            return get_collection_commission("tarjeta_credito", Decimal("100"))
         elif metodo_cobro.startswith("cuenta"):
-            return comisiones_medios["cuenta"]
+            return get_collection_commission("cuenta_bancaria", Decimal("100"))
         elif metodo_cobro.startswith("billetera"):
-            return comisiones_medios["billetera"]
-        return comisiones_medios["efectivo"]
+            return get_collection_commission("billetera_digital", Decimal("100"))
+        return Decimal("0.0")  # efectivo
 
 
 def _compute_simulation(params: Dict, request) -> Dict:
@@ -249,6 +267,10 @@ def _compute_simulation(params: Dict, request) -> Dict:
     # Validación: No permitir compra de divisas con medio de pago en efectivo
     if tipo == "compra" and metodo_pago == "efectivo":
         raise ValueError("No se permite comprar divisas usando efectivo como medio de pago")
+
+    # Validación: No permitir venta de divisas con medio de cobro en efectivo
+    if tipo == "venta" and metodo_cobro == "efectivo":
+        raise ValueError("No se permite vender divisas cobrando en efectivo como medio de cobro")
 
     # Validación: No permitir venta de divisas con medio de cobro en efectivo
     if tipo == "venta" and metodo_cobro == "efectivo":
@@ -297,9 +319,9 @@ def _compute_simulation(params: Dict, request) -> Dict:
 
     # Calcular según las fórmulas corregidas
     if tipo == "compra":
-        # Para compra: el usuario especifica cuánta divisa extranjera desea
-        # y calculamos cuántos guaraníes necesita
-        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
+        # Cliente COMPRA divisa extranjera (nosotros le VENDEMOS)
+        # Aplicamos comision_venta y SUMAMOS al precio base para darle un precio más bajo
+        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
         tc_efectiva = pb_dolar + comision_efectiva
 
         # monto = cantidad de divisa extranjera deseada
@@ -316,7 +338,9 @@ def _compute_simulation(params: Dict, request) -> Dict:
         tasa_display = float(tc_efectiva)
         comision_medio_cobro = Decimal("0.0")
     else:  # venta
-        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
+        # Cliente VENDE divisa extranjera (nosotros le COMPRAMOS)
+        # Aplicamos comision_compra y RESTAMOS del precio base, para darle ventaja en la tasa
+        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
         tc_efectiva = pb_dolar - comision_efectiva
         converted = monto * float(tc_efectiva)
         comision_final = float(comision_efectiva)
@@ -346,13 +370,19 @@ def _compute_simulation(params: Dict, request) -> Dict:
     elif metodo_cobro.startswith("billetera"):
         tipo_medio_cobro = "billetera"
 
+    # Obtener información del tipo de cliente para display
+    tipo_cliente_nombre = ""
+    if cliente and cliente.tipo_cliente:
+        tipo_cliente_nombre = cliente.tipo_cliente.nombre
+
     return {
         "monto_original": round(monto, 6),
         "moneda_origen": moneda_origen,
         "moneda_destino": moneda_destino,
-        "tasa_cambio": tasa_display,
+        "tasa_base": tc_efectiva,  # Tasa de venta o compra según operación
+        "tasa_cambio": tasa_display,  # Tasa efectiva (con descuento aplicado)
         "monto_convertido": round(converted, 6),
-        "comision_base": round(float(comision_com if tipo == "compra" else comision_vta), 6),
+        "comision_base": round(float(comision_vta if tipo == "compra" else comision_com), 6),
         "descuento": round(float(pordes), 2),
         "comision_final": round(comision_final, 6),
         "comision_medio_pago_tipo": tipo_medio_pago,
@@ -369,6 +399,8 @@ def _compute_simulation(params: Dict, request) -> Dict:
         # Campos específicos para Stripe
         "stripe_fixed_fee": round(float(stripe_fixed_fee), 6),
         "stripe_fixed_fee_usd": float(settings.STRIPE_FIXED_FEE_USD) if stripe_fixed_fee > 0 else 0.0,
+        # Información del cliente
+        "tipo_cliente": tipo_cliente_nombre,
     }
 
 
@@ -665,7 +697,7 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
 @require_GET
 def api_verificar_stock_tauser(request: HttpRequest, transaccion_id: str) -> JsonResponse:
     """Verifica la disponibilidad de stock en TAUSERs para una transacción de compra.
-    
+
     Args:
         request: HttpRequest con parámetro GET:
         transaccion_id: UUID de la transacción a verificar
@@ -682,23 +714,27 @@ def api_verificar_stock_tauser(request: HttpRequest, transaccion_id: str) -> Jso
         # Verificar stock disponible
         stock_info = StockDivisaTauser.seleccionar_denominaciones_optimas(transaccion.tauser.id, divisa_codigo, monto)
         if not stock_info:
-            return JsonResponse({
-                "success": False,
-                "message": "No hay stock suficiente en el Tauser para completar la transacción.",
-                "denominaciones": stock_info
-            }, status=400)
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "No hay stock suficiente en el Tauser para completar la transacción.",
+                    "denominaciones": stock_info,
+                },
+                status=400,
+            )
 
         # Reservar las divisas en el tauser
-        extraer_divisas(tauser_id=transaccion.tauser.id, divisa_id=divisa_codigo, transaccion=transaccion, denominaciones_cantidades=stock_info, panel_admin=False)
-        return JsonResponse({
-            "success": True,
-            "denominaciones": stock_info
-        })
+        extraer_divisas(
+            tauser_id=transaccion.tauser.id,
+            divisa_id=divisa_codigo,
+            transaccion=transaccion,
+            denominaciones_cantidades=stock_info,
+            panel_admin=False,
+        )
+        return JsonResponse({"success": True, "denominaciones": stock_info})
 
     except Exception as e:
-        return JsonResponse({
-            "error": f"Error interno: {e!s}"
-        }, status=500)
+        return JsonResponse({"error": f"Error interno: {e!s}"}, status=500)
 
 
 def comprar_divisa_view(request):
@@ -1608,12 +1644,23 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
         nombre_metodo_pago = obtener_nombre_medio(metodo_pago, transaccion.cliente)
         nombre_metodo_cobro = obtener_nombre_medio(metodo_cobro, transaccion.cliente)
 
+        # Verificar si el usuario tiene MFA habilitado para transacciones
+        from apps.seguridad.models import PerfilMFA
+
+        mfa_habilitado = False
+        try:
+            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+            mfa_habilitado = perfil_mfa.mfa_habilitado_transacciones
+        except PerfilMFA.DoesNotExist:
+            pass
+
         context = {
             "transaccion": transaccion,
             "metodo_pago": metodo_pago,
             "metodo_cobro": metodo_cobro,
             "nombre_metodo_pago": nombre_metodo_pago,
             "nombre_metodo_cobro": nombre_metodo_cobro,
+            "mfa_habilitado": mfa_habilitado,
         }
 
         return render(request, "procesar_transaccion.html", context)
@@ -1669,7 +1716,7 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
         # Si es una compra, revertir el movimiento de stock pendiente
         # Si es una venta, no hay movimiento de stock que revertir
         if transaccion.tipo_operacion == "compra":
-            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado='pendiente').first():
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado="pendiente").first():
                 cancelar_movimiento(movimiento.id)
         return JsonResponse(
             {
@@ -1683,6 +1730,112 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
     except Exception:
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_POST
+@login_required
+def verificar_mfa_pago(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """Verifica el código MFA antes de proceder con el pago.
+
+    Args:
+        request: HttpRequest object con el código MFA en el body
+        transaccion_id: UUID de la transacción que se va a pagar
+
+    Returns:
+        JsonResponse con el resultado de la verificación
+
+    """
+    try:
+        import json
+
+        from apps.seguridad.models import PerfilMFA, RegistroMFA
+
+        # Obtener la transacción
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Verificar que el usuario tiene un cliente activo
+        if not request.cliente:
+            return JsonResponse({"success": False, "message": "No tienes un cliente asociado"}, status=403)
+
+        # Verificar que la transacción pertenece al cliente actual
+        if transaccion.cliente != request.cliente:
+            return JsonResponse({"success": False, "message": "No tienes permisos para esta transacción"}, status=403)
+
+        # Verificar que la transacción está pendiente
+        if transaccion.estado != "pendiente":
+            return JsonResponse({"success": False, "message": "La transacción no está en estado pendiente"}, status=400)
+
+        # Obtener el código MFA del body
+        try:
+            data = json.loads(request.body)
+            codigo = data.get("codigo", "").strip()
+        except json.JSONDecodeError:
+            return JsonResponse({"success": False, "message": "Datos inválidos"}, status=400)
+
+        if not codigo:
+            return JsonResponse({"success": False, "message": "El código MFA es requerido"}, status=400)
+
+        # Verificar que el código tiene 6 dígitos
+        if not codigo.isdigit() or len(codigo) != 6:
+            return JsonResponse({"success": False, "message": "El código debe tener 6 dígitos"}, status=400)
+
+        # Verificar que el usuario tiene MFA configurado
+        try:
+            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+        except PerfilMFA.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "message": "No tienes configurado MFA. Por favor configúralo primero."}, status=400
+            )
+
+        # Verificar si el MFA está habilitado para transacciones
+        if not perfil_mfa.mfa_habilitado_transacciones:
+            return JsonResponse({"success": False, "message": "MFA no está habilitado para transacciones"}, status=400)
+
+        # Verificar el código TOTP
+        if perfil_mfa.verificar_codigo(codigo):
+            # Registrar el intento exitoso
+            RegistroMFA.objects.create(
+                usuario=request.user,
+                tipo_operacion="transaccion",
+                resultado="exitoso",
+                direccion_ip=request.META.get("REMOTE_ADDR"),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                referencia_transaccion=transaccion.id_transaccion,
+            )
+
+            # Generar un token de sesión válido por tiempo limitado (5 minutos)
+            import time
+
+            mfa_token = f"{transaccion_id}_{int(time.time())}"
+            request.session[f"mfa_verified_{transaccion_id}"] = mfa_token
+            request.session.modified = True
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": "Código MFA verificado correctamente",
+                    "mfa_token": mfa_token,
+                }
+            )
+        else:
+            # Registrar el intento fallido
+            RegistroMFA.objects.create(
+                usuario=request.user,
+                tipo_operacion="transaccion",
+                resultado="fallido",
+                direccion_ip=request.META.get("REMOTE_ADDR"),
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                referencia_transaccion=transaccion.id_transaccion,
+            )
+
+            return JsonResponse(
+                {"success": False, "message": "Código MFA incorrecto. Por favor, inténtalo de nuevo."}, status=400
+            )
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        return JsonResponse({"success": False, "message": f"Error interno del servidor: {e!s}"}, status=500)
 
 
 @require_POST
@@ -1923,7 +2076,7 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
             transaccion.fecha_procesamiento = timezone.now()
 
             try:
-                transaccion.save(update_fields=['codigo_verificacion', 'fecha_procesamiento'])
+                transaccion.save(update_fields=["codigo_verificacion", "fecha_procesamiento"])
 
                 # Verificar que se guardó correctamente
                 transaccion.refresh_from_db()
@@ -2053,7 +2206,7 @@ def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> Js
         # Si es una compra, revertir el movimiento de stock pendiente
         # Si es una venta, no hay movimiento de stock que revertir
         if transaccion.tipo_operacion == "compra":
-            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado='pendiente').first():
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado="pendiente").first():
                 cancelar_movimiento(movimiento.id)
         return JsonResponse(
             {
@@ -2133,25 +2286,23 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
 @login_required
 def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
     """API para obtener el historial de una transacción en formato JSON.
-    
+
     Args:
         request: La solicitud HTTP.
         transaccion_id: ID de la transacción a consultar.
-        
+
     Returns:
         JsonResponse: Historial de la transacción.
 
     """
     try:
-
         transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
 
         # Verificar que el usuario tenga permiso para ver esta transacción
         cliente = getattr(request, "cliente", None)
         if not (request.user.is_staff or (cliente and transaccion.cliente == cliente)):
             return JsonResponse(
-                {"success": False, "message": "No tienes permisos para ver esta transacción"},
-                status=403
+                {"success": False, "message": "No tienes permisos para ver esta transacción"}, status=403
             )
 
         # Crear historial de acciones
@@ -2163,81 +2314,78 @@ def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> Json
             f"{strip_trailing_zeros(transaccion.monto_destino, 0)} {transaccion.divisa_destino.codigo}"
         )
 
-        historial.append({
-            "accion": "Transacción creada",
-            "fecha": transaccion.fecha_creacion.isoformat(),
-            "detalle": detalle_creacion
-        })
+        historial.append(
+            {
+                "accion": "Transacción creada",
+                "fecha": transaccion.fecha_creacion.isoformat(),
+                "detalle": detalle_creacion,
+            }
+        )
 
         # Acción de procesamiento
         detalle_procesamiento = (
-                f"Código: {transaccion.codigo_verificacion}"
-                if transaccion.codigo_verificacion else "Sin código"
-            )
+            f"Código: {transaccion.codigo_verificacion}" if transaccion.codigo_verificacion else "Sin código"
+        )
         if transaccion.fecha_procesamiento:
-            historial.append({
-                "accion": "Transacción procesada",
-                "fecha": transaccion.fecha_procesamiento.isoformat(),
-                "detalle": detalle_procesamiento
-            })
+            historial.append(
+                {
+                    "accion": "Transacción procesada",
+                    "fecha": transaccion.fecha_procesamiento.isoformat(),
+                    "detalle": detalle_procesamiento,
+                }
+            )
 
         # Acción de pago (si existe)
-        detalle_pago = (
-            f"Medio de pago: {obtener_nombre_medio(transaccion.medio_pago, transaccion.cliente)}"
-        )
+        detalle_pago = f"Medio de pago: {obtener_nombre_medio(transaccion.medio_pago, transaccion.cliente)}"
         if transaccion.fecha_pago:
-            historial.append({
-                "accion": "Pago procesado",
-                "fecha": transaccion.fecha_pago.isoformat(),
-                "detalle": detalle_pago
-            })
+            historial.append(
+                {"accion": "Pago procesado", "fecha": transaccion.fecha_pago.isoformat(), "detalle": detalle_pago}
+            )
 
         # Transacción completada
         if transaccion.estado == "completada" and transaccion.fecha_completada:
-            historial.append({
-                "accion": "Transacción completada",
-                "fecha": transaccion.fecha_completada.isoformat(),
-                "detalle": "Entrega de fondos realizada"
-            })
+            historial.append(
+                {
+                    "accion": "Transacción completada",
+                    "fecha": transaccion.fecha_completada.isoformat(),
+                    "detalle": "Entrega de fondos realizada",
+                }
+            )
 
         # Si está cancelada
         if transaccion.estado == "cancelada" or transaccion.estado == "cancelada_cotizacion":
             motivo = transaccion.motivo_cancelacion or "Sin motivo especificado"
-            historial.append({
-                "accion": "Transacción cancelada",
-                "fecha": transaccion.fecha_actualizacion.isoformat(),
-                "detalle": f"Motivo: {motivo}"
-            })
+            historial.append(
+                {
+                    "accion": "Transacción cancelada",
+                    "fecha": transaccion.fecha_actualizacion.isoformat(),
+                    "detalle": f"Motivo: {motivo}",
+                }
+            )
 
         # Fecha de reserva del monto si la operación es de compra
         from apps.stock.models import MovimientoStock
+
         if transaccion.tipo_operacion == "compra":
             if movimiento := MovimientoStock.objects.filter(
                 transaccion=transaccion, estado__in=["pendiente", "confirmado"]
             ).first():
-                historial.append({
-                    "accion": "Monto reservado en stock",
-                    "fecha": movimiento.fecha_creacion.isoformat() if movimiento else transaccion.fecha_creacion,
-                    "detalle": movimiento.resumen_denominaciones()
-                })
+                historial.append(
+                    {
+                        "accion": "Monto reservado en stock",
+                        "fecha": movimiento.fecha_creacion.isoformat() if movimiento else transaccion.fecha_creacion,
+                        "detalle": movimiento.resumen_denominaciones(),
+                    }
+                )
 
         historial = sorted(historial, key=lambda x: x["fecha"])
-        return JsonResponse({
-            "success": True,
-            "historial": historial
-        })
+        return JsonResponse({"success": True, "historial": historial})
 
     except Transaccion.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "message": "Transacción no encontrada"},
-            status=404
-        )
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
     except Exception as e:
         print(f"Error al obtener historial de transacción: {e}")
-        return JsonResponse(
-            {"success": False, "message": "Error interno del servidor"},
-            status=500
-        )
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 
 # =================
@@ -2413,9 +2561,22 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
         stripe_payment.status = intent.status
 
         if intent.status == "succeeded":
-            # Pago exitoso
-            transaccion.estado = "completada"
-            mensaje = "Pago procesado exitosamente con Stripe"
+            # Pago exitoso con Stripe
+            # Aplicar la misma lógica que con el banco: si es compra con cobro en TAUSER, queda pendiente
+            es_compra_con_tauser = (
+                transaccion.tipo_operacion == "compra"
+                and transaccion.medio_cobro
+                and transaccion.medio_cobro.lower() == "efectivo"
+            )
+
+            if es_compra_con_tauser:
+                # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
+                transaccion.estado = "pendiente"
+                mensaje = "Pago procesado exitosamente con Stripe. Pendiente de retiro en TAUSER"
+            else:
+                # Otros casos: completar la transacción
+                transaccion.estado = "completada"
+                mensaje = "Pago procesado exitosamente con Stripe"
 
         elif intent.status in ["requires_payment_method", "requires_confirmation"]:
             # Pago requiere acción adicional
@@ -2530,7 +2691,21 @@ def _handle_payment_intent_succeeded(payment_intent):
 
         # Actualizar transacción
         transaccion = stripe_payment.transaccion
-        transaccion.estado = "completada"
+
+        # Aplicar la misma lógica que con el banco: si es compra con cobro en TAUSER, queda pendiente
+        es_compra_con_tauser = (
+            transaccion.tipo_operacion == "compra"
+            and transaccion.medio_cobro
+            and transaccion.medio_cobro.lower() == "efectivo"
+        )
+
+        if es_compra_con_tauser:
+            # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
+            transaccion.estado = "pendiente"
+        else:
+            # Otros casos: completar la transacción
+            transaccion.estado = "completada"
+
         transaccion.save()
 
     except StripePayment.DoesNotExist:

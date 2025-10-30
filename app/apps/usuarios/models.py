@@ -1,8 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
-                                        PermissionsMixin)
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
 from utils.validators import limpiar_ruc, validar_ruc_completo
@@ -11,7 +10,7 @@ from utils.validators import limpiar_ruc, validar_ruc_completo
 # TODO [SCRUM-110]: Documentar modelos usuarios
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, nombre, password=None, **extra_fields):
-        """Crea y guarda un usuario normal"""
+        """Crea y guarda un usuario normal."""
         if not email:
             raise ValueError("El usuario debe tener un correo electrónico")
         email = self.normalize_email(email)
@@ -21,7 +20,7 @@ class UsuarioManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, nombre, password=None, **extra_fields):
-        """Crea y guarda un superusuario"""
+        """Crea y guarda un superusuario."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(email, nombre, password, **extra_fields)
@@ -82,17 +81,15 @@ class Cliente(models.Model):
     def clean(self):
         """Validación personalizada del modelo."""
         super().clean()
-        
+
         if self.ruc:
             # Limpiar el RUC (remover espacios, guiones, etc.)
             ruc_limpio = limpiar_ruc(self.ruc)
-            
+
             # Validar dígito verificador
             if not validar_ruc_completo(ruc_limpio):
-                raise ValidationError({
-                    'ruc': 'El dígito verificador del RUC no es válido.'
-                })
-            self.ruc = ruc_limpio[:-1]+"-"+ruc_limpio[-1]
+                raise ValidationError({"ruc": "El dígito verificador del RUC no es válido."})
+            self.ruc = ruc_limpio[:-1] + "-" + ruc_limpio[-1]
 
     def save(self, *args, **kwargs):
         """Sobrescribir save para ejecutar validaciones."""

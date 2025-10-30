@@ -4,11 +4,10 @@ import uuid
 from decimal import Decimal
 
 import pytest
-from django.core.exceptions import ValidationError
-
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.transacciones.models import Transaccion
 from apps.usuarios.models import Cliente, TipoCliente, Usuario
+from django.core.exceptions import ValidationError
 
 
 @pytest.mark.django_db
@@ -52,7 +51,7 @@ class TestTransaccionModel:
     @pytest.fixture
     def transaccion(self, usuario, cliente, divisas, tasa_cambio):
         """Transacción de prueba."""
-        tasa_efectiva = Decimal("7047.5")
+        tasa_efectiva = Decimal("7071.25")
         return Transaccion.objects.create(
             cliente=cliente,
             usuario=usuario,
@@ -60,7 +59,7 @@ class TestTransaccionModel:
             divisa_origen=divisas["PYG"],
             divisa_destino=divisas["USD"],
             tasa_aplicada=tasa_efectiva,
-            monto_origen=Decimal("70475.0"),
+            monto_origen=Decimal("70712.5"),
             monto_destino=Decimal("10.0"),
             tasa_original=tasa_efectiva,
         )
@@ -144,8 +143,9 @@ class TestTransaccionModel:
 
         resultado = transaccion.verificar_cambio_cotizacion()
 
-        # Debe incluir el descuento del 5% del cliente
-        expected_comision = Decimal("50.0") - (Decimal("50.0") * Decimal("5.0") / Decimal("100"))
+        # Para COMPRA: cliente compra divisa (nosotros vendemos)
+        # Debe incluir el descuento del 5% del cliente sobre la comisión de VENTA
+        expected_comision = Decimal("75.0") - (Decimal("75.0") * Decimal("5.0") / Decimal("100"))
         expected_tasa = Decimal("8000.0") + expected_comision
 
         assert resultado["tasa_actual"] == expected_tasa.quantize(Decimal("0.001"))
@@ -170,8 +170,9 @@ class TestTransaccionModel:
 
         resultado = transaccion_venta.verificar_cambio_cotizacion()
 
-        # Para venta: precio_base - comisión_efectiva
-        expected_comision = Decimal("75.0") - (Decimal("75.0") * Decimal("5.0") / Decimal("100"))
+        # Para VENTA: cliente vende divisa (nosotros compramos)
+        # Usamos comisión de COMPRA y restamos del precio base
+        expected_comision = Decimal("50.0") - (Decimal("50.0") * Decimal("5.0") / Decimal("100"))
         expected_tasa = Decimal("8000.0") - expected_comision
 
         assert resultado["tasa_actual"] == expected_tasa.quantize(Decimal("0.001"))

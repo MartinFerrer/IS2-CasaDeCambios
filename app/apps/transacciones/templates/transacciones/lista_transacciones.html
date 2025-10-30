@@ -5,6 +5,17 @@
     Mis Transacciones
 {% endblock title %}
 {% block content %}
+    <style>
+        /* Estilo para filas clicables */
+        .table tbody tr.cursor-pointer:hover {
+            transform: scale(1.01);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .table tbody tr.cursor-pointer:active {
+            transform: scale(0.99);
+        }
+    </style>
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-bold">Mis Transacciones</h2>
@@ -30,7 +41,7 @@
                     </svg>
                     Simulador
                 </a>
-                <a href="/" class="btn btn-outline">
+                <a href="{% url 'presentacion:home' %}" class="btn btn-outline">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          class="h-5 w-5"
                          fill="none"
@@ -104,7 +115,6 @@
                         <table class="table table-zebra w-full">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
                                     <th>Fecha</th>
                                     <th>Tipo</th>
                                     <th>Divisas</th>
@@ -119,10 +129,9 @@
                             </thead>
                             <tbody>
                                 {% for transaccion in transacciones %}
-                                    <tr>
-                                        <td>
-                                            <div class="font-mono text-xs">{{ transaccion.id_transaccion|slice:":8" }}...</div>
-                                        </td>
+                                    <tr class="cursor-pointer hover:bg-base-200 transition-colors"
+                                        onclick="irADetalle('{{ transaccion.id_transaccion }}')"
+                                        title="Click para ver detalles">
                                         <td>
                                             <div class="flex flex-col">
                                                 <div class="font-semibold">{{ transaccion.fecha_creacion|date:"d/m/Y" }}</div>
@@ -291,13 +300,18 @@
         </div>
     </div>
     <script>
+        // Función para ir a la vista de detalle/procesamiento
+        function irADetalle(transaccionId) {
+            window.location.href = "{% url 'transacciones:procesar_transaccion' 'PLACEHOLDER' %}".replace('PLACEHOLDER', transaccionId);
+        }
+
         // Función para contar transacciones por estado
         function actualizarEstadisticas() {
             const badges = document.querySelectorAll('.table tbody tr .badge');
             let pendientes = 0;
             let completadas = 0;
             let canceladas = 0;
-            
+
             badges.forEach(badge => {
                 const texto = badge.textContent.trim().toLowerCase();
                 if (texto === 'pendiente') {
@@ -308,12 +322,12 @@
                     canceladas++;
                 }
             });
-            
+
             // Actualizar los contadores en el DOM
             const pendientesElement = document.getElementById('pendientes-count');
             const completadasElement = document.getElementById('completadas-count');
             const canceladasElement = document.getElementById('canceladas-count');
-            
+
             if (pendientesElement) pendientesElement.textContent = pendientes;
             if (completadasElement) completadasElement.textContent = completadas;
             if (canceladasElement) canceladasElement.textContent = canceladas;
@@ -338,11 +352,11 @@
                                     </thead>
                                     <tbody>
                         `;
-                        
+
                         data.historial.forEach(evento => {
                             // Usar la función global para formatear fechas
                             const fechaFormateada = formatearFecha(evento.fecha);
-                            
+
                             historialHtml += `
                                 <tr>
                                     <td>${evento.accion}</td>
@@ -351,13 +365,13 @@
                                 </tr>
                             `;
                         });
-                        
+
                         historialHtml += `
                                     </tbody>
                                 </table>
                             </div>
                         `;
-                        
+
                         document.getElementById('historial-content').innerHTML = historialHtml;
                         document.getElementById('historial-modal').classList.add('modal-open');
                     } else {

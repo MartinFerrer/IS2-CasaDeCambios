@@ -5,6 +5,10 @@ registro con verificación por email, login, logout, y gestión de clientes
 en el sistema de casa de cambios.
 """
 
+import json
+
+from apps.usuarios.forms import CustomUserCreationForm
+from apps.usuarios.models import Usuario
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -16,9 +20,6 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-
-from apps.usuarios.forms import CustomUserCreationForm
-from apps.usuarios.models import Usuario
 
 from .forms import CodigoMFAForm, ConfiguracionMFAForm
 from .models import PerfilMFA
@@ -402,9 +403,8 @@ def verificar_mfa_transaccion(request):
                     import json
                     import time
 
-                    from django.http import QueryDict
-
                     from apps.transacciones.views import api_crear_transaccion
+                    from django.http import QueryDict
 
                     # Agregar un token MFA válido para bypasear la verificación en api_crear_transaccion
                     mfa_token = str(int(time.time()))
@@ -459,3 +459,76 @@ def verificar_mfa_transaccion(request):
 
     context = {"form": form, "datos_transaccion": datos_transaccion}
     return render(request, "mfa_verificar_transaccion.html", context)
+
+
+# ===== VISTAS API PARA MFA SIN REDIRECCIONES =====
+
+
+def check_mfa_required(request):
+    """Verifica si el usuario requiere MFA para transacciones.
+
+    Args:
+        request: HttpRequest de Django.
+
+    Returns:
+        JsonResponse indicando si se requiere MFA.
+
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"mfa_required": False})
+
+    try:
+        perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+        return JsonResponse({"mfa_required": perfil_mfa.mfa_habilitado_transacciones})
+    except PerfilMFA.DoesNotExist:
+        return JsonResponse({"mfa_required": False})
+
+
+def verify_mfa_code(request):
+    """Verifica un código MFA y genera un token de sesión válido.
+
+    Esta vista permite verificar MFA sin redirecciones, manteniendo
+    el flujo en la misma página mediante AJAX.
+
+    Args:
+        request: HttpRequest de Django con código en JSON.
+
+    Returns:
+        JsonResponse con resultado de verificación y token si es válido.
+
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "error": "Usuario no autenticado"}, status=401)
+
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Método no permitido"}, status=405)
+
+    try:
+        import time
+
+        data = json.loads(request.body)
+        codigo = data.get("codigo", "").strip()
+
+        if not codigo or len(codigo) != 6:
+            return JsonResponse({"success": False, "error": "Código inválido"}, status=400)
+
+        # Verificar el código
+        if verificar_codigo_usuario(request.user, codigo):
+            # Código válido - registrar intento exitoso
+            registrar_intento_mfa(request.user, "transaccion", "exitoso", request)
+
+            # Generar token MFA válido
+            mfa_token = str(int(time.time() * 1000))  # Timestamp en milisegundos para mayor unicidad
+            request.session[f"mfa_token_valido_{mfa_token}"] = True
+            request.session.modified = True
+
+            return JsonResponse({"success": True, "mfa_token": mfa_token})
+        else:
+            # Código inválido
+            registrar_intento_mfa(request.user, "transaccion", "fallido", request)
+            return JsonResponse({"success": False, "error": "Código incorrecto. Verifica tu aplicación autenticadora."})
+
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Datos JSON inválidos"}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": f"Error del servidor: {e!s}"}, status=500)

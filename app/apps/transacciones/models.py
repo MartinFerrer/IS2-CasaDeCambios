@@ -11,7 +11,6 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
-
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -632,7 +631,7 @@ class Transaccion(models.Model):
         unique=True,
         null=True,
         blank=True,
-        help_text="Código único de verificación generado para el tauser"
+        help_text="Código único de verificación generado para el tauser",
     )
     tauser = models.ForeignKey(
         "tauser.Tauser",
@@ -640,7 +639,7 @@ class Transaccion(models.Model):
         null=True,
         blank=True,
         related_name="transacciones",
-        help_text="Terminal de autoservicio donde se procesa la transacción"
+        help_text="Terminal de autoservicio donde se procesa la transacción",
     )
     stripe_payment = models.ForeignKey(
         "StripePayment",
@@ -748,14 +747,16 @@ class Transaccion(models.Model):
                 porcentaje_descuento = self.cliente.tipo_cliente.descuento_sobre_comision
 
             if self.tipo_operacion == "compra":
-                # Para compra: precio_base + comisión_compra (menos descuento)
-                comision_compra = tasa_cambio_actual.comision_compra
-                comision_efectiva = comision_compra - (comision_compra * porcentaje_descuento / Decimal("100"))
-                tasa_actual = precio_base + comision_efectiva
-            else:  # venta
-                # Para venta: precio_base - comisión_venta (menos descuento)
+                # Para compra: cliente COMPRA divisa (nosotros VENDEMOS)
+                # Usamos comision_venta y SUMAMOS al precio base
                 comision_venta = tasa_cambio_actual.comision_venta
                 comision_efectiva = comision_venta - (comision_venta * porcentaje_descuento / Decimal("100"))
+                tasa_actual = precio_base + comision_efectiva
+            else:  # venta
+                # Para venta: cliente VENDE divisa (nosotros COMPRAMOS)
+                # Usamos comision_compra y RESTAMOS del precio base
+                comision_compra = tasa_cambio_actual.comision_compra
+                comision_efectiva = comision_compra - (comision_compra * porcentaje_descuento / Decimal("100"))
                 tasa_actual = precio_base - comision_efectiva
 
             tasa_original = self.tasa_original or self.tasa_aplicada
@@ -841,15 +842,9 @@ class Transaccion(models.Model):
         from apps.transacciones.views import _get_collection_commission, _get_payment_commission
 
         # Obtener comisiones de los medios configurados
-        comision_medio_pago = _get_payment_commission(
-            self.medio_pago or "efectivo",
-            self.cliente,
-            self.tipo_operacion
-        )
+        comision_medio_pago = _get_payment_commission(self.medio_pago or "efectivo", self.cliente, self.tipo_operacion)
         comision_medio_cobro = _get_collection_commission(
-            self.medio_cobro or "efectivo",
-            self.cliente,
-            self.tipo_operacion
+            self.medio_cobro or "efectivo", self.cliente, self.tipo_operacion
         )
 
         if self.tipo_operacion == "compra":
@@ -857,17 +852,13 @@ class Transaccion(models.Model):
             # Fórmula: monto_origen = monto_destino * tasa_aplicada * (1 + comision_medio_pago/100)
             monto_base = self.monto_destino * self.tasa_aplicada
             comision_aplicada = monto_base * (comision_medio_pago / Decimal("100"))
-            self.monto_origen = (monto_base + comision_aplicada).quantize(
-                Decimal('1'), rounding=ROUND_HALF_UP
-            )
+            self.monto_origen = (monto_base + comision_aplicada).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         else:  # venta
             # Para venta: recalcular monto_destino (PYG a recibir) basado en monto_origen (divisa a entregar)
             # Fórmula: monto_destino = monto_origen * tasa_aplicada * (1 - comision_medio_cobro/100)
             monto_base = self.monto_origen * self.tasa_aplicada
             comision_aplicada = monto_base * (comision_medio_cobro / Decimal("100"))
-            self.monto_destino = (monto_base - comision_aplicada).quantize(
-                Decimal('1'), rounding=ROUND_HALF_UP
-            )
+            self.monto_destino = (monto_base - comision_aplicada).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
     def save(self, *args, **kwargs):
         """Guarda la instancia realizando validaciones completas.

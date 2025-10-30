@@ -60,6 +60,11 @@ urlpatterns = [
         views.api_cancelar_transaccion,
         name="api_cancelar_transaccion",
     ),
+    path(
+        "api/verificar-mfa-pago/<str:transaccion_id>/",
+        views.verificar_mfa_pago,
+        name="verificar_mfa_pago",
+    ),
     path("api/procesar-pago-bancario/", views.api_procesar_pago_bancario, name="api_procesar_pago_bancario"),
     path("popup-banco/<str:transaccion_id>/", views.popup_banco_simulado, name="popup_banco_simulado"),
     path(
@@ -72,9 +77,10 @@ urlpatterns = [
         views.api_verificar_cotizacion,
         name="api_verificar_cotizacion",
     ),
-    path("api/verificar-disponibilidad-tauser/<str:transaccion_id>/",
+    path(
+        "api/verificar-disponibilidad-tauser/<str:transaccion_id>/",
         views.api_verificar_stock_tauser,
-        name="api_verificar_stock_tauser"
+        name="api_verificar_stock_tauser",
     ),
     path(
         "api/cancelar-por-cotizacion/<str:transaccion_id>/",
@@ -86,7 +92,6 @@ urlpatterns = [
         views.api_aceptar_nueva_cotizacion,
         name="api_aceptar_nueva_cotizacion",
     ),
-
     path("api/historial/<str:transaccion_id>/", views.api_historial_transaccion, name="api_historial_transaccion"),
     # URLs para Stripe
     path("api/stripe/create-payment-intent/", views.create_stripe_payment_intent, name="stripe_create_payment_intent"),
