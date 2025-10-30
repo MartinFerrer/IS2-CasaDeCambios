@@ -377,33 +377,162 @@ class TasasManager {
         
         setTimeout(() => {
             try {
-                let historial = this.historialDivisas[divisaSeleccionada];
+                let historial = [...this.historialDivisas[divisaSeleccionada]];
                 
-                const fechaLimite = new Date();
-                fechaLimite.setDate(fechaLimite.getDate() - periodo);
-                historial = historial.filter(h => new Date(h.fecha_iso) >= fechaLimite);
+                console.log('Datos originales para', divisaSeleccionada, ':', historial.length, 'registros');
+                console.log('Período seleccionado:', periodo, 'días');
+                
+                // Establecer fecha límite (inicio del día hace N-1 días para incluir exactamente N días)
+                const ahora = new Date();
+                const fechaLimite = new Date(ahora);
+                fechaLimite.setDate(fechaLimite.getDate() - (periodo - 1)); // Cambio aquí: periodo - 1
+                fechaLimite.setHours(0, 0, 0, 0); // Establecer al inicio del día
+                
+                console.log('Fecha actual:', ahora.toISOString());
+                console.log('Fecha límite (últimos', periodo, 'días):', fechaLimite.toISOString());
+                
+                // Filtrar por fecha - comparando solo fechas, no horas
+                historial = historial.filter(h => {
+                    const fechaRegistro = new Date(h.fecha_iso);
+                    const incluir = fechaRegistro >= fechaLimite;
+                    if (periodo === 7) {
+                        console.log('Evaluando:', h.fecha_iso, '>=', fechaLimite.toISOString(), '=', incluir);
+                    }
+                    return incluir;
+                });
+
+                console.log('Datos después de filtrar:', historial.length, 'registros');
 
                 if (historial.length === 0) {
+                    console.log('No hay datos en el rango seleccionado');
                     this.renderEmptyChart();
                     return;
                 }
 
+                console.log('Procesando historial por período:', periodo);
+
+                // Agrupar por período según la selección
+                const historialPorPeriodo = {};
+                historial.forEach(h => {
+                    const fecha = new Date(h.fecha_iso);
+                    let fechaKey;
+
+                    switch (periodo) {
+                        case 7:
+                        case 30:
+                            // Por día para 7 y 30 días
+                            fechaKey = fecha.toISOString().split('T')[0];
+                            console.log(`Período ${periodo} - Agrupando fecha ${h.fecha_iso} con key: ${fechaKey}`);
+                            break;
+                        case 90:
+                            // Cada 3 días para 90 días
+                            const diaBase = Math.floor(fecha.getDate() / 3) * 3;
+                            const fechaAgrupada = new Date(fecha);
+                            fechaAgrupada.setDate(diaBase + 1);
+                            fechaKey = fechaAgrupada.toISOString().split('T')[0];
+                            break;
+                        case 180:
+                            // Por mes para 6 meses
+                            fechaKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                            break;
+                        case 365:
+                            // Por mes para 1 año
+                            fechaKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                            break;
+                        default:
+                            fechaKey = fecha.toISOString().split('T')[0];
+                    }
+                    
+                    if (!historialPorPeriodo[fechaKey] || new Date(h.fecha_iso) > new Date(historialPorPeriodo[fechaKey].fecha_iso)) {
+                        historialPorPeriodo[fechaKey] = h;
+                    }
+                });
+
+                console.log('Claves agrupadas:', Object.keys(historialPorPeriodo).sort());
+                console.log('Total de registros agrupados:', Object.keys(historialPorPeriodo).length);
+
+                // Convertir el objeto agrupado de vuelta a array
+                historial = Object.values(historialPorPeriodo);
+
+                // Ordenar por fecha
+                historial.sort((a, b) => new Date(a.fecha_iso) - new Date(b.fecha_iso));
+
                 // Format dates for display
-                historial = historial.map(h => ({
-                    ...h,
-                    // Format fecha for hover display in Spanish
-                    fecha_display: new Date(h.fecha_iso).toLocaleDateString('es-PY', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    }),
-                    // Format fecha for x-axis labels
-                    fecha_chart: new Date(h.fecha_iso).toLocaleDateString('es-PY', {
-                        day: '2-digit',
-                        month: 'short'
-                    })
-                }));
+                historial = historial.map(h => {
+                    const fecha = new Date(h.fecha_iso);
+                    let formatoEje;
+                    let formatoHover;
+
+                    switch (periodo) {
+                        case 7:
+                        case 30:
+                            // Por día
+                            formatoEje = {
+                                weekday: 'short',
+                                day: '2-digit'
+                            };
+                            formatoHover = {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            };
+                            break;
+                        case 90:
+                            // Cada 3 días
+                            formatoEje = {
+                                day: '2-digit',
+                                month: 'short'
+                            };
+                            formatoHover = {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            };
+                            break;
+                        case 180:
+                            // Por mes
+                            formatoEje = {
+                                month: 'short'
+                            };
+                            formatoHover = {
+                                year: 'numeric',
+                                month: 'long'
+                            };
+                            break;
+                        case 365:
+                            // Por mes en año
+                            formatoEje = {
+                                month: 'short',
+                                year: '2-digit'
+                            };
+                            formatoHover = {
+                                year: 'numeric',
+                                month: 'long'
+                            };
+                            break;
+                        default:
+                            formatoEje = {
+                                day: '2-digit',
+                                month: 'short'
+                            };
+                            formatoHover = {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            };
+                    }
+
+                    return {
+                        ...h,
+                        fecha_display: fecha.toLocaleDateString('es-PY', formatoHover),
+                        fecha_chart: fecha.toLocaleDateString('es-PY', formatoEje)
+                    };
+                });
 
                 console.log(`Renderizando gráfico con ${historial.length} puntos para ${divisaSeleccionada}`);
                 this.renderChart(historial, divisaSeleccionada);
@@ -475,7 +604,7 @@ class TasasManager {
             fill: 'tozeroy',
             fillcolor: 'rgba(30, 58, 138, 0.65)',
             text: fechasHover,
-            hovertemplate: '<b>Compra</b><br>₲%{y:,.0f}<br>%{text}<extra></extra>'
+            hovertemplate: '<b>Compra</b><br>₲%{y:,.0f}<br><i>%{text}</i><extra></extra>'
         };
 
         // TRACE VENTA - Verde claro (estilo Cambios Chaco)
@@ -499,7 +628,7 @@ class TasasManager {
             fill: 'tonexty',
             fillcolor: 'rgba(56, 189, 248, 0.45)',
             text: fechasHover,
-            hovertemplate: '<b>Venta</b><br>₲%{y:,.0f}<br>%{text}<extra></extra>'
+            hovertemplate: '<b>Venta</b><br>₲%{y:,.0f}<br><i>%{text}</i><extra></extra>'
         };
 
         const layout = {
