@@ -10,17 +10,23 @@ from decimal import Decimal
 from typing import Dict
 
 import stripe
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
-from apps.seguridad.decorators import client_required
-from apps.usuarios.models import Cliente
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 from .utils.commission_calculator import get_collection_commission, get_payment_commission
@@ -592,10 +598,9 @@ def api_medios_pago_cliente(request: HttpRequest, cliente_id: int) -> JsonRespon
                     "tipo": "efectivo",
                     "nombre": "Efectivo",
                     "descripcion": "Cobro en efectivo",
-                    "comision": 0,  # 0%
+                    "comision": 0,
                 }
             )
-
         if tipo_operacion == "venta":
             # Agregar tarjetas de crédito habilitadas para cobro
             for tarjeta in TarjetaCredito.objects.filter(cliente=cliente, habilitado_para_cobro=True):
@@ -684,6 +689,49 @@ def api_divisas_disponibles(request: HttpRequest) -> JsonResponse:
     destino_list = [{"codigo": cod, "nombre": nom, "simbolo": sim} for cod, nom, sim in divisas_destino]
 
     return JsonResponse({"divisas": destino_list})
+
+
+@require_GET
+def api_verificar_stock_tauser(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """Verifica la disponibilidad de stock en TAUSERs para una transacción de compra.
+
+    Args:
+        request: HttpRequest con parámetro GET:
+        transaccion_id: UUID de la transacción a verificar
+
+    Returns:
+        JsonResponse con información de disponibilidad del tauser asociado
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+        divisa_codigo = transaccion.divisa_destino.codigo
+        monto = int(transaccion.monto_destino)
+
+        # Verificar stock disponible
+        stock_info = StockDivisaTauser.seleccionar_denominaciones_optimas(transaccion.tauser.id, divisa_codigo, monto)
+        if not stock_info:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": "No hay stock suficiente en el Tauser para completar la transacción.",
+                    "denominaciones": stock_info,
+                },
+                status=400,
+            )
+
+        # Reservar las divisas en el tauser
+        extraer_divisas(
+            tauser_id=transaccion.tauser.id,
+            divisa_id=divisa_codigo,
+            transaccion=transaccion,
+            denominaciones_cantidades=stock_info,
+            panel_admin=False,
+        )
+        return JsonResponse({"success": True, "denominaciones": stock_info})
+
+    except Exception as e:
+        return JsonResponse({"error": f"Error interno: {e!s}"}, status=500)
 
 
 def comprar_divisa_view(request):
@@ -1237,9 +1285,10 @@ def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
     :rtype: django.http.HttpResponse
     """
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
-
+    tauser = Tauser.objects.all()
     context = {
         "divisas": divisas,
+        "tausers": tauser,
         "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY,
         # El cliente se obtiene automáticamente del middleware en request.cliente
     }
@@ -1368,6 +1417,7 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
     - tipo_operacion: "compra" o "venta".
     - metodo_pago: identificador del medio de pago (ej. "efectivo", "tarjeta_1").
     - metodo_cobro: identificador del medio de cobro.
+    - tauser_id: ID del Tauser asociado.
 
     :param request: HttpRequest con la querystring de la transacción.
     :type request: django.http.HttpRequest
@@ -1380,6 +1430,10 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
     cliente = getattr(request, "cliente", None)
     if not cliente:
         return JsonResponse({"error": "No hay cliente asociado"}, status=400)
+
+    tauser = request.GET.get("tauser")
+    if not tauser:
+        return JsonResponse({"error": "No hay Tauser asociado"}, status=400)
 
     try:
         params = request.GET.dict()
@@ -1421,11 +1475,21 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             if tipo_operacion == "compra":
                 divisa_origen = Divisa.objects.get(codigo="PYG")
                 divisa_destino = Divisa.objects.get(codigo=divisa_seleccionada)
-            else:  # venta
+            else:
                 divisa_origen = Divisa.objects.get(codigo=divisa_seleccionada)
                 divisa_destino = Divisa.objects.get(codigo="PYG")
         except Divisa.DoesNotExist:
             return JsonResponse({"error": "Divisa no válida"}, status=400)
+
+        # Validar si el valor del monto es válido según las denominaciones disponibles
+        if tipo_operacion == "compra":
+            resultado = monto_valido(divisa_destino.codigo, int(monto))
+        else:
+            resultado = monto_valido(divisa_origen.codigo, int(monto))
+        if not resultado:
+            return JsonResponse(
+                {"error": "Monto inválido según las denominaciones disponibles para la divisa seleccionada"}, status=400
+            )
 
         # Crear la transacción
         from .models import Transaccion
@@ -1438,7 +1502,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         else:  # venta
             monto_origen = Decimal(str(simulation_data["monto_original"]))  # Divisa a entregar
             monto_destino = Decimal(str(simulation_data["total"]))  # PYG a recibir
-
         # Obtener y validar los medios de pago/cobro
         metodo_pago = params.get("metodo_pago", "efectivo")
         metodo_cobro = params.get("metodo_cobro", "efectivo")
@@ -1447,7 +1510,7 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
         # Calcular el monto en PYG según el tipo de operación
         if tipo_operacion == "compra":
             monto_pyg_transaccion = monto_origen
-        else:  # venta
+        else:
             # En venta, el cliente recibe PYG (monto_destino)
             monto_pyg_transaccion = monto_destino
 
@@ -1463,6 +1526,35 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
                 status=400,
             )
 
+        # Verificar si el usuario requiere MFA para transacciones ANTES de crear
+        from apps.seguridad.models import PerfilMFA
+
+        mfa_requerido = False
+        try:
+            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+            mfa_requerido = perfil_mfa.mfa_habilitado_transacciones
+        except PerfilMFA.DoesNotExist:
+            pass
+
+        # Si se requiere MFA, verificar si ya fue validado para esta sesión
+        if mfa_requerido:
+            mfa_token = request.GET.get("mfa_token")
+            if not mfa_token or not request.session.get(f"mfa_token_valido_{mfa_token}"):
+                # Guardar los datos de la transacción en la sesión y requerir MFA
+                request.session["datos_transaccion_mfa"] = params
+                return JsonResponse(
+                    {
+                        "error": "MFA_REQUIRED",
+                        "mensaje": "Se requiere verificación MFA para crear transacciones",
+                        "redirect_url": reverse("seguridad:verificar_mfa_transaccion"),
+                    },
+                    status=400,
+                )
+        # Limpiar token MFA si se usó
+        mfa_token = request.GET.get("mfa_token")
+        if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
+            del request.session[f"mfa_token_valido_{mfa_token}"]
+
         # Obtener la tasa de cambio actual para almacenar como tasa original
         tasa_actual = Decimal(str(simulation_data["tasa_cambio"]))
 
@@ -1475,16 +1567,12 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
             divisa_destino=divisa_destino,
             tasa_aplicada=tasa_actual,
             tasa_original=tasa_actual,  # Almacenar la tasa original para verificar cambios posteriores
-            monto_origen=monto_origen,
-            monto_destino=monto_destino,
+            monto_origen=round(monto_origen),
+            monto_destino=round(monto_destino),
             medio_pago=metodo_pago,
             medio_cobro=metodo_cobro,
+            tauser=Tauser.objects.get(id=tauser),
         )
-
-        # Limpiar token MFA si se usó
-        mfa_token = request.GET.get("mfa_token")
-        if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
-            del request.session[f"mfa_token_valido_{mfa_token}"]
 
         return JsonResponse(
             {
@@ -1581,7 +1669,7 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
 
 @login_required
 def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """Cancel an existing transaction.
+    """Cancelar una transacción existente.
 
     Args:
         request: HttpRequest object
@@ -1619,8 +1707,14 @@ def api_cancelar_transaccion(request: HttpRequest, transaccion_id: str) -> JsonR
 
         # Cancelar la transacción
         transaccion.estado = "cancelada"
+        transaccion.motivo_cancelacion = "Cancelación solicitada por el usuario"
         transaccion.save()
 
+        # Si es una compra, revertir el movimiento de stock pendiente
+        # Si es una venta, no hay movimiento de stock que revertir
+        if transaccion.tipo_operacion == "compra":
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado="pendiente").first():
+                cancelar_movimiento(movimiento.id)
         return JsonResponse(
             {
                 "success": True,
@@ -1756,7 +1850,6 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
 
     """
     import json
-    from datetime import datetime
 
     if not request.user.is_authenticated:
         return JsonResponse({"success": False, "message": "Usuario no autenticado"}, status=401)
@@ -1790,25 +1883,9 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
 
         # Procesar según el resultado del banco
         if exito:
-            # Pago exitoso en el banco
-            # Para COMPRA de divisa (medio_cobro es efectivo/TAUSER), la transacción queda pendiente
-            # hasta que el cliente retire el dinero del TAUSER
-
-            # Verificar si es compra de divisa con cobro en efectivo (TAUSER)
-            es_compra_con_tauser = (
-                transaccion.tipo_operacion == "compra"
-                and transaccion.medio_cobro
-                and transaccion.medio_cobro.lower() == "efectivo"
-            )
-
-            if es_compra_con_tauser:
-                # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
-                transaccion.estado = "pendiente"
-                transaccion.fecha_pago = datetime.now()
-            else:
-                # Otros casos: completar la transacción
-                transaccion.estado = "completada"
-                transaccion.fecha_pago = datetime.now()
+            # Pago exitoso
+            transaccion.fecha_pago = timezone.now()
+            mensaje_log = "Pago procesado exitosamente"
 
         else:
             # Pago fallido
@@ -1904,7 +1981,7 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
                 "tipo_operacion": "pagar",  # Para pagar dinero
             }
 
-            return render(request, "popup_codigo_tauser.html", context)
+            return popup_codigo_tauser_retiro(request, transaccion_id)
 
         # Para tarjetas y cuentas bancarias, usar el popup bancario primero
 
@@ -1939,18 +2016,18 @@ def popup_banco_simulado(request: HttpRequest, transaccion_id: str) -> HttpRespo
 
 @login_required
 def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> HttpResponse:
-    """Vista para generar código TAUSER de retiro después del pago bancario.
+    """Vista para generar código TAUSER.
 
-    Esta función se llama después de que se complete exitosamente un pago
-    por tarjeta o cuenta bancaria, para generar el código que permite
-    retirar el dinero en efectivo en un TAUSER.
+    Esta función genera códigos TAUSER tanto para compras como para ventas:
+    - Compra: código para retirar en efectivo en TAUSER
+    - Venta: código para depositar dinero en efectivo en TAUSER
 
     Args:
         request: HttpRequest de la solicitud
-        transaccion_id: ID único de la transacción ya pagada
+        transaccion_id: ID único de la transacción
 
     Returns:
-        HttpResponse con la página del código TAUSER para retiro
+        HttpResponse con la página del código TAUSER correspondiente
 
     """
     try:
@@ -1975,32 +2052,54 @@ def popup_codigo_tauser_retiro(request: HttpRequest, transaccion_id: str) -> Htt
             }
             return render(request, "popup_codigo_tauser.html", context)
 
-        # Verificar que la transacción esté completada
-        if transaccion.estado != "completada":
-            context = {
-                "error": "La transacción debe estar completada para generar código de retiro",
-                "transaccion": transaccion,
-                "cliente": cliente,
-            }
-            return render(request, "popup_codigo_tauser.html", context)
-
-        # Generar código único para TAUSER (retiro)
+        # Generar código único para TAUSER
         import random
         import string
 
-        codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        # Verificar si la transacción ya tiene código de verificación
+        if transaccion.codigo_verificacion:
+            codigo_tauser = transaccion.codigo_verificacion
+        else:
+            # Generar nuevo código único y guardarlo en la transacción
+            while True:
+                codigo_tauser = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                # Verificar que el código sea único
+                if not Transaccion.objects.filter(codigo_verificacion=codigo_tauser).exists():
+                    break
+
+            # Actualizar la transacción con el código de verificación y fecha de procesado
+            print(f"Generando código TAUSER {codigo_tauser} para transacción {transaccion.id_transaccion}")
+            transaccion.codigo_verificacion = codigo_tauser
+            transaccion.fecha_procesamiento = timezone.now()
+
+            try:
+                transaccion.save(update_fields=["codigo_verificacion", "fecha_procesamiento"])
+
+                # Verificar que se guardó correctamente
+                transaccion.refresh_from_db()
+
+            except Exception as save_error:
+                print(f"ERROR: No se pudo guardar el código para {transaccion.tipo_operacion}: {save_error}")
+                # Continuar con el código generado aunque no se haya guardado
+
+        # Determinar el tipo de operación TAUSER según el tipo de transacción
+        if transaccion.tipo_operacion == "compra":
+            tipo_operacion_tauser = "retirar"  # Cliente retira divisas compradas del TAUSER
+        else:  # venta
+            tipo_operacion_tauser = "pagar"  # Cliente paga con divisas en efectivo en TAUSER
 
         context = {
             "transaccion": transaccion,
             "cliente": cliente,
             "es_efectivo": False,
             "codigo_tauser": codigo_tauser,
-            "tipo_operacion": "retirar",  # Para retirar dinero
+            "tipo_operacion": tipo_operacion_tauser,
         }
 
         return render(request, "popup_codigo_tauser.html", context)
 
-    except Exception:
+    except Exception as e:
+        print(f"ERROR en popup_codigo_tauser_retiro: {e}")
         context = {
             "error": "Error interno del servidor",
             "transaccion": None,
@@ -2101,6 +2200,11 @@ def api_cancelar_por_cotizacion(request: HttpRequest, transaccion_id: str) -> Js
         motivo = motivo_custom or "Cancelada por el cliente debido a cambio de cotización"
         transaccion.cancelar_por_cotizacion(motivo)
 
+        # Si es una compra, revertir el movimiento de stock pendiente
+        # Si es una venta, no hay movimiento de stock que revertir
+        if transaccion.tipo_operacion == "compra":
+            if movimiento := MovimientoStock.objects.filter(transaccion=transaccion).filter(estado="pendiente").first():
+                cancelar_movimiento(movimiento.id)
         return JsonResponse(
             {
                 "success": True,
@@ -2170,7 +2274,114 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
 
     except Transaccion.DoesNotExist:
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception:
+    except Exception as e:
+        print(f"Error al aceptar nueva cotización: {e}")
+        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
+
+
+@require_GET
+@login_required
+def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """API para obtener el historial de una transacción en formato JSON.
+
+    Args:
+        request: La solicitud HTTP.
+        transaccion_id: ID de la transacción a consultar.
+
+    Returns:
+        JsonResponse: Historial de la transacción.
+
+    """
+    try:
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
+
+        # Verificar que el usuario tenga permiso para ver esta transacción
+        cliente = getattr(request, "cliente", None)
+        if not (request.user.is_staff or (cliente and transaccion.cliente == cliente)):
+            return JsonResponse(
+                {"success": False, "message": "No tienes permisos para ver esta transacción"}, status=403
+            )
+
+        # Crear historial de acciones
+        historial = []
+
+        # Acción de creación
+        detalle_creacion = (
+            f"{strip_trailing_zeros(transaccion.monto_origen, 0)} {transaccion.divisa_origen.codigo} → "
+            f"{strip_trailing_zeros(transaccion.monto_destino, 0)} {transaccion.divisa_destino.codigo}"
+        )
+
+        historial.append(
+            {
+                "accion": "Transacción creada",
+                "fecha": transaccion.fecha_creacion.isoformat(),
+                "detalle": detalle_creacion,
+            }
+        )
+
+        # Acción de procesamiento
+        detalle_procesamiento = (
+            f"Código: {transaccion.codigo_verificacion}" if transaccion.codigo_verificacion else "Sin código"
+        )
+        if transaccion.fecha_procesamiento:
+            historial.append(
+                {
+                    "accion": "Transacción procesada",
+                    "fecha": transaccion.fecha_procesamiento.isoformat(),
+                    "detalle": detalle_procesamiento,
+                }
+            )
+
+        # Acción de pago (si existe)
+        detalle_pago = f"Medio de pago: {obtener_nombre_medio(transaccion.medio_pago, transaccion.cliente)}"
+        if transaccion.fecha_pago:
+            historial.append(
+                {"accion": "Pago procesado", "fecha": transaccion.fecha_pago.isoformat(), "detalle": detalle_pago}
+            )
+
+        # Transacción completada
+        if transaccion.estado == "completada" and transaccion.fecha_completada:
+            historial.append(
+                {
+                    "accion": "Transacción completada",
+                    "fecha": transaccion.fecha_completada.isoformat(),
+                    "detalle": "Entrega de fondos realizada",
+                }
+            )
+
+        # Si está cancelada
+        if transaccion.estado == "cancelada" or transaccion.estado == "cancelada_cotizacion":
+            motivo = transaccion.motivo_cancelacion or "Sin motivo especificado"
+            historial.append(
+                {
+                    "accion": "Transacción cancelada",
+                    "fecha": transaccion.fecha_actualizacion.isoformat(),
+                    "detalle": f"Motivo: {motivo}",
+                }
+            )
+
+        # Fecha de reserva del monto si la operación es de compra
+        from apps.stock.models import MovimientoStock
+
+        if transaccion.tipo_operacion == "compra":
+            if movimiento := MovimientoStock.objects.filter(
+                transaccion=transaccion, estado__in=["pendiente", "confirmado"]
+            ).first():
+                historial.append(
+                    {
+                        "accion": "Monto reservado en stock",
+                        "fecha": movimiento.fecha_creacion.isoformat() if movimiento else transaccion.fecha_creacion,
+                        "detalle": movimiento.resumen_denominaciones(),
+                    }
+                )
+
+        historial = sorted(historial, key=lambda x: x["fecha"])
+        return JsonResponse({"success": True, "historial": historial})
+
+    except Transaccion.DoesNotExist:
+        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
+    except Exception as e:
+        print(f"Error al obtener historial de transacción: {e}")
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 

@@ -1,0 +1,331 @@
+{% load static %}
+{% load custom_filters %}
+{% load l10n %}
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>
+            {% if success %}
+                Transacción Completada
+            {% else %}
+                Error en Transacción
+            {% endif %}
+        - Global Exchange</title>
+        <link rel="icon"
+              type="image/x-icon"
+              href="{% static 'images/favicon.ico' %}">
+        <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    </head>
+    <body class="bg-base-200 min-h-screen">
+        <div class="min-h-screen flex items-center justify-center p-4">
+            <div class="card w-full max-w-lg bg-base-100 shadow-2xl">
+                <div class="card-body">
+                    <!-- Logo y título -->
+                    <div class="text-center mb-8">
+                        <!-- Logo -->
+                        <div class="flex justify-center mb-4">
+                            <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                                <img src="{% static 'images/favicon.ico' %}"
+                                     alt="Global Exchange Logo"
+                                     class="w-16 h-16"
+                                     width="64"
+                                     height="64">
+                            </div>
+                        </div>
+                        <h1 class="text-3xl font-bold text-primary mb-2">Global Exchange</h1>
+                        {% if success %}
+                            <h2 class="text-xl font-semibold text-success mb-4">Transacción Completada</h2>
+                        {% else %}
+                            <h2 class="text-xl font-semibold text-error mb-4">Error en Transacción</h2>
+                        {% endif %}
+                        <div class="divider"></div>
+                    </div>
+                    <!-- Icono de estado -->
+                    <div class="text-center mb-6">
+                        {% if success %}
+                            <div class="w-24 h-24 mx-auto bg-success rounded-full flex items-center justify-center shadow-lg mb-4">
+                                <svg class="w-12 h-12 text-success-content"
+                                     fill="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-2xl font-bold text-success mb-2">¡Operación Exitosa!</h3>
+                            <p class="text-lg text-base-content/80">Su transacción ha sido procesada correctamente.</p>
+                        {% else %}
+                            <div class="w-24 h-24 mx-auto bg-error rounded-full flex items-center justify-center shadow-lg mb-4">
+                                <svg class="w-12 h-12 text-error-content"
+                                     fill="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-2xl font-bold text-error mb-2">Error al Procesar</h3>
+                            <p class="text-lg text-base-content/80">No se pudo completar la transacción.</p>
+                            {% if error %}
+                                <div class="alert alert-error mt-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="stroke-current shrink-0 h-6 w-6"
+                                         fill="none"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{{ error }}</span>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    {% if success and transaccion %}
+                        <!-- Detalles de la transacción completada -->
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-base-content mb-4">Detalles de la Operación</h4>
+                            <div class="space-y-3">
+                                <!-- Cliente -->
+                                <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                    <span class="text-base font-medium">Cliente:</span>
+                                    <span class="font-bold">{{ transaccion.cliente.nombre }}</span>
+                                </div>
+                                <!-- Tipo de operación -->
+                                <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                    <span class="text-base font-medium">Operación:</span>
+                                    <div class="badge badge-success badge-lg">{{ transaccion.tipo_operacion|title }}</div>
+                                </div>
+                                <!-- Conversión -->
+                                <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                    <span class="text-base font-medium">Conversión:</span>
+                                    <span class="font-bold text-lg">{{ transaccion.divisa_origen.codigo }} → {{ transaccion.divisa_destino.codigo }}</span>
+                                </div>
+                                <!-- Monto final -->
+                                <div class="flex justify-between items-center p-3 bg-success/10 rounded-lg border border-success/20">
+                                    <span class="text-base font-medium">Monto Entregado:</span>
+                                    <span class="font-bold text-xl text-success">
+                                        {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
+                                    </span>
+                                </div>
+                                <!-- Fecha de completado -->
+                                {% if transaccion.fecha_completada %}
+                                    <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                        <span class="text-base font-medium">Completada:</span>
+                                        <span class="font-semibold">{{ transaccion.fecha_completada|date:"d/m/Y H:i:s" }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    <!-- Mensaje adicional -->
+                    <div class="text-center mb-6">
+                        {% if success %}
+                            <!-- Loading para transferencias de venta -->
+                            {% if transaccion.tipo_operacion == 'venta' %}
+                                <div id="loading_transferencia" class="card bg-base-200 shadow-lg">
+                                    <div class="card-body text-center py-8">
+                                        <div class="flex items-center justify-center gap-4">
+                                            <span class="loading loading-spinner loading-lg text-primary"></span>
+                                            <div class="text-left">
+                                                <h3 class="text-lg font-semibold mb-1">Procesando transferencia</h3>
+                                                <p class="text-base-content/70">Enviando dinero a su medio de cobro...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <!-- Mensaje de éxito (inicialmente oculto para ventas) -->
+                            <div id="mensaje_exito"
+                                 class="alert alert-success"
+                                 {% if transaccion.tipo_operacion == 'venta' %}style="display: none"{% endif %}>
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="stroke-current shrink-0 h-6 w-6"
+                                     fill="none"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span id="mensaje_exito_texto">
+                                    {% if mensaje_personalizado %}
+                                        {{ mensaje_personalizado }}
+                                    {% elif transaccion.tipo_operacion == 'compra' %}
+                                        La divisa está lista para retirar. Gracias por usar nuestro servicio.
+                                    {% else %}
+                                        Su transacción ha sido procesada correctamente. Gracias por usar nuestro servicio.
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="stroke-current shrink-0 h-6 w-6"
+                                     fill="none"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.96-.833-2.73 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <span>Por favor, contacte al personal para obtener asistencia.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <!-- Botón para nueva operación -->
+                    <div class="text-center">
+                        <a href="{% url 'tauser:bienvenida' %}"
+                           class="btn btn-primary btn-lg btn-block">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                            </svg>
+                            Nueva Operación
+                        </a>
+                    </div>
+                    {% if transaccion %}
+                        <!-- ID de transacción -->
+                        <div class="text-center mt-6 pt-4 border-t border-base-300">
+                            <p class="text-sm text-base-content/60">ID de Transacción: {{ transaccion.id_transaccion|slice:":8" }}...</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if success and transaccion.tipo_operacion == 'venta' %}procesarTransferencia();{% endif %}
+        });
+
+        {% if success and transaccion.tipo_operacion == 'venta' %}
+            async function procesarTransferencia() {
+                try {
+                    
+                    // Determinar el identificador del medio de cobro
+                    let identificadorCobro = '';
+                    const medioCobro = '{{ transaccion.medio_cobro|default:"efectivo" }}';
+
+                    {% if medio_cobro.numero_cuenta %}
+                        identificadorCobro = '{{ medio_cobro.numero_cuenta }}';
+                    {% elif medio_cobro.identificador %}
+                        identificadorCobro = '{{ medio_cobro.identificador }}';
+                    {% endif %}
+
+                    const datosTransferencia = {
+                        transaccion_id: '{{ transaccion.id_transaccion }}',
+                        monto: {{ transaccion.monto_destino|unlocalize }},
+                        divisa: '{{ transaccion.divisa_destino.codigo }}',
+                        medio_cobro: medioCobro,
+                        identificador_cobro: identificadorCobro,
+                        cliente_nombre: '{{ transaccion.cliente.nombre|escape }}',
+                        datos_adicionales: {
+                            tipo_operacion: '{{ transaccion.tipo_operacion }}',
+                            tasa_aplicada: {{ transaccion.tasa_aplicada|unlocalize }},
+                            fecha_transaccion: '{{ transaccion.fecha_creacion|date:"c" }}'
+                        }
+                    };
+                    
+                    
+                    const url = ObtenerUrlBancoExterno();
+                    
+                    if (!url) {
+                        throw new Error('No se pudo determinar la URL del banco externo');
+                    }
+                    
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(datosTransferencia)
+                    });
+                    
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Error response:', errorText);
+                        throw new Error(`Error HTTP ${response.status}: ${errorText}`);
+                    }
+                    
+                    const resultado = await response.json();
+                    
+                    if (resultado.exito) {
+                        mostrarTransferenciaExitosa(resultado);
+                    } else {
+                        mostrarErrorTransferencia(resultado);
+                    }
+                    
+                } catch (error) {
+                    console.error('=== ERROR EN TRANSFERENCIA ===');
+                    console.error('Error completo:', error);
+                    console.error('Mensaje:', error.message);
+                    console.error('Stack:', error.stack);
+                    
+                    mostrarErrorTransferencia({ 
+                        mensaje: `Error de conexión: ${error.message}` 
+                    });
+                }
+            }            
+        
+            function ObtenerUrlBancoExterno() {
+                try {
+                    const hostname = window.location.hostname;
+                    const port = window.location.port;
+                    const protocol = window.location.protocol;
+                    
+                    if (hostname === 'localhost' && port === '8000') {
+                        return 'http://localhost:5002/api/procesar-transferencia';
+                    } else if (hostname === 'localhost' && port === '8080') {
+                        return 'http://localhost:5001/api/procesar-transferencia';
+                    } else if (hostname.includes('herokuapp.com')) {
+                        return `${protocol}//${hostname}:5001/api/procesar-transferencia`;
+                    } else {
+                        return `http://${hostname}:5001/api/procesar-transferencia`;
+                    }
+                } catch (error) {
+                    console.error('Error obteniendo URL del banco externo:', error);
+                    return null;
+                }
+            }
+
+            function mostrarTransferenciaExitosa(resultado) {
+                const loading = document.getElementById('loading_transferencia');
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+                
+                const mensajeExito = document.getElementById('mensaje_exito');
+                const textoExito = document.getElementById('mensaje_exito_texto');
+                
+                if (mensajeExito && textoExito) {
+                    textoExito.innerHTML = `
+                        ¡Transferencia completada exitosamente!<br>
+                        <small>Código de transferencia: ${resultado.codigo_transferencia}</small><br>
+                        <small>Su dinero ha sido transferido a su medio de cobro.</small>
+                    `;
+                    mensajeExito.style.display = 'block';
+                }
+            }
+            
+            function mostrarErrorTransferencia(error) {
+                const loading = document.getElementById('loading_transferencia');
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+                
+                const mensajeExito = document.getElementById('mensaje_exito');
+                if (mensajeExito) {
+                    mensajeExito.className = 'alert alert-error';
+                    mensajeExito.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Error en la transferencia: ${error.mensaje || 'Error desconocido'}</span>
+                    `;
+                    mensajeExito.style.display = 'block';
+                }
+                
+                console.error('Error en transferencia:', error);
+            }
+        {% endif %}
+
+        // Navegación con teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === '1') {
+                window.location.href = '{% url "tauser:bienvenida" %}';
+            }
+        });
+        </script>
+    </body>
+</html>

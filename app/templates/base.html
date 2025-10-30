@@ -85,6 +85,67 @@
           });
       });
   });
+
+  // Función global para formatear fechas de manera consistente
+  window.formatearFecha = function(fechaString) {
+      try {
+          // Si la fecha viene en formato ISO, convertirla a hora local del navegador
+          if (fechaString.includes('T') || fechaString.includes('+') || fechaString.includes('Z')) {
+              const fecha = new Date(fechaString);
+              
+              // Verificar que la fecha es válida
+              if (isNaN(fecha.getTime())) {
+                  console.warn('Fecha inválida:', fechaString);
+                  return fechaString;
+              }
+              
+              // Usar la configuración regional del navegador automáticamente
+              return fecha.toLocaleString(navigator.language, {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false 
+              });
+          }
+          // Si ya viene formateada como string, devolverla tal como está
+          return fechaString;
+      } catch (error) {
+          console.error('Error al formatear fecha:', error);
+          return fechaString; // Devolver original si hay error
+      }
+  };
+
+  // Función global para formatear fechas sin segundos (más compacta)
+  window.formatearFechaCorta = function(fechaString) {
+      try {
+          if (fechaString.includes('T') || fechaString.includes('+') || fechaString.includes('Z')) {
+              const fecha = new Date(fechaString);
+              
+              // Verificar que la fecha es válida
+              if (isNaN(fecha.getTime())) {
+                  console.warn('Fecha inválida:', fechaString);
+                  return fechaString;
+              }
+              
+              // Usar la configuración regional del navegador automáticamente
+              return fecha.toLocaleString(navigator.language, {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+              });
+          }
+          return fechaString;
+      } catch (error) {
+          console.error('Error al formatear fecha:', error);
+          return fechaString;
+      }
+  };
     </script>
     {% include "includes/footer.html" %}
     {% block extra_scripts %}

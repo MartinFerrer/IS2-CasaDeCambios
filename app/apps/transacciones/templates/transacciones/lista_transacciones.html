@@ -222,8 +222,8 @@
                                         <td>
                                             <div class="flex gap-1">
                                                 <button class="btn btn-ghost btn-xs"
-                                                        onclick="event.stopPropagation(); verDetalle('{{ transaccion.id_transaccion }}')"
-                                                        title="Ver detalle rápido">
+                                                        onclick="verHistorial('{{ transaccion.id_transaccion }}')"
+                                                        title="Ver historial de la transacción">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                          class="h-4 w-4"
                                                          fill="none"
@@ -233,6 +233,10 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </button>
+                                                {% if transaccion.estado == 'pendiente' and not transaccion.fecha_pago %}
+                                                    <a href="{% url 'transacciones:procesar_transaccion' transaccion.id_transaccion %}"
+                                                       class="btn btn-primary btn-xs">Procesar</a>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
@@ -282,12 +286,15 @@
                 </div>
             </div>
         {% endif %}
-        <!-- Modal de detalle rápido -->
-        <div id="detail-modal" class="modal">
-            <div class="modal-box max-w-md">
-                <h3 class="font-bold text-lg mb-4">Vista Rápida</h3>
-                <div id="detail-content">
+        <!-- Modal para historial -->
+        <div id="historial-modal" class="modal">
+            <div class="modal-box max-w-2xl">
+                <h3 class="font-bold text-lg mb-4">Historial de Transacción</h3>
+                <div id="historial-content">
                     <!-- Se llenará dinámicamente -->
+                </div>
+                <div class="modal-action">
+                    <button class="btn" onclick="cerrarHistorial()">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -326,33 +333,65 @@
             if (canceladasElement) canceladasElement.textContent = canceladas;
         }
 
-        function verDetalle(transaccionId) {
-            // Mostrar detalle rápido en modal, en el futuro hacer una llamada AJAX para obtener datos reales
-            document.getElementById('detail-content').innerHTML = `
-                <div class="space-y-3">
-                    <div class="alert alert-info">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span>Para ver el detalle completo y continuar el proceso, haga clic en cualquier parte de la fila o use el botón "Ir a Detalle".</span>
-                    </div>
-                    <div class="flex justify-end gap-2 mt-4">
-                        <button class="btn btn-outline" onclick="cerrarDetalle()">Cerrar</button>
-                        <button class="btn btn-primary" onclick="irADetalle('${transaccionId}')">Ir a Detalle Completo</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('detail-modal').classList.add('modal-open');
+        // Función para mostrar historial de transacción en modal
+        function verHistorial(transaccionId) {
+            // Hacer llamada AJAX simple para obtener solo el historial
+            fetch(`/transacciones/api/historial/${transaccionId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let historialHtml = `
+                            <div class="overflow-x-auto">
+                                <table class="table table-zebra w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Acción</th>
+                                            <th>Fecha y Hora</th>
+                                            <th>Detalle</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        data.historial.forEach(evento => {
+                            // Usar la función global para formatear fechas
+                            const fechaFormateada = formatearFecha(evento.fecha);
+                            
+                            historialHtml += `
+                                <tr>
+                                    <td>${evento.accion}</td>
+                                    <td>${fechaFormateada}</td>
+                                    <td>${evento.detalle}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        historialHtml += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        
+                        document.getElementById('historial-content').innerHTML = historialHtml;
+                        document.getElementById('historial-modal').classList.add('modal-open');
+                    } else {
+                        alert('Error al cargar el historial: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al cargar el historial de la transacción');
+                });
         }
 
-        function cerrarDetalle() {
-            document.getElementById('detail-modal').classList.remove('modal-open');
+        function cerrarHistorial() {
+            document.getElementById('historial-modal').classList.remove('modal-open');
         }
 
         // Cerrar modal al hacer click fuera
-        document.getElementById('detail-modal').addEventListener('click', function(e) {
+        document.getElementById('historial-modal').addEventListener('click', function(e) {
             if (e.target === this) {
-                cerrarDetalle();
+                cerrarHistorial();
             }
         });
 

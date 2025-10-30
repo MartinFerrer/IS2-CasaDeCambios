@@ -105,6 +105,11 @@
                                         <span class="label-text">Método de Cobro</span>
                                     </label>
                                 </div>
+                                <div class="pt-2">
+                                    <label class="label">
+                                        <span class="label-text">Tauser</span>
+                                    </label>
+                                </div>
                             </div>
                             <!-- Controls column (wide) -->
                             <div class="space-y-4 md:col-span-2">
@@ -146,6 +151,16 @@
                                             class="select select-bordered w-full text-left ml-0"
                                             required>
                                         <option value="efectivo" selected>Efectivo</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select id="tauser-select"
+                                            class="select select-bordered w-full text-left ml-0"
+                                            required>
+                                        <option value="">Seleccione un Tauser</option>
+                                        {% for tauser in tausers %}
+                                            <option value="{{ tauser.id }}">{{ tauser.nombre }} - {{ tauser.ubicacion }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                             </div>
@@ -285,6 +300,10 @@
                             <span class="font-semibold text-gray-600">Método de Cobro:</span>
                             <span id="modal-metodo-cobro" class="font-bold"></span>
                         </div>
+                        <div class="flex justify-between items-center p-2 bg-base-100 rounded">
+                            <span class="font-semibold text-gray-600">Tauser:</span>
+                            <span id="modal-tauser" class="font-bold ml-auto text-right"></span>
+                        </div>
                     </div>
                 </div>
                 <!-- Warning -->
@@ -395,6 +414,7 @@
         const montoInput = document.getElementById('monto-input');
         const metodoPagoSelect = document.getElementById('metodo-pago-select');
         const metodoCobroSelect = document.getElementById('metodo-cobro-select');
+        const tauserSelect = document.getElementById('tauser-select');
 
         // Función local para obtener tipo de operación desde radio buttons
         function getTipoOperacion() {
@@ -784,12 +804,17 @@
         // Mostrar modal de confirmación
         function showConfirmationModal() {
             if (!lastSimulationData) return;
-
+            if (!tauserSelect || !tauserSelect.value) {
+                alert('Por favor seleccione un Tauser.');
+                return;
+            }
             const tipo = getTipoOperacion();
             const tipoText = tipo === 'compra' ? 'Compra' : 'Venta';
             const divisa = divisaSelect.options[divisaSelect.selectedIndex].text;
             const metodoPago = metodoPagoSelect.options[metodoPagoSelect.selectedIndex].text;
             const metodoCobro = metodoCobroSelect.options[metodoCobroSelect.selectedIndex].text;
+            const tauser = tauserSelect.options[tauserSelect.selectedIndex].text;
+
 
             // Actualizar labels dinámicos según el tipo de operación
             const divisaLabel = document.getElementById('modal-divisa-label');
@@ -814,6 +839,7 @@
             document.getElementById('modal-total').textContent = `${formatNumberWithCurrency(lastSimulationData.total, "PYG")} PYG`;
             document.getElementById('modal-metodo-pago').textContent = metodoPago;
             document.getElementById('modal-metodo-cobro').textContent = metodoCobro;
+            document.getElementById('modal-tauser').textContent = tauser;
 
             confirmationModal.classList.add('modal-open');
         }
@@ -848,7 +874,8 @@
                     divisa_seleccionada: divisaSelect.value,
                     monto: parseInputNumber(montoInput.value),
                     metodo_pago: metodoPagoSelect.value,
-                    metodo_cobro: metodoCobroSelect.value
+                    metodo_cobro: metodoCobroSelect.value,
+                    tauser: tauserSelect.value
                 });
 
                 const response = await fetch(`{% url "transacciones:api_crear_transaccion" %}?${params.toString()}`, {
