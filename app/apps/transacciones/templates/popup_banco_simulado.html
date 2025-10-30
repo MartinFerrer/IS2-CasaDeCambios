@@ -253,8 +253,8 @@
                     // Producción local (puerto 8080)
                     bancoUrl = 'http://localhost:5001/api/procesar-transaccion';
                 } else if (hostname.includes('herokuapp.com')) {
-                    // Deploy en Heroku - mismo servidor, puerto 5001
-                    bancoUrl = `${protocol}//${hostname}:5001/api/procesar-transaccion`;
+                    // Deploy en Heroku - usar app separada del simulador
+                    bancoUrl = 'https://global-exchange-simulador-ec091cfa7acb.herokuapp.com/api/procesar-transaccion';
                 } else {
                     // Docker u otros entornos
                     bancoUrl = `http://${hostname}:5001/api/procesar-transaccion`;
