@@ -900,6 +900,9 @@
 
             if (!ventanaBanco) {
                 showToast('Error: No se pudo abrir la ventana TAUSER. Revisa el bloqueador de ventanas emergentes.', 'error');
+                if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                    cancelarReserva(data.transaccionId);
+                }
                 desbloquearPaginaPadre();
                 restaurarBotonPagar();
             }
