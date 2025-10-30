@@ -20,8 +20,9 @@ app = Flask(__name__)
 CORS(app)  # Permitir CORS para llamadas desde el frontend
 
 # Configuración del simulador (usando variables de entorno)
+# En Heroku, PORT es asignado automáticamente y debe usarse
 CONFIG = {
-    "puerto": int(os.getenv("PUERTO", 5001)),
+    "puerto": int(os.getenv("PORT", os.getenv("PUERTO", 5001))),
     "host": os.getenv("HOST", "0.0.0.0"),
     "tiempo_procesamiento_min": int(os.getenv("TIEMPO_PROCESAMIENTO_MIN", 2)),
     "tiempo_procesamiento_max": int(os.getenv("TIEMPO_PROCESAMIENTO_MAX", 5)),
