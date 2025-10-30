@@ -10,6 +10,13 @@ from decimal import Decimal
 from typing import Dict
 
 import stripe
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -20,16 +27,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
-from apps.seguridad.decorators import client_required
-from apps.stock.models import MovimientoStock, StockDivisaTauser
-from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
-from apps.tauser.models import Tauser
-from apps.usuarios.models import Cliente
-
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
-from .utils.commission_calculator import get_collection_commission, get_payment_commission
+from .utils import calculos_tasas_comisiones
 
 
 def obtener_medio_financiero_por_identificador(identificador, cliente):
@@ -124,132 +123,43 @@ def obtener_nombre_medio(medio_id, cliente):
 
 
 def _get_stripe_fixed_fee_pyg() -> Decimal:
-    """Calcula la comisión fija de Stripe (0.30 USD) convertida a PYG usando la tasa vigente."""
-    try:
-        # Obtener tasa USD/PYG vigente
-        tasa_cambio = TasaCambio.objects.filter(
-            divisa_origen__codigo="PYG", divisa_destino__codigo="USD", activo=True
-        ).first()
+    """DEPRECATED: Usar calculos_tasas_comisiones.obtener_comision_fija_stripe_pyg().
 
-        if tasa_cambio:
-            # Convertir 0.30 USD a PYG
-            tasa_venta = tasa_cambio.tasa_venta
-            fee_pyg = settings.STRIPE_FIXED_FEE_USD * tasa_venta
-            return fee_pyg
-        else:
-            # Fallback: usar tasa aproximada si no hay tasa activa
-            return settings.STRIPE_FIXED_FEE_USD * Decimal("7000")  # ~7000 PYG/USD
+    Calcula la comisión fija de Stripe (0.30 USD) convertida a PYG usando la tasa vigente.
+    """
+    try:
+        return Decimal(str(calculos_tasas_comisiones.obtener_comision_fija_stripe_pyg()))
     except Exception:
         # Fallback en caso de error
         return settings.STRIPE_FIXED_FEE_USD * Decimal("7000")
 
 
 def _get_payment_commission(metodo_pago: str, cliente, tipo: str) -> Decimal:
-    """Calcula la comisión del medio de pago.
-
-    Se usa utils.commission_calculator cuando sea posible hacerlo
-    manteniendo la lógica específica para entidades financieras.
+    """DEPRECATED: Usar calculos_tasas_comisiones.obtener_comision_medio_completa().
+    Calcula la comisión del medio de pago.
     """
-    from django.conf import settings
-
-    # Stripe (tarjetas internacionales)
-    if metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
-        return settings.STRIPE_COMMISSION_RATE
-
-    # Lógica específica para medios de pago con entidades financieras
-    if metodo_pago.startswith("tarjeta_") and cliente:
-        try:
-            tarjeta_id = int(metodo_pago.split("_")[1])
-            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
-            if tarjeta.entidad:
-                return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
-            # Usar módulo para tarjetas sin entidad específica
-            return get_payment_commission("tarjeta_credito", Decimal("100"))  # Monto de referencia
-        except (ValueError, TarjetaCredito.DoesNotExist):
-            return get_payment_commission("tarjeta_credito", Decimal("100"))
-
-    elif metodo_pago.startswith("cuenta_") and cliente:
-        try:
-            cuenta_id = int(metodo_pago.split("_")[1])
-            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
-            if cuenta.entidad:
-                return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
-            return get_payment_commission("cuenta_bancaria", Decimal("100"))
-        except (ValueError, CuentaBancaria.DoesNotExist):
-            return get_payment_commission("cuenta_bancaria", Decimal("100"))
-
-    elif metodo_pago.startswith("billetera_") and cliente:
-        try:
-            billetera_id = int(metodo_pago.split("_")[1])
-            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
-            if billetera.entidad:
-                return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
-            return get_payment_commission("billetera_digital", Decimal("100"))
-        except (ValueError, BilleteraElectronica.DoesNotExist):
-            return get_payment_commission("billetera_digital", Decimal("100"))
-    else:
-        # Usar módulo utils para casos genéricos
-        if metodo_pago.startswith("tarjeta"):
-            return get_payment_commission("tarjeta_credito", Decimal("100"))
-        elif metodo_pago.startswith("cuenta"):
-            return get_payment_commission("cuenta_bancaria", Decimal("100"))
-        elif metodo_pago.startswith("billetera"):
-            return get_payment_commission("billetera_digital", Decimal("100"))
-        elif metodo_pago.startswith("stripe"):
-            return settings.STRIPE_COMMISSION_RATE
-        return Decimal("0.0")  # efectivo
+    try:
+        return calculos_tasas_comisiones.obtener_comision_medio_completa(
+            medio=metodo_pago, cliente=cliente, tipo_operacion=tipo, es_pago=True
+        )
+    except Exception:
+        return Decimal("0.0")
 
 
 def _get_collection_commission(metodo_cobro: str, cliente, tipo: str) -> Decimal:
-    """Calcula la comisión del medio de cobro.
-
-    Se usa utils.commission_calculator cuando sea posible hacerlo
-    manteniendo la lógica específica para entidades financieras.
+    """DEPRECATED: Usar calculos_tasas_comisiones.obtener_comision_medio_completa().
+    Calcula la comisión del medio de cobro.
     """
-    # Lógica específica para medios de cobro con entidades financieras
-    if metodo_cobro.startswith("tarjeta_") and cliente:
-        try:
-            tarjeta_id = int(metodo_cobro.split("_")[1])
-            tarjeta = TarjetaCredito.objects.get(id=tarjeta_id, cliente=cliente)
-            if tarjeta.entidad:
-                return tarjeta.entidad.comision_compra if tipo == "compra" else tarjeta.entidad.comision_venta
-            # Usar módulo para tarjetas sin entidad específica
-            return get_collection_commission("tarjeta_credito", Decimal("100"))  # Monto de referencia
-        except (ValueError, TarjetaCredito.DoesNotExist):
-            return get_collection_commission("tarjeta_credito", Decimal("100"))
-
-    elif metodo_cobro.startswith("cuenta_") and cliente:
-        try:
-            cuenta_id = int(metodo_cobro.split("_")[1])
-            cuenta = CuentaBancaria.objects.get(id=cuenta_id, cliente=cliente)
-            if cuenta.entidad:
-                return cuenta.entidad.comision_compra if tipo == "compra" else cuenta.entidad.comision_venta
-            return get_collection_commission("cuenta_bancaria", Decimal("100"))
-        except (ValueError, CuentaBancaria.DoesNotExist):
-            return get_collection_commission("cuenta_bancaria", Decimal("100"))
-
-    elif metodo_cobro.startswith("billetera_") and cliente:
-        try:
-            billetera_id = int(metodo_cobro.split("_")[1])
-            billetera = BilleteraElectronica.objects.get(id=billetera_id, cliente=cliente)
-            if billetera.entidad:
-                return billetera.entidad.comision_compra if tipo == "compra" else billetera.entidad.comision_venta
-            return get_collection_commission("billetera_digital", Decimal("100"))
-        except (ValueError, BilleteraElectronica.DoesNotExist):
-            return get_collection_commission("billetera_digital", Decimal("100"))
-    else:
-        # Usar módulo utils para casos genéricos
-        if metodo_cobro.startswith("tarjeta"):
-            return get_collection_commission("tarjeta_credito", Decimal("100"))
-        elif metodo_cobro.startswith("cuenta"):
-            return get_collection_commission("cuenta_bancaria", Decimal("100"))
-        elif metodo_cobro.startswith("billetera"):
-            return get_collection_commission("billetera_digital", Decimal("100"))
-        return Decimal("0.0")  # efectivo
+    try:
+        return calculos_tasas_comisiones.obtener_comision_medio_completa(
+            medio=metodo_cobro, cliente=cliente, tipo_operacion=tipo, es_pago=False
+        )
+    except Exception:
+        return Decimal("0.0")
 
 
 def _compute_simulation(params: Dict, request) -> Dict:
-    """Cálculo centralizado de la simulación.
+    """Cálculo centralizado de la simulación usando el módulo de cálculos.
 
     params: dict con keys: monto (float), divisa_seleccionada, tipo_operacion,
     metodo_pago, metodo_cobro
@@ -265,140 +175,55 @@ def _compute_simulation(params: Dict, request) -> Dict:
     metodo_pago = params.get("metodo_pago") or "efectivo"
     metodo_cobro = params.get("metodo_cobro") or "efectivo"
 
-    # Validación: No permitir compra de divisas con medio de pago en efectivo
-    if tipo == "compra" and metodo_pago == "efectivo":
-        raise ValueError("No se permite comprar divisas usando efectivo como medio de pago")
-
-    # Validación: No permitir venta de divisas con medio de cobro en efectivo
-    if tipo == "venta" and metodo_cobro == "efectivo":
-        raise ValueError("No se permite vender divisas cobrando en efectivo como medio de cobro")
-
     # Obtener cliente del middleware para descuentos
     cliente = getattr(request, "cliente", None)
 
-    # Determinar monedas origen y destino según tipo de operación
-    moneda_origen = divisa_seleccionada
-    moneda_destino = "PYG"
-
-    # Buscar tasa de cambio activa (siempre con PYG como origen en la BD)
-    tasa_cambio = None
+    # Usar el módulo centralizado de cálculos
     try:
-        tasa_cambio = TasaCambio.objects.filter(
-            divisa_origen__codigo="PYG", divisa_destino__codigo=divisa_seleccionada, activo=True
-        ).first()
-    except Exception:
-        pass
+        resultado = calculos_tasas_comisiones.calcular_simulacion_completa(
+            monto=Decimal(str(monto)),
+            codigo_divisa=divisa_seleccionada,
+            tipo_operacion=tipo,
+            medio_pago=metodo_pago,
+            medio_cobro=metodo_cobro,
+            cliente=cliente,
+        )
 
-    # Si no hay tasa de cambio, usar valores por defecto
-    if not tasa_cambio:
-        rates_to_pyg = {"USD": 7000.0, "EUR": 7600.0, "BRL": 1300.0}
-        pb_dolar = Decimal(str(rates_to_pyg.get(divisa_seleccionada, 7000.0)))
-        comision_com = Decimal("50.0")
-        comision_vta = Decimal("75.0")
-    else:
-        pb_dolar = tasa_cambio.precio_base
-        comision_com = tasa_cambio.comision_compra
-        comision_vta = tasa_cambio.comision_venta
+        # Agregar campos adicionales para compatibilidad con el frontend
+        # Determinar tipos de medios para display
+        tipo_medio_pago = "efectivo"
+        if metodo_pago.startswith("tarjeta"):
+            tipo_medio_pago = "tarjeta"
+        elif metodo_pago.startswith("cuenta"):
+            tipo_medio_pago = "cuenta"
+        elif metodo_pago.startswith("billetera"):
+            tipo_medio_pago = "billetera"
+        elif metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
+            tipo_medio_pago = "stripe"
 
-    # Obtener descuento por segmento del cliente
-    pordes = Decimal("0.0")
-    if cliente and cliente.tipo_cliente:
-        pordes = cliente.tipo_cliente.descuento_sobre_comision
+        tipo_medio_cobro = "efectivo"
+        if metodo_cobro.startswith("tarjeta"):
+            tipo_medio_cobro = "tarjeta"
+        elif metodo_cobro.startswith("cuenta"):
+            tipo_medio_cobro = "cuenta"
+        elif metodo_cobro.startswith("billetera"):
+            tipo_medio_cobro = "billetera"
 
-    # Obtener comisiones de medios
-    comision_medio_pago_valor = _get_payment_commission(metodo_pago, cliente, tipo)
-    comision_medio_cobro_valor = _get_collection_commission(metodo_cobro, cliente, tipo)
+        resultado["comision_medio_pago_tipo"] = tipo_medio_pago
+        resultado["comision_medio_cobro_tipo"] = tipo_medio_cobro
 
-    # Comisión fija adicional para Stripe (solo para pagos)
-    stripe_fixed_fee = Decimal("0.0")
-    if metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
-        stripe_fixed_fee = _get_stripe_fixed_fee_pyg()
+        return resultado
 
-    # Calcular según las fórmulas corregidas
-    if tipo == "compra":
-        # Cliente COMPRA divisa extranjera (nosotros le VENDEMOS)
-        # Aplicamos comision_venta y SUMAMOS al precio base para darle un precio más bajo
-        comision_efectiva = comision_vta - (comision_vta * pordes / Decimal("100"))
-        tc_efectiva = pb_dolar + comision_efectiva
+    except ValueError:
+        # Propagar errores de validación
+        raise
+    except Exception as e:
+        # Loguear y propagar otros errores
+        import logging
 
-        # monto = cantidad de divisa extranjera deseada
-        # converted = cantidad de guaraníes necesarios (sin comisión de medio)
-        converted = monto * float(tc_efectiva)
-        comision_medio_pago = Decimal(str(converted)) * comision_medio_pago_valor / Decimal("100")
-
-        # Para Stripe: agregar comisión fija además de la comisión porcentual
-        total_comision_medio = comision_medio_pago + stripe_fixed_fee
-        total = converted + float(total_comision_medio)  # Total en guaraníes a pagar
-
-        comision_final = float(comision_efectiva)
-        total_antes_comision_medio = converted
-        tasa_display = float(tc_efectiva)
-        comision_medio_cobro = Decimal("0.0")
-    else:  # venta
-        # Cliente VENDE divisa extranjera (nosotros le COMPRAMOS)
-        # Aplicamos comision_compra y RESTAMOS del precio base, para darle ventaja en la tasa
-        comision_efectiva = comision_com - (comision_com * pordes / Decimal("100"))
-        tc_efectiva = pb_dolar - comision_efectiva
-        converted = monto * float(tc_efectiva)
-        comision_final = float(comision_efectiva)
-        total_antes_comision_medio = converted
-        comision_medio_pago = Decimal("0.0")
-        comision_medio_cobro = Decimal(str(total_antes_comision_medio)) * comision_medio_cobro_valor / Decimal("100")
-        total = total_antes_comision_medio - float(comision_medio_cobro)
-        tasa_display = float(tc_efectiva)
-        stripe_fixed_fee = Decimal("0.0")  # Para venta no se aplica Stripe
-
-    # Determinar tipos de medios para display
-    tipo_medio_pago = "efectivo"
-    if metodo_pago.startswith("tarjeta"):
-        tipo_medio_pago = "tarjeta"
-    elif metodo_pago.startswith("cuenta"):
-        tipo_medio_pago = "cuenta"
-    elif metodo_pago.startswith("billetera"):
-        tipo_medio_pago = "billetera"
-    elif metodo_pago == "stripe_new" or metodo_pago.startswith("stripe_"):
-        tipo_medio_pago = "stripe"
-
-    tipo_medio_cobro = "efectivo"
-    if metodo_cobro.startswith("tarjeta"):
-        tipo_medio_cobro = "tarjeta"
-    elif metodo_cobro.startswith("cuenta"):
-        tipo_medio_cobro = "cuenta"
-    elif metodo_cobro.startswith("billetera"):
-        tipo_medio_cobro = "billetera"
-
-    # Obtener información del tipo de cliente para display
-    tipo_cliente_nombre = ""
-    if cliente and cliente.tipo_cliente:
-        tipo_cliente_nombre = cliente.tipo_cliente.nombre
-
-    return {
-        "monto_original": round(monto, 6),
-        "moneda_origen": moneda_origen,
-        "moneda_destino": moneda_destino,
-        "tasa_base": tc_efectiva,  # Tasa de venta o compra según operación
-        "tasa_cambio": tasa_display,  # Tasa efectiva (con descuento aplicado)
-        "monto_convertido": round(converted, 6),
-        "comision_base": round(float(comision_vta if tipo == "compra" else comision_com), 6),
-        "descuento": round(float(pordes), 2),
-        "comision_final": round(comision_final, 6),
-        "comision_medio_pago_tipo": tipo_medio_pago,
-        "comision_medio_pago_porcentaje": float(comision_medio_pago_valor),
-        "comision_medio_pago_monto": round(float(comision_medio_pago), 6),
-        "comision_medio_cobro_tipo": tipo_medio_cobro,
-        "comision_medio_cobro_porcentaje": float(comision_medio_cobro_valor),
-        "comision_medio_cobro_monto": round(float(comision_medio_cobro), 6),
-        "total_antes_comision_medio": round(total_antes_comision_medio, 6),
-        "total": round(total, 6),
-        "tipo_operacion": tipo,
-        "metodo_pago": metodo_pago,
-        "metodo_cobro": metodo_cobro,
-        # Campos específicos para Stripe
-        "stripe_fixed_fee": round(float(stripe_fixed_fee), 6),
-        "stripe_fixed_fee_usd": float(settings.STRIPE_FIXED_FEE_USD) if stripe_fixed_fee > 0 else 0.0,
-        # Información del cliente
-        "tipo_cliente": tipo_cliente_nombre,
-    }
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error al calcular simulación: {e!s}")
+        raise ValueError(f"Error al calcular la simulación: {e!s}")
 
 
 def simular_cambio_view(request: HttpRequest) -> HttpResponse:

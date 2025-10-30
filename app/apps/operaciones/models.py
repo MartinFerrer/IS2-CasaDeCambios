@@ -172,8 +172,12 @@ class TasaCambio(models.Model):
 
         Cuando el cliente VENDE divisa a la casa, aplicamos comision_compra.
         La casa compra más barato: precio_base - comision_compra
+
+        Esta property usa el módulo centralizado de cálculos para mantener consistencia.
         """
-        return self.precio_base - self.comision_compra
+        from apps.transacciones.utils import calculos_tasas_comisiones
+
+        return calculos_tasas_comisiones.calcular_tasa_compra_base(self.precio_base, self.comision_compra)
 
     @property
     def tasa_venta(self) -> Decimal:
@@ -181,8 +185,12 @@ class TasaCambio(models.Model):
 
         Cuando el cliente COMPRA divisa de la casa, aplicamos comision_venta.
         La casa vende más caro: precio_base + comision_venta
+
+        Esta property usa el módulo centralizado de cálculos para mantener consistencia.
         """
-        return self.precio_base + self.comision_venta
+        from apps.transacciones.utils import calculos_tasas_comisiones
+
+        return calculos_tasas_comisiones.calcular_tasa_venta_base(self.precio_base, self.comision_venta)
 
     class Meta:
         """Meta información para el modelo TasaCambio.
