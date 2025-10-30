@@ -9,8 +9,13 @@
         <div class="flex items-center justify-center mb-8">
             <div class="text-center">
                 <div class="text-6xl mb-4">✅</div>
-                <h2 class="text-3xl font-bold text-success">¡Transacción Creada Exitosamente!</h2>
-                <p class="text-gray-600 mt-2">Tu transacción ha sido registrada y está lista para procesar</p>
+                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                    <h2 class="text-3xl font-bold text-success">¡Transacción Completada Exitosamente!</h2>
+                    <p class="text-gray-600 mt-2">Tu pago con Stripe ha sido procesado y la transacción está completada</p>
+                {% else %}
+                    <h2 class="text-3xl font-bold text-success">¡Transacción Creada Exitosamente!</h2>
+                    <p class="text-gray-600 mt-2">Tu transacción ha sido registrada y está lista para procesar</p>
+                {% endif %}
             </div>
         </div>
         <!-- Información de la transacción -->
@@ -70,7 +75,11 @@
                             </div>
                             <div>
                                 <span class="font-semibold">Estado:</span>
-                                <span class="badge badge-warning ml-2">Pendiente</span>
+                                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                    <span class="badge badge-success ml-2">Completada</span>
+                                {% else %}
+                                    <span class="badge badge-warning ml-2">Pendiente</span>
+                                {% endif %}
                             </div>
                             <div>
                                 <span class="font-semibold">Fecha de Creación:</span>
@@ -301,20 +310,35 @@
                     </svg>
                     Próximos Pasos
                 </h3>
-                <div class="alert alert-warning mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="stroke-current shrink-0 h-6 w-6"
-                         fill="none"
-                         viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <div>
-                        <div class="font-bold">Transacción Pendiente de Procesamiento</div>
-                        <div class="text-sm">
-                            Esta transacción requiere procesamiento adicional según el método de pago/cobro seleccionado.
+                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                    <div class="alert alert-success mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="stroke-current shrink-0 h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div>
+                            <div class="font-bold">Transacción Completada Exitosamente</div>
+                            <div class="text-sm">El pago con Stripe ha sido procesado correctamente y la transacción está completa.</div>
                         </div>
                     </div>
-                </div>
+                {% else %}
+                    <div class="alert alert-warning mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="stroke-current shrink-0 h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <div>
+                            <div class="font-bold">Transacción Pendiente de Procesamiento</div>
+                            <div class="text-sm">
+                                Esta transacción requiere procesamiento adicional según el método de pago/cobro seleccionado.
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
                 <!-- Pasos según método de pago/cobro -->
                 {% with metodo_pago=transaccion.metodo_pago metodo_cobro=transaccion.metodo_cobro %}
                     {% if metodo_pago == 'efectivo' or metodo_cobro == 'efectivo' %}
@@ -338,10 +362,17 @@
                         </div>
                     {% elif 'stripe' in metodo_pago %}
                         <div class="steps steps-vertical lg:steps-horizontal w-full">
-                            <div class="step step-primary">Transacción Creada</div>
-                            <div class="step step-primary">Pago Stripe Procesado</div>
-                            <div class="step">Verificación Internacional</div>
-                            <div class="step">Transacción Completada</div>
+                            {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                <div class="step step-primary">Transacción Completada</div>
+                                <div class="step step-primary">Pago Stripe Procesado</div>
+                                <div class="step step-primary">Verificación Internacional</div>
+                                <div class="step step-primary">Proceso Finalizado</div>
+                            {% else %}
+                                <div class="step step-primary">Transacción Creada</div>
+                                <div class="step step-primary">Pago Stripe Procesado</div>
+                                <div class="step">Verificación Internacional</div>
+                                <div class="step">Transacción Completada</div>
+                            {% endif %}
                         </div>
                         <div class="mt-4 p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg border border-purple-200">
                             <div class="font-semibold mb-2 flex items-center">
@@ -349,11 +380,19 @@
                                 Pago Internacional con Stripe:
                             </div>
                             <ul class="list-disc list-inside text-sm space-y-1">
-                                <li class="text-green-700 font-medium">✅ Pago procesado exitosamente</li>
-                                <li>Procesamiento internacional seguro</li>
-                                <li>Verificación bancaria en curso</li>
-                                <li>Tiempo estimado: 2-5 minutos</li>
-                                <li>Recibirá confirmación por email</li>
+                                {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
+                                    <li class="text-green-700 font-medium">Pago procesado exitosamente</li>
+                                    <li class="text-green-700 font-medium">Procesamiento internacional completado</li>
+                                    <li class="text-green-700 font-medium">Verificación bancaria finalizada</li>
+                                    <li class="text-green-700 font-medium">Transacción completada</li>
+                                    <li>Confirmación enviada por email</li>
+                                {% else %}
+                                    <li class="text-green-700 font-medium">Pago en proceso</li>
+                                    <li>Procesamiento internacional seguro</li>
+                                    <li>Verificación bancaria en curso</li>
+                                    <li>Tiempo estimado: 2-5 minutos</li>
+                                    <li>Recibirá confirmación por email</li>
+                                {% endif %}
                                 <li>
                                     Comisión aplicada: <span class="font-bold text-purple-600">2.9%</span>
                                 </li>
