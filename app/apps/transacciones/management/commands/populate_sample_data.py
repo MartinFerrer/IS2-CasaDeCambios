@@ -25,43 +25,52 @@ DATOS CARGADOS POR DEFECTO:
    - Corporativo
    - Minorista
 
-3. USUARIOS ADMINISTRADORES (2 usuarios):
-   - admin@test.com (Superusuario + Rol: Administrador) - Contraseña: 123
-   - analista@test.com (Staff + Rol: Analista Cambiario) - Contraseña: 123
+3. USUARIOS DEL SISTEMA (11 usuarios estaticos):
+   a) Usuarios principales (2):
+      - admin@test.com (Superusuario + Rol: Administrador) - Contraseña: 123
+      - analista@test.com (Staff + Rol: Analista Cambiario) - Contraseña: 123
 
-4. USUARIOS DEL SISTEMA (10 por defecto, 25 en modo --full):
-   NOTA: Los usuarios NO tienen tipo de cliente asignado inicialmente
-   - Usuarios con emails unicos generados automaticamente
-   - 75% activos, 25% inactivos
-   - 25% con permisos de staff
-   - Contrasena por defecto: "123"
-   - Roles asignados automaticamente:
-     * "Usuario Asociado a Cliente": usuarios asociados a uno o mas clientes
-     * "Usuario Registrado": usuarios sin clientes asociados
+   b) Usuarios adicionales (9):
+      - 3 Administradores: admin1@test.com, admin2@test.com, admin3@test.com
+      - 3 Analistas: analista1@test.com, analista2@test.com, analista3@test.com
+      - 3 Operadores: operador1@test.com, operador2@test.com, operador3@test.com
 
-5. CLIENTES (15 por defecto, 50 en modo --full):
-   - Empresas con RUCs validos de la lista predefinida
+   NOTA: Todos los usuarios tienen formato estatico con contraseña "123"
+   NOTA: Los operadores se asignan automaticamente a los clientes creados
+
+4. CLIENTES (15 por defecto, 96 en modo --full):
+   - Un cliente por cada RUC valido de la lista (96 RUCs disponibles)
+   - Nombres de empresas y correos generados dinamicamente
    - Asignacion aleatoria entre los 3 tipos de cliente (VIP, Corporativo, Minorista)
-   - Cada cliente tiene 1-3 usuarios asignados
+   - Los operadores (operador1, operador2, operador3) se distribuyen entre todos los clientes
    - Datos de contacto completos (email, telefono, direccion)
 
-6. MEDIOS DE PAGO (asignados a cada cliente):
+5. MEDIOS DE PAGO (asignados a cada cliente):
    - Al menos 1 cuenta bancaria (habilitada para pago)
    - Al menos 1 tarjeta de credito (habilitada para pago)
    - Al menos 1 billetera electronica (habilitada para cobro)
    - Utilizan las Entidades Financieras existentes en la BD
 
-7. ENTIDADES FINANCIERAS:
+6. ENTIDADES FINANCIERAS:
    NOTA: NO se crean aqui, se obtienen de otra forma
 
-8. TASAS DE CAMBIO HISTORICAS (90 dias por defecto):
+7. TASAS DE CAMBIO HISTORICAS (90 dias por defecto):
    - Actualizaciones diarias con variaciones realistas (-2% a +2%)
    - PYG es siempre la divisa ORIGEN, las demas son DESTINO
    - Cada tasa incluye: precio_base, comision_compra, comision_venta (valores separados, no calculados)
 
-9. LIMITES DE TRANSACCIONES (configuracion fija):
+8. LIMITES DE TRANSACCIONES (configuracion fija):
    - Limite diario: 100,000,000 guaranies
    - Limite mensual: 800,000,000 guaranies
+
+9. TAUSERS (5 sucursales predefinidas):
+   - Casa Central, Shopping del Sol, Villa Morra, Ciudad del Este, Encarnacion
+   - Cada tauser tiene stock de divisas con diferentes denominaciones
+
+10. STOCK DE DIVISAS (por tauser):
+    - Denominaciones por divisa: PYG, USD, EUR, BRL, ARS
+    - Stock variado segun tipo de sucursal
+    - Stock reservado automatico (10% del total, maximo 20 unidades)
 
 OPCIONES DE EJECUCION:
 ---------------------
@@ -76,7 +85,7 @@ Limpiar y recargar:
     python dev.py populate-data-clear
 
 Historial personalizado:
-    python manage.py populate_data --historical-days 180
+    python manage.py populate_sample_data --historical-days 180
 
 MODIFICACION DE DATOS PARA QA:
 -----------------------------
@@ -102,6 +111,8 @@ from datetime import timedelta
 from decimal import Decimal
 
 from apps.operaciones.models import Divisa, TasaCambio
+from apps.stock.models import StockDivisaTauser
+from apps.tauser.models import Tauser
 from apps.transacciones.models import (
     BilleteraElectronica,
     CuentaBancaria,
@@ -214,7 +225,7 @@ TASAS_CONFIG = {
     "CLP": {"precio_base": Decimal("8"), "comision_venta": Decimal("0.5"), "comision_compra": Decimal("0.3")},
     "BOB": {"precio_base": Decimal("1100"), "comision_venta": Decimal("20"), "comision_compra": Decimal("15")},
 }
-
+# =========================================================================
 # Limites fijos de transacciones
 LIMITES_DATA = {
     "limite_diario": Decimal("100000000"),  # 100M guaranies
@@ -381,18 +392,21 @@ class Command(BaseCommand):
                 self.crear_divisas()
                 self.crear_tipos_cliente()
 
+                # Tausers y stock de divisas
+                self.create_tausers()
+                self.create_stock_divisas()
+
                 # Usuarios administradores
                 self.crear_usuario_admin()
                 self.crear_usuario_analista()
 
-                # Usuarios y clientes
-                cantidad_usuarios = 25 if options.get("full", False) else 10
-                cantidad_clientes = 50 if options.get("full", False) else 15
-                self.crear_usuarios(cantidad=cantidad_usuarios)
-                self.crear_clientes(cantidad=cantidad_clientes)
+                # Usuarios adicionales (siempre 9: 3 admins, 3 analistas, 3 operadores)
+                self.crear_usuarios(cantidad=9)
 
-                # Asignar roles a usuarios segun asociacion con clientes
-                self.asignar_roles_usuarios()
+                # Clientes (un cliente por cada RUC valido = 96 clientes)
+                # En modo --full crea todos los clientes, sino crea solo 15
+                cantidad_clientes = None if options.get("full", False) else 15
+                self.crear_clientes(cantidad=cantidad_clientes)
 
                 # Entidades financieras y medios de pago
                 self.crear_entidades_financieras()
@@ -475,10 +489,10 @@ class Command(BaseCommand):
         self.stdout.write(f"  Total tipos de cliente disponibles: {len(self.tipos_cliente_creados)}")
 
     def crear_usuario_admin(self):
-        """Crea usuario administrador con todos los permisos."""
+        """Crea usuario administrador principal con todos los permisos."""
         from django.contrib.auth.models import Group
 
-        self.stdout.write("Creando usuario administrador...")
+        self.stdout.write("Creando usuario administrador principal...")
 
         admin, created = User.objects.get_or_create(
             email="admin@test.com",
@@ -509,10 +523,10 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("  ADVERTENCIA: Grupo 'Administrador' no existe aun"))
 
     def crear_usuario_analista(self):
-        """Crea usuario analista cambiario."""
+        """Crea usuario analista cambiario principal."""
         from django.contrib.auth.models import Group
 
-        self.stdout.write("Creando usuario analista cambiario...")
+        self.stdout.write("Creando usuario analista cambiario principal...")
 
         analista, created = User.objects.get_or_create(
             email="analista@test.com",
@@ -542,55 +556,150 @@ class Command(BaseCommand):
         except Group.DoesNotExist:
             self.stdout.write(self.style.WARNING("  ADVERTENCIA: Grupo 'Analista Cambiario' no existe aun"))
 
-    def crear_usuarios(self, cantidad=10):
-        """Crea usuarios del sistema con datos variados."""
-        self.stdout.write(f"Creando {cantidad} usuarios...")
+    def crear_usuarios(self, cantidad=9):
+        """Crea usuarios adicionales con nombres y correos estaticos.
 
-        nombres_disponibles = NOMBRES_USUARIOS.copy()
+        Por defecto crea 9 usuarios:
+        - 3 administradores: admin1, admin2, admin3
+        - 3 analistas: analista1, analista2, analista3
+        - 3 operadores: operador1, operador2, operador3
+        """
+        from django.contrib.auth.models import Group
 
-        for _ in range(min(cantidad, len(nombres_disponibles))):
-            nombre = random.choice(nombres_disponibles)
-            nombres_disponibles.remove(nombre)  # Evitar duplicados
+        self.stdout.write(f"Creando {cantidad} usuarios adicionales con formato estatico...")
 
-            email = f"{nombre.lower().replace(' ', '.')}{random.randint(1, 999)}@{random.choice(DOMINIOS_EMAIL)}"
+        # Definir usuarios estaticos
+        usuarios_estaticos = [
+            # Administradores
+            {
+                "email": "admin1@test.com",
+                "nombre": "admin1",
+                "tipo": "Administrador",
+                "is_staff": True,
+                "is_superuser": True,
+            },
+            {
+                "email": "admin2@test.com",
+                "nombre": "admin2",
+                "tipo": "Administrador",
+                "is_staff": True,
+                "is_superuser": True,
+            },
+            {
+                "email": "admin3@test.com",
+                "nombre": "admin3",
+                "tipo": "Administrador",
+                "is_staff": True,
+                "is_superuser": True,
+            },
+            # Analistas
+            {
+                "email": "analista1@test.com",
+                "nombre": "analista1",
+                "tipo": "Analista Cambiario",
+                "is_staff": True,
+                "is_superuser": False,
+            },
+            {
+                "email": "analista2@test.com",
+                "nombre": "analista2",
+                "tipo": "Analista Cambiario",
+                "is_staff": True,
+                "is_superuser": False,
+            },
+            {
+                "email": "analista3@test.com",
+                "nombre": "analista3",
+                "tipo": "Analista Cambiario",
+                "is_staff": True,
+                "is_superuser": False,
+            },
+            # Operadores (Usuario Asociado a Cliente)
+            {
+                "email": "operador1@test.com",
+                "nombre": "operador1",
+                "tipo": "Usuario Asociado a Cliente",
+                "is_staff": False,
+                "is_superuser": False,
+            },
+            {
+                "email": "operador2@test.com",
+                "nombre": "operador2",
+                "tipo": "Usuario Asociado a Cliente",
+                "is_staff": False,
+                "is_superuser": False,
+            },
+            {
+                "email": "operador3@test.com",
+                "nombre": "operador3",
+                "tipo": "Usuario Asociado a Cliente",
+                "is_staff": False,
+                "is_superuser": False,
+            },
+        ]
 
+        for user_data in usuarios_estaticos[:cantidad]:
             usuario, created = User.objects.get_or_create(
-                email=email,
+                email=user_data["email"],
                 defaults={
-                    "nombre": nombre,
-                    "activo": random.choice([True, True, True, False]),  # 75% activos
-                    "is_staff": random.choice([True, False, False, False]),  # 25% staff
+                    "nombre": user_data["nombre"],
+                    "activo": True,
+                    "is_staff": user_data["is_staff"],
+                    "is_superuser": user_data["is_superuser"],
                 },
             )
 
             if created:
-                usuario.set_password("123")  # Contrasena por defecto
+                usuario.set_password("123")
                 usuario.save()
                 self.usuarios_creados.append(usuario)
-                estado = "Activo" if usuario.activo else "Inactivo"
-                staff = " (Staff)" if usuario.is_staff else ""
-                self.stdout.write(f"  Creado: {usuario.nombre} - {estado}{staff}")
+                self.stdout.write(f"  Creado: {usuario.email} - {user_data['tipo']}")
+            else:
+                self.usuarios_creados.append(usuario)
+                self.stdout.write(f"  Ya existe: {usuario.email}")
 
-        self.stdout.write(f"  Total usuarios: {len(self.usuarios_creados)}")
+            # Asignar rol correspondiente
+            try:
+                grupo = Group.objects.get(name=user_data["tipo"])
+                if grupo not in usuario.groups.all():
+                    usuario.groups.add(grupo)
+            except Group.DoesNotExist:
+                self.stdout.write(self.style.WARNING(f"  ADVERTENCIA: Grupo '{user_data['tipo']}' no existe"))
 
-    def crear_clientes(self, cantidad=15):
-        """Crea clientes con datos realistas."""
+        self.stdout.write(f"  Total usuarios creados: {len(self.usuarios_creados)}")
+
+    def crear_clientes(self, cantidad=None):
+        """Crea clientes con datos realistas usando todos los RUCs validos disponibles.
+
+        Args:
+            cantidad: Si se especifica, limita la cantidad de clientes a crear.
+                     Si es None, crea un cliente por cada RUC valido (96 clientes).
+
+        """
         from django.core.exceptions import ValidationError
 
-        self.stdout.write(f"🏢 Creando {cantidad} clientes...")
+        # Si no se especifica cantidad, usar todos los RUCs disponibles
+        if cantidad is None:
+            cantidad = len(RUCS_VALIDOS)
 
-        nombres_disponibles = NOMBRES_EMPRESAS.copy()
+        self.stdout.write(f"🏢 Creando {cantidad} clientes (uno por cada RUC valido)...")
+
+        # Usar todos los RUCs disponibles
         rucs_disponibles = RUCS_VALIDOS.copy()
+        random.shuffle(rucs_disponibles)  # Mezclar para variedad
 
-        for i in range(min(cantidad, len(nombres_disponibles), len(rucs_disponibles))):
-            # Usar RUC válido de la lista
-            ruc_completo = random.choice(rucs_disponibles)
-            rucs_disponibles.remove(ruc_completo)  # Evitar duplicados
+        # Repetir nombres de empresas si hay mas RUCs que nombres
+        nombres_disponibles = NOMBRES_EMPRESAS * (cantidad // len(NOMBRES_EMPRESAS) + 1)
+        random.shuffle(nombres_disponibles)
 
-            nombre = random.choice(nombres_disponibles)
-            nombres_disponibles.remove(nombre)  # Evitar duplicados
+        clientes_creados_count = 0
+        operadores_disponibles = [u for u in self.usuarios_creados if u.email.startswith("operador")]
 
-            # Generar email unico usando indice
+        for i in range(min(cantidad, len(rucs_disponibles))):
+            ruc_completo = rucs_disponibles[i]
+            nombre = nombres_disponibles[i]
+
+            # Generar email unico usando indice y nombre de empresa
             email_domain = nombre.lower().replace(" ", "").replace(".", "")[:15]
             email = f"contacto{i + 1}@{email_domain}.com.py"
 
@@ -609,24 +718,28 @@ class Command(BaseCommand):
                 )
 
                 if created:
-                    # Asignar usuarios aleatorios al cliente
-                    if self.usuarios_creados:
-                        usuarios_asignados = random.sample(
-                            self.usuarios_creados, random.randint(1, min(3, len(self.usuarios_creados)))
-                        )
-                        cliente.usuarios.set(usuarios_asignados)
+                    # Asignar operadores a los clientes (usuarios con rol "Usuario Asociado a Cliente")
+                    if operadores_disponibles:
+                        # Cada operador se asigna a multiples clientes
+                        operador = operadores_disponibles[i % len(operadores_disponibles)]
+                        cliente.usuarios.add(operador)
 
                     self.clientes_creados.append(cliente)
-                    tipo_cliente = cliente.tipo_cliente.nombre if cliente.tipo_cliente else "Sin tipo"
-                    self.stdout.write(f"  ✓ {cliente.nombre} - {tipo_cliente}")
+                    clientes_creados_count += 1
+
+                    # Mostrar progreso cada 10 clientes
+                    if clientes_creados_count % 10 == 0:
+                        self.stdout.write(f"  ✓ Creados {clientes_creados_count} clientes...")
                 else:
-                    self.stdout.write(f"  Ya existe: {cliente.nombre}")
-            except ValidationError:
+                    self.clientes_creados.append(cliente)
+
+            except ValidationError as e:
                 # Ignorar clientes duplicados (por email u otro campo unico)
-                self.stdout.write(f"  Ignorado: {nombre} - email duplicado")
+                self.stdout.write(f"  Ignorado: {nombre} - {e!s}")
                 continue
 
-        self.stdout.write(f"  📊 Total clientes: {len(self.clientes_creados)}")
+        self.stdout.write(f"  📊 Total clientes creados: {clientes_creados_count}")
+        self.stdout.write(f"  📊 Total clientes en lista: {len(self.clientes_creados)}")
 
     def asignar_roles_usuarios(self):
         """Asigna roles a usuarios segun si estan asociados a clientes o no."""
@@ -758,7 +871,7 @@ class Command(BaseCommand):
         """Crea limites de transacciones fijos."""
         self.stdout.write("Creando limites de transacciones...")
 
-        limite = LimiteTransacciones.objects.create(
+        LimiteTransacciones.objects.create(
             limite_diario=LIMITES_DATA["limite_diario"], limite_mensual=LIMITES_DATA["limite_mensual"]
         )
 
@@ -875,6 +988,86 @@ class Command(BaseCommand):
         self.stdout.write("  Tipos de cliente: Se usan los 3 fijos (VIP, Corporativo, Minorista)")
         self.stdout.write("  Entidades financieras: Se obtienen de otra forma")
 
+    def create_tausers(self):
+        """Crear tausers de ejemplo."""
+        self.stdout.write("Creando tausers...")
+
+        tausers_data = [
+            {"nombre": "Casa Central", "ubicacion": "Av. Mariscal López 1234, Asunción - Centro"},
+            {"nombre": "Sucursal Shopping del Sol", "ubicacion": "Shopping del Sol, Local 205, Asunción"},
+            {"nombre": "Sucursal Villa Morra", "ubicacion": "Av. Aviadores del Chaco 2050, Asunción - Villa Morra"},
+            {"nombre": "Sucursal Ciudad del Este", "ubicacion": "Av. San Blas 1456, Ciudad del Este, Alto Paraná"},
+            {"nombre": "Sucursal Encarnación", "ubicacion": "Calle 14 de Mayo 789, Encarnación, Itapúa"},
+        ]
+
+        for tauser_data in tausers_data:
+            tauser, created = Tauser.objects.get_or_create(
+                nombre=tauser_data["nombre"], defaults={"ubicacion": tauser_data["ubicacion"]}
+            )
+            if created:
+                self.stdout.write(f"  Creado tauser: {tauser.nombre}")
+
+    def create_stock_divisas(self):
+        """Crear stock de divisas para cada tauser."""
+        self.stdout.write("Creando stock de divisas...")
+
+        tausers = list(Tauser.objects.all())
+        divisas = list(Divisa.objects.all())
+
+        # Denominaciones comunes para cada divisa
+        denominaciones_por_divisa = {
+            "PYG": [2000, 5000, 10000, 20000, 50000, 100000],
+            "USD": [1, 5, 10, 20, 50, 100],
+            "EUR": [5, 10, 20, 50, 100, 200],
+            "BRL": [2, 5, 10, 20, 50, 100, 200],
+            "ARS": [100, 200, 500, 1000, 2000],
+        }
+
+        # Stock inicial base por denominación (varía por tauser)
+        stock_base = {
+            "PYG": {2000: 400, 5000: 300, 10000: 200, 20000: 150, 50000: 100, 100000: 50},
+            "USD": {1: 200, 5: 150, 10: 100, 20: 80, 50: 50, 100: 30},
+            "EUR": {5: 100, 10: 80, 20: 60, 50: 40, 100: 25, 200: 15},
+            "BRL": {2: 150, 5: 120, 10: 90, 20: 70, 50: 45, 100: 25, 200: 15},
+            "ARS": {100: 200, 200: 150, 500: 100, 1000: 80, 2000: 40},
+        }
+
+        for tauser in tausers:
+            self.stdout.write(f"  Creando stock para tauser: {tauser.nombre}")
+
+            for divisa in divisas:
+                denominaciones = denominaciones_por_divisa.get(divisa.codigo, [])
+                stock_divisa = stock_base.get(divisa.codigo, {})
+
+                for denominacion in denominaciones:
+                    # Variar el stock base según el tauser
+                    # Casa Central tiene más stock, sucursales menores tienen menos
+                    multiplier = 1.0
+                    if "Casa Central" in tauser.nombre:
+                        multiplier = 1.5
+                    elif "Ciudad del Este" in tauser.nombre or "Encarnación" in tauser.nombre:
+                        multiplier = 0.7
+                    else:
+                        multiplier = 1.0
+
+                    stock_cantidad = int(stock_divisa.get(denominacion, 50) * multiplier)
+                    stock_reservado = min(stock_cantidad // 10, 20)  # 10% reservado, máximo 20
+
+                    stock, created = StockDivisaTauser.objects.get_or_create(
+                        tauser=tauser,
+                        divisa=divisa,
+                        denominacion=denominacion,
+                        defaults={"stock": stock_cantidad, "stock_reservado": stock_reservado},
+                    )
+
+                    if created:
+                        self.stdout.write(
+                            f"    {divisa.codigo} {denominacion}: {stock_cantidad} unidades "
+                            f"(reservado: {stock_reservado})"
+                        )
+
+        self.stdout.write("¡Stock de divisas creado exitosamente!")
+
     def mostrar_resumen(self):
         """Muestra un resumen de los datos cargados."""
         self.stdout.write("RESUMEN DE DATOS CARGADOS:")
@@ -889,5 +1082,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  - Medios Financieros: {medios_count}")
         self.stdout.write(f"  - Tasas de Cambio: {TasaCambio.objects.count()}")
         self.stdout.write(f"  - Limites de Transacciones: {LimiteTransacciones.objects.count()}")
+        self.stdout.write(f"  - Tausers: {Tauser.objects.count()}")
+        self.stdout.write(f"  - Stock de Divisas: {StockDivisaTauser.objects.count()}")
         self.stdout.write("")
         self.stdout.write("Sistema listo para pruebas y desarrollo!")

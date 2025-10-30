@@ -407,7 +407,7 @@
         "run",
         "python",
         "manage.py",
-        "populate_data"
+        "populate_sample_data"
       ],
       "cwd": "."
     },
@@ -427,7 +427,7 @@
         "run",
         "python",
         "manage.py",
-        "populate_data",
+        "populate_sample_data",
         "--full"
       ],
       "cwd": "."
@@ -448,7 +448,7 @@
         "run",
         "python",
         "manage.py",
-        "populate_data",
+        "populate_sample_data",
         "--clear"
       ],
       "cwd": "."
@@ -457,7 +457,7 @@
       "cmd": [
         "python",
         "manage.py",
-        "populate_data"
+        "populate_sample_data"
       ],
       "cwd": "app"
     },
@@ -465,7 +465,7 @@
       "cmd": [
         "python",
         "manage.py",
-        "populate_data",
+        "populate_sample_data",
         "--full"
       ],
       "cwd": "app"
@@ -474,7 +474,7 @@
       "cmd": [
         "python",
         "manage.py",
-        "populate_data",
+        "populate_sample_data",
         "--clear"
       ],
       "cwd": "app"
