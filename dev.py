@@ -220,6 +220,35 @@ def deploy_to_heroku():
         )
 
         print(f"\n🎉 Successfully deployed to Heroku app: {app_name}")
+        
+        # Step 6: Deploy simulador-api (if exists)
+        simulador_app_name = "global-exchange-simulador"
+        if os.path.exists("api_externo_simulador"):
+            print(f"\n=== Deploying Simulador API to {simulador_app_name} ===")
+            try:
+                # Use git subtree to push only the api_externo_simulador folder
+                print("\n6. Deploying simulador-api using git subtree...")
+                subprocess.run(
+                    [
+                        "git",
+                        "subtree",
+                        "push",
+                        "--prefix",
+                        "api_externo_simulador",
+                        f"https://git.heroku.com/{simulador_app_name}.git",
+                        "HEAD:main"
+                    ],
+                    check=True,
+                )
+                print(f"\nSuccessfully deployed simulador-api to: {simulador_app_name}")
+            except subprocess.CalledProcessError as e:
+                print(f"\nWARNING: Simulador deployment failed with return code {e.returncode}")
+                print("Main app deployed successfully, but simulador deployment failed.")
+                print("You can deploy it manually with:")
+                print(f"  git subtree push --prefix api_externo_simulador https://git.heroku.com/{simulador_app_name}.git main")
+        else:
+            print("\nSkipping simulador-api deployment (folder not found)")
+            
     except subprocess.CalledProcessError as e:
         print(f"ERROR: Deployment step failed with return code {e.returncode}")
         sys.exit(1)
