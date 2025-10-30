@@ -226,26 +226,44 @@ def deploy_to_heroku():
         if os.path.exists("api_externo_simulador"):
             print(f"\n=== Deploying Simulador API to {simulador_app_name} ===")
             try:
-                # Use git subtree to push only the api_externo_simulador folder
-                print("\n6. Deploying simulador-api using git subtree...")
+                # Deploy using Docker (same as main app)
+                print("\n6. Logging in to Heroku Container Registry...")
+                subprocess.run([heroku_command, "container:login"], check=True)
+
+                print("\n7. Setting simulador app stack to 'container'...")
+                subprocess.run(
+                    [heroku_command, "stack:set", "container", "--app", simulador_app_name], check=True
+                )
+
+                print("\n8. Building the simulador Docker image...")
                 subprocess.run(
                     [
-                        "git",
-                        "subtree",
-                        "push",
-                        "--prefix",
-                        "api_externo_simulador",
-                        f"https://git.heroku.com/{simulador_app_name}.git",
-                        "HEAD:main"
+                        "docker",
+                        "buildx",
+                        "build",
+                        "--provenance=false",
+                        "--platform=linux/amd64",
+                        "-t",
+                        f"registry.heroku.com/{simulador_app_name}/web",
+                        "./api_externo_simulador",
                     ],
                     check=True,
                 )
-                print(f"\nSuccessfully deployed simulador-api to: {simulador_app_name}")
+
+                print("\n9. Pushing the simulador Docker image...")
+                subprocess.run(
+                    ["docker", "push", f"registry.heroku.com/{simulador_app_name}/web"], check=True
+                )
+
+                print("\n10. Releasing the simulador Docker image...")
+                subprocess.run(
+                    [heroku_command, "container:release", "web", "--app", simulador_app_name], check=True
+                )
+
+                print(f"\n🎉 Successfully deployed simulador-api to: {simulador_app_name}")
             except subprocess.CalledProcessError as e:
                 print(f"\nWARNING: Simulador deployment failed with return code {e.returncode}")
                 print("Main app deployed successfully, but simulador deployment failed.")
-                print("You can deploy it manually with:")
-                print(f"  git subtree push --prefix api_externo_simulador https://git.heroku.com/{simulador_app_name}.git main")
         else:
             print("\nSkipping simulador-api deployment (folder not found)")
             
