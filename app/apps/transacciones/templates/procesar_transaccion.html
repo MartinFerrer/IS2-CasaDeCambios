@@ -515,39 +515,27 @@
                             <div class="text-xs opacity-60">Realizar otra</div>
                         </div>
                     </a>
-                    {% if transaccion.stripe_payment and transaccion.stripe_payment.status == 'succeeded' %}
-                        <button id="btnPagarTransaccion"
-                                class="btn btn-success btn-lg btn-disabled"
-                                disabled>
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-6 w-6"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <div class="text-left">
-                                <div class="font-semibold">Pago Completado</div>
-                                <div class="text-xs opacity-60">Transacción pagada</div>
-                            </div>
-                        </button>
-                    {% else %}
-                        <button id="btnPagarTransaccion"
-                                onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
-                                class="btn btn-success btn-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="h-6 w-6"
-                                 fill="none"
-                                 viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <div class="text-left">
+                    <button id="btnPagarTransaccion"
+                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
+                            class="btn btn-success btn-lg"
+                            {% if transaccion.fecha_procesamiento %}disabled{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <div class="text-left">
+                            {% if transaccion.tipo_operacion == 'compra' %}
                                 <div class="font-semibold">Pagar Transacción</div>
                                 <div class="text-xs opacity-60">Procesar pago</div>
-                            </div>
-                        </button>
-                    {% endif %}
+                            {% else %}
+                                <div class="font-semibold">Generar Código</div>
+                                <div class="text-xs opacity-60">Generar código para Tauser</div>
+                            {% endif %}
+                        </div>
+                    </button>
                     <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
                             class="btn btn-error btn-outline btn-lg">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -741,7 +729,11 @@
                         });
                     } else {
                         // No hay cambio, proceder con el pago
-                        continuarConPago(transaccionId);
+                        if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                            verificarDisponibilidadTauser(transaccionId);
+                        } else {
+                            continuarConPago(transaccionId);
+                        }
                     }
                 } else {
                     // Error en verificación, mostrar advertencia pero permitir continuar
@@ -757,6 +749,29 @@
             });
         }
 
+        function verificarDisponibilidadTauser(transaccionId) {
+            fetch(`/transacciones/api/verificar-disponibilidad-tauser/${transaccionId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.warn('Error:', data.message);
+                    showToast(`Error: ${data.message || 'No hay stock suficiente en el Tauser para completar la transacción.'} Intente nuevamente más tarde.`, 'error');
+                    restaurarBotonPagar();
+                }
+                else {
+                    // Proceder con el pago si hay disponibilidad
+                    continuarConPago(transaccionId);
+                }
+            })
+            .catch(error => {
+                console.error('Error al verificar disponibilidad del Tauser:', error);
+            });
+        }
         function continuarConPago(transaccionId) {
             const btnPagar = document.getElementById('btnPagarTransaccion');
             btnPagar.innerHTML = `
@@ -834,6 +849,12 @@
             } else {
                 // Error al abrir ventana (bloqueador de popups)
                 showToast('Error: No se pudo abrir la ventana del banco. Revisa el bloqueador de ventanas emergentes.', 'error');
+                
+                // Cancelar la reserva de billetes si es una compra
+                if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                    cancelarReserva(transaccionId);
+                }
+                
                 restaurarBotonPagar();
             }
         }
@@ -851,8 +872,6 @@
                     <div class="text-xs opacity-60">Validando tasa actual</div>
                 </div>
             `;
-
-            // Verificar cotización antes de proceder al pago
             verificarCotizacionPrePago(transaccionId);
         }
 
@@ -903,23 +922,26 @@
         }
 
         function handleAbrirTauserRetiro(data) {
-            console.log('Abriendo popup TAUSER para retiro:', data);
+            console.log('Abriendo popup TAUSER:', data);
 
             // Cerrar la ventana del banco si aún está abierta
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
             }
 
-            // Abrir popup para código TAUSER de retiro
+            // Abrir popup para código TAUSER
             const urlTauser = `/transacciones/popup-tauser-retiro/${data.transaccionId}/`;
             ventanaBanco = window.open(
                 urlTauser,
-                'tauserRetiro',
+                'tauserCodigo',
                 'width=600,height=700,scrollbars=yes,resizable=yes,modal=yes,dependent=yes,alwaysRaised=yes'
             );
 
             if (!ventanaBanco) {
                 showToast('Error: No se pudo abrir la ventana TAUSER. Revisa el bloqueador de ventanas emergentes.', 'error');
+                if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                    cancelarReserva(data.transaccionId);
+                }
                 desbloquearPaginaPadre();
                 restaurarBotonPagar();
             }
@@ -960,10 +982,38 @@
             console.log('Ventana cerrada después de completar:', data);
             // No hacer nada especial, el proceso ya se completó
         }
-
+        
+        function cancelarReserva(transaccionId) {
+            fetch(`/stock/api/cancelar-movimiento/${transaccionId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log('Reserva cancelada exitosamente');
+                } else {
+                    console.warn('No se pudo cancelar la reserva:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error al cancelar la reserva:', error);
+            });
+        }
         function handleVentanaCerradaSinCompletar(data) {
             console.log('Ventana cerrada sin completar el proceso:', data);
             showToast('Proceso bancario cancelado por el usuario', 'warning');
+            if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                cancelarReserva(data.transaccionId);
+            }
             desbloquearPaginaPadre();
             restaurarBotonPagar();
         }

@@ -1,0 +1,255 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Resumen de Operación - Global Exchange</title>
+        <link rel="icon"
+              type="image/x-icon"
+              href="{% static 'images/favicon.ico' %}">
+        <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    </head>
+    <body class="bg-base-200 min-h-screen">
+        <div class="min-h-screen flex items-center justify-center p-4">
+            <div class="card w-full max-w-lg bg-base-100 shadow-2xl">
+                <div class="card-body">
+                    <!-- Logo y título -->
+                    <div class="text-center mb-8">
+                        <!-- Logo -->
+                        <div class="flex justify-center mb-4">
+                            <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                                <img src="{% static 'images/favicon.ico' %}"
+                                     alt="Global Exchange Logo"
+                                     class="w-16 h-16"
+                                     width="64"
+                                     height="64">
+                            </div>
+                        </div>
+                        <h1 class="text-3xl font-bold text-primary mb-2">Global Exchange</h1>
+                        <h2 class="text-xl font-semibold text-base-content mb-4">Resumen de Operación</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <!-- Info del cliente y fecha -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between p-4 bg-base-200 rounded-lg shadow-inner">
+                            <div class="flex items-center space-x-3">
+                                <div class="avatar">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-success to-success-focus flex items-center justify-center shadow-lg">
+                                        <svg class="w-6 h-6 text-success-content"
+                                             fill="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-base-content/70 font-medium">Cliente:</div>
+                                    <div class="font-bold text-base">{{ transaccion.cliente.nombre }}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-base-content/70 font-medium">Fecha:</div>
+                                <div class="text-sm font-semibold">{{ transaccion.fecha_creacion|date:"d/m/Y H:i" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Detalles de la transacción -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-base-content mb-4">Detalles de la Operación</h3>
+                        <div class="space-y-4">
+                            <!-- Tipo de operación -->
+                            <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                <span class="text-base font-medium">Tipo de Operación:</span>
+                                <div class="badge {% if transaccion.tipo_operacion == 'compra' %}badge-success{% else %}badge-info{% endif %} badge-lg">
+                                    {{ transaccion.tipo_operacion|title }}
+                                </div>
+                            </div>
+                            <!-- Divisas -->
+                            <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                <span class="text-base font-medium">Conversión:</span>
+                                <span class="font-bold text-lg">{{ transaccion.divisa_origen.codigo }} → {{ transaccion.divisa_destino.codigo }}</span>
+                            </div>
+                            <!-- Montos -->
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                    <span class="text-base font-medium">Monto Origen:</span>
+                                    <span class="font-bold text-lg text-primary">
+                                        {{ transaccion.monto_origen|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                    <span class="text-base font-medium">Monto Destino:</span>
+                                    <span class="font-bold text-lg text-success">
+                                        {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Tasa de cambio -->
+                            <div class="flex justify-between items-center p-3 bg-primary/10 rounded-lg border border-primary/20">
+                                <span class="text-base font-medium">Tasa de Cambio:</span>
+                                <span class="font-bold text-xl text-primary">{{ transaccion.tasa_aplicada|floatformat:4 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% if cambio_cotizacion %}
+                        <!-- Sección de cambio de cotización -->
+                        <div class="alert alert-warning mb-6">
+                            <div class="flex flex-col items-center text-center">
+                                <svg class="stroke-current w-6 h-6 mb-2" fill="none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <h3 class="font-bold text-lg mb-2">¡Cambio en la Cotización Detectada!</h3>
+                                <p class="text-sm mb-4">La tasa de cambio ha variado significativamente desde que se creó la transacción.</p>
+                                <!-- Comparación de tasas -->
+                                <div class="grid grid-cols-2 gap-4 w-full mb-4">
+                                    <div class="bg-base-100 p-3 rounded">
+                                        <div class="text-xs text-base-content/60 mb-1">Tasa Original:</div>
+                                        <div class="font-bold text-error">{{ resultado_verificacion.tasa_original|floatformat:4 }}</div>
+                                    </div>
+                                    <div class="bg-base-100 p-3 rounded">
+                                        <div class="text-xs text-base-content/60 mb-1">Tasa Actual:</div>
+                                        <div class="font-bold text-success">{{ resultado_verificacion.tasa_actual|floatformat:4 }}</div>
+                                    </div>
+                                </div>
+                                {% if resultado_verificacion.porcentaje_cambio %}
+                                    <div class="w-full text-center mb-4">
+                                        <div class="inline-block bg-base-100 px-4 py-2 rounded">
+                                            <span class="text-sm font-medium text-base-content/70">Variación:</span>
+                                            <span class="font-bold text-info">{{ resultado_verificacion.porcentaje_cambio|floatformat:2 }}%</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <!-- Botones de decisión -->
+                                <div class="grid grid-cols-2 gap-3 w-full">
+                                    <form method="post" action="{% url 'tauser:aceptar_nueva_cotizacion' %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm w-full">
+                                            <svg class="w-4 h-4 mr-2"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Aceptar Nueva Tasa
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'tauser:cancelar_por_cotizacion' %}">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-error btn-sm w-full"
+                                                onclick="return confirm('¿Está seguro de cancelar la transacción?')">
+                                            <svg class="w-4 h-4 mr-2"
+                                                 fill="none"
+                                                 stroke="currentColor"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                            Cancelar Transacción
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <!-- Botones de acción -->
+                    <div class="grid grid-cols-2 gap-3 {% if cambio_cotizacion %}opacity-50{% endif %}">
+                        {% if transaccion.tipo_operacion == 'compra' %}
+                            <button type="button"
+                                    class="btn btn-success btn-lg"
+                                    onclick="procederOperacion()"
+                                    {% if cambio_cotizacion %}disabled{% endif %}>Retirar Divisa</button>
+                        {% else %}
+                            <button type="button"
+                                    class="btn btn-info btn-lg"
+                                    onclick="procederOperacion()"
+                                    {% if cambio_cotizacion %}disabled{% endif %}>Depositar Billetes</button>
+                        {% endif %}
+                        <form method="post"
+                              action="{% url 'tauser:cancelar_operacion' %}"
+                              class="w-full">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="btn btn-secondary btn-lg w-full"
+                                    onclick="return confirm('¿Desea volver al inicio?')"
+                                    {% if cambio_cotizacion %}disabled{% endif %}>Volver al Inicio</button>
+                        </form>
+                    </div>
+                    <!-- ID de transacción -->
+                    <div class="text-center mt-6 pt-4 border-t border-base-300">
+                        <p class="text-sm text-base-content/60">ID de Transacción: {{ transaccion.id_transaccion|slice:":8" }}...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+        function procederOperacion() {
+            // No permitir proceder si hay cambio de cotización pendiente
+            {% if cambio_cotizacion %}
+                alert('Debe aceptar o cancelar el cambio de cotización antes de continuar.');
+                return;
+            {% endif %}
+            
+            const tipoOperacion = '{{ transaccion.tipo_operacion }}';
+            
+            if (tipoOperacion === 'compra') {
+                window.location.href = '{% url "tauser:procesar_compra" %}';
+            } else {
+                window.location.href = '{% url "tauser:procesar_venta" %}';
+            }
+        }
+
+        // Auto focus para mejor accesibilidad
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if cambio_cotizacion %}
+                // Si hay cambio de cotización, focus en el botón "Aceptar"
+                setTimeout(() => {
+                    const acceptButton = document.querySelector('button[type="submit"]:contains("Aceptar")') || 
+                                       document.querySelector('form[action*="aceptar"] button');
+                    if (acceptButton) {
+                        acceptButton.focus();
+                    }
+                }, 1000);
+            {% else %}
+                // Focus en el primer botón después de 1 segundo
+                setTimeout(() => {
+                    const firstButton = document.querySelector('button[onclick="procederOperacion()"]');
+                    if (firstButton) {
+                        firstButton.focus();
+                    }
+                }, 1000);
+            {% endif %}
+        });
+
+        // Navegación con teclado
+        document.addEventListener('keydown', function(e) {
+            {% if cambio_cotizacion %}
+                // Navegación para modo de cambio de cotización
+                if (e.key === '1') {
+                    // Aceptar nueva cotización
+                    document.querySelector('form[action*="aceptar"] button').click();
+                } else if (e.key === '2') {
+                    // Cancelar transacción
+                    if (confirm('¿Está seguro de cancelar la transacción?')) {
+                        document.querySelector('form[action*="cancelar-cotizacion"] button').click();
+                    }
+                }
+            {% else %}
+                // Navegación normal
+                if (e.key === '1') {
+                    procederOperacion();
+                } else if (e.key === '2') {
+                    if (confirm('¿Desea volver al inicio? La transacción quedará pendiente.')) {
+                        document.querySelector('form[action*="cancelar"]').submit();
+                    }
+                } else if (e.key === 'Escape') {
+                    if (confirm('¿Desea volver al inicio? La transacción quedará pendiente.')) {
+                        document.querySelector('form[action*="cancelar"]').submit();
+                    }
+                }
+            {% endif %}
+        });
+        </script>
+    </body>
+</html>

@@ -41,6 +41,19 @@ def cargar_denominaciones_divisa():
         print(f"Error cargando denominaciones: {e}")
         return {}
 
+def cargar_denominaciones_divisa_especifica(divisa_id):
+    """Carga las denominaciones para una divisa específica.
+
+    Args:
+        divisa_id (str): Código ISO de la divisa (ej. 'USD').
+
+    Returns:
+        list[int]: Lista de denominaciones o [] si no se encuentra.
+
+    """
+    todas_denominaciones = cargar_denominaciones_divisa()
+    return todas_denominaciones.get(divisa_id, [])
+
 
 def obtener_stock_tauser(tauser_id):
     """Obtiene el stock de un tauser agrupado por divisa.
@@ -118,16 +131,65 @@ def obtener_denominaciones_disponibles(tauser_id, divisa_id):
         'stock_reservado': stock.stock_reservado,
     } for stock in stocks]
 
+def monto_valido(divisa_id, monto):
+    """Verifica si el monto solicitado puede ser cubierto con las denominaciones definidas.
+
+    Args:
+        divisa_id (str): Código de la divisa (ej. 'USD')
+        monto (int): Monto solicitado
+
+    Returns:
+        bool: True si el monto puede ser cubierto, False en caso contrario.
+
+    """
+    # Asegurarse de que el monto es entero no-negativo
+    try:
+        monto_int = int(monto)
+    except (TypeError, ValueError):
+        return False
+
+    if monto_int < 0:
+        return False
+
+    # Cargar denominaciones globales desde el JSON
+    denoms = cargar_denominaciones_divisa_especifica(divisa_id)
+    if not denoms:
+        # Si no hay definidas denominaciones para la divisa, no es válido
+        return False
+    # DP: clásico problema de cambio de monedas (unbounded coin change)
+    # Usamos una tabla booleana hasta monto_int para saber si se puede formar
+    # Para eficiencia, si monto_int es grande, cortamos a un límite razonable (ej. 1000000)
+    max_monto_dp = 100_000_000
+    if monto_int > max_monto_dp:
+        # Evitar consumo excesivo de memoria/CPU; el caller puede usar otra vía
+        return False
+
+    reachable = [False] * (monto_int + 1)
+    reachable[0] = True
+
+    # Ordenar denominaciones ascendentes para llenar la tabla
+    denoms_sorted = sorted({int(d) for d in denoms if int(d) > 0})
+    if not denoms_sorted:
+        return False
+
+    for coin in denoms_sorted:
+        for s in range(coin, monto_int + 1):
+            if reachable[s - coin]:
+                reachable[s] = True
+
+    return reachable[monto_int]
 
 @transaction.atomic
-def depositar_divisas(tauser_id, divisa_id, denominaciones_cantidades):
+def depositar_divisas(tauser_id, divisa_id, denominaciones_cantidades, transaccion=None,panel_admin=True):
     """Deposita divisas en el stock de un tauser.
     
     Args:
         tauser_id: ID del tauser
         divisa_id: ID de la divisa
         denominaciones_cantidades: lista de {'denominacion': int, 'cantidad': int}
-    
+        transaccion: La transacción asociada (opcional)
+        panel_admin: Indica si la acción es desde el panel de administración o desde transacciones
+
     Returns:
         MovimientoStock creado
 
@@ -143,8 +205,9 @@ def depositar_divisas(tauser_id, divisa_id, denominaciones_cantidades):
         tauser=tauser,
         divisa=divisa,
         tipo_movimiento='entrada',
+        transaccion=transaccion,
         estado='confirmado',
-        motivo=f'Depósito manual de {divisa.codigo}',
+        motivo=f'Depósito manual de {divisa.codigo}' if panel_admin else f'Transaccion - Depósito de {divisa.codigo}',
     )
 
     # Procesar cada denominación
@@ -178,13 +241,15 @@ def depositar_divisas(tauser_id, divisa_id, denominaciones_cantidades):
 
 
 @transaction.atomic
-def extraer_divisas(tauser_id, divisa_id, denominaciones_cantidades):
+def extraer_divisas(tauser_id, divisa_id, denominaciones_cantidades, transaccion=None, panel_admin=True):
     """Extrae divisas del stock de un tauser.
     
     Args:
         tauser_id: ID del tauser
         divisa_id: ID de la divisa
         denominaciones_cantidades: lista de {'denominacion': int, 'cantidad': int}
+        transaccion: La transacción asociada (opcional)
+        panel_admin: Indica si la acción es desde el panel de administración o desde transacciones
     
     Returns:
         MovimientoStock creado
@@ -223,8 +288,9 @@ def extraer_divisas(tauser_id, divisa_id, denominaciones_cantidades):
         tauser=tauser,
         divisa=divisa,
         tipo_movimiento='salida',
-        estado='confirmado',
-        motivo=f'Extracción manual de {divisa.codigo}',
+        transaccion=transaccion,
+        estado='confirmado' if panel_admin else 'pendiente',
+        motivo=f'Extracción manual de {divisa.codigo}' if panel_admin else f'Transaccion - Extracción de {divisa.codigo}',
     )
 
     # Procesar cada denominación
@@ -241,6 +307,9 @@ def extraer_divisas(tauser_id, divisa_id, denominaciones_cantidades):
 
         # Actualizar stock
         stock_obj.stock -= cantidad
+        # Si es una transacción, aumentar stock reservado
+        if transaccion is not None:
+            stock_obj.stock_reservado += cantidad
         stock_obj.save()
 
         # Crear detalle del movimiento
@@ -251,3 +320,84 @@ def extraer_divisas(tauser_id, divisa_id, denominaciones_cantidades):
         )
 
     return movimiento
+
+@transaction.atomic
+def cancelar_movimiento(movimiento_id):
+    """Cancela un movimiento de stock, revirtiendo los cambios en el stock.
+
+    Args:
+        movimiento_id (int): ID del movimiento a cancelar.
+
+    Raises:
+        ValidationError: Si el movimiento no puede ser cancelado.
+
+    """
+    movimiento = MovimientoStock.objects.select_for_update().get(id=movimiento_id)
+
+    if movimiento.estado != 'pendiente':
+        raise ValidationError("Solo se pueden cancelar movimientos pendientes.")
+
+    for detalle in movimiento.detalles.all():
+        stock_obj = StockDivisaTauser.objects.select_for_update().get(
+            tauser=movimiento.tauser,
+            divisa=movimiento.divisa,
+            denominacion=detalle.denominacion
+        )
+
+        if movimiento.tipo_movimiento == 'entrada':
+            # Revertir depósito
+            if stock_obj.stock_reservado < detalle.cantidad:
+                raise ValidationError(f"No hay suficiente stock reservado para revertir la denominación {detalle.denominacion}.")
+            stock_obj.stock_reservado -= detalle.cantidad
+        elif movimiento.tipo_movimiento == 'salida':
+            # Revertir extracción
+            stock_obj.stock += detalle.cantidad
+            if movimiento.transaccion is not None:
+                # Si fue parte de una transacción, liberar stock reservado
+                if stock_obj.stock_reservado < detalle.cantidad:
+                    raise ValidationError(f"No hay suficiente stock reservado para revertir la denominación {detalle.denominacion}.")
+                stock_obj.stock_reservado -= detalle.cantidad
+        stock_obj.save()
+
+    movimiento.estado = 'cancelado'
+    movimiento.save()
+
+
+@transaction.atomic
+def confirmar_movimiento(movimiento_id):
+    """Confirma un movimiento de stock pendiente.
+
+    Args:
+        movimiento_id (int): ID del movimiento a confirmar.
+
+    Raises:
+        ValidationError: Si el movimiento no puede ser confirmado.
+
+    """
+    movimiento = MovimientoStock.objects.select_for_update().get(id=movimiento_id)
+
+    if movimiento.estado != 'pendiente':
+        raise ValidationError("Solo se pueden confirmar movimientos pendientes.")
+
+    for detalle in movimiento.detalles.all():
+        stock_obj = StockDivisaTauser.objects.select_for_update().get(
+            tauser=movimiento.tauser,
+            divisa=movimiento.divisa,
+            denominacion=detalle.denominacion
+        )
+
+        if movimiento.tipo_movimiento == 'entrada':
+            # Reducir stock reservado al confirmar depósito
+            if stock_obj.stock_reservado < detalle.cantidad:
+                raise ValidationError(f"No hay suficiente stock reservado para confirmar la denominación {detalle.denominacion}.")
+            stock_obj.stock_reservado -= detalle.cantidad
+            stock_obj.stock += detalle.cantidad
+        elif movimiento.tipo_movimiento == 'salida':
+            # Reducir stock reservado al confirmar extracción
+            if stock_obj.stock_reservado < detalle.cantidad:
+                raise ValidationError(f"No hay suficiente stock reservado para confirmar la denominación {detalle.denominacion}.")
+            stock_obj.stock_reservado -= detalle.cantidad
+        stock_obj.save()
+
+    movimiento.estado = 'confirmado'
+    movimiento.save()

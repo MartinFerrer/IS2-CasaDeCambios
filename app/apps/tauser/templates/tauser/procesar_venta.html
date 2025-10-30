@@ -1,0 +1,405 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Depositar Billetes - Global Exchange</title>
+        <link rel="icon"
+              type="image/x-icon"
+              href="{% static 'images/favicon.ico' %}">
+        <link rel="stylesheet" href="{% static 'css/output.css' %}">
+    </head>
+    <body class="bg-base-200 min-h-screen">
+        <div class="min-h-screen flex items-center justify-center p-4">
+            <div class="card w-full max-w-lg bg-base-100 shadow-2xl">
+                <div class="card-body">
+                    <!-- Logo y título -->
+                    <div class="text-center mb-8">
+                        <!-- Logo -->
+                        <div class="flex justify-center mb-4">
+                            <div class="w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                                <img src="{% static 'images/favicon.ico' %}"
+                                     alt="Global Exchange Logo"
+                                     class="w-16 h-16"
+                                     width="64"
+                                     height="64">
+                            </div>
+                        </div>
+                        <h1 class="text-3xl font-bold text-primary mb-2">Global Exchange</h1>
+                        <h2 class="text-xl font-semibold text-base-content mb-4">Depositar Billetes</h2>
+                        <div class="divider"></div>
+                    </div>
+                    <!-- Icono de procesamiento -->
+                    <div class="text-center mb-6">
+                        <div class="w-24 h-24 mx-auto bg-info rounded-full flex items-center justify-center shadow-lg mb-4">
+                            <svg class="w-12 h-12 text-info-content"
+                                 fill="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold text-info mb-2">Procesando Venta</h3>
+                        <p class="text-lg text-base-content/80">Deposite los billetes en el compartimento correspondiente.</p>
+                    </div>
+                    {% if transaccion %}
+                        <!-- Detalles de la transacción -->
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-base-content mb-4">Resumen de la Operación</h4>
+                            <div class="space-y-3">
+                                <!-- Cliente -->
+                                <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                    <span class="text-base font-medium">Cliente:</span>
+                                    <span class="font-bold">{{ transaccion.cliente.nombre }}</span>
+                                </div>
+                                <!-- Conversión -->
+                                <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                    <span class="text-base font-medium">Conversión:</span>
+                                    <span class="font-bold text-lg">{{ transaccion.divisa_origen.codigo }} → {{ transaccion.divisa_destino.codigo }}</span>
+                                </div>
+                                <!-- Monto a depositar -->
+                                <div class="flex justify-between items-center p-3 bg-info/10 rounded-lg border border-info/20">
+                                    <span class="text-base font-medium">Monto a Depositar:</span>
+                                    <span class="font-bold text-xl text-info">
+                                        {{ transaccion.monto_origen|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}
+                                    </span>
+                                </div>
+                                <!-- Monto a recibir -->
+                                <div class="flex justify-between items-center p-3 bg-success/10 rounded-lg border border-success/20">
+                                    <span class="text-base font-medium">Recibirá:</span>
+                                    <span class="font-bold text-xl text-success">
+                                        {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    <!-- Instrucciones -->
+                    <div class="text-center mb-6">
+                        <div class="alert alert-info">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="stroke-current shrink-0 h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Ingrese la cantidad exacta de billetes por denominación que depositará.</span>
+                        </div>
+                    </div>
+                    <!-- Formulario de depósito de billetes -->
+                    {% if transaccion %}
+                        <form method="post"
+                              action="{% url 'tauser:procesar_billetes_venta' %}"
+                              id="form_deposito_billetes"
+                              class="mb-6">
+                            {% csrf_token %}
+                            <!-- Denominaciones de billetes -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold text-base-content mb-4">Billetes a Depositar</h4>
+                                <div id="lista_denominaciones_deposito" class="grid grid-cols-2 gap-3">
+                                    <!-- Denominaciones dinámicas se cargarán aquí -->
+                                </div>
+                            </div>
+                            <!-- Monto total calculado -->
+                            <div class="mb-6">
+                                <div class="alert alert-info"
+                                     id="monto_calculado_container"
+                                     style="display: none">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="stroke-current shrink-0 h-6 w-6"
+                                         fill="none"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>
+                                        <strong>Total calculado:</strong>
+                                        <span id="monto_total_calculado">0.00</span> {{ transaccion.divisa_origen.codigo }}
+                                        <br>
+                                        <strong>Monto requerido:</strong> {{ transaccion.monto_origen|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Botones en la misma fila -->
+                            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                                <button type="submit"
+                                        class="btn btn-primary flex-1 text-sm"
+                                        id="btn_confirmar_deposito"
+                                        disabled>
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                    </svg>
+                                    Confirmar Depósito
+                                </button>
+                            </form>
+                        {% endif %}
+                        <a href="{% url 'tauser:overview_operacion' %}"
+                           class="btn btn-secondary flex-1 text-sm">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                            </svg>
+                            Volver al Resumen
+                        </a>
+                    </div>
+                    {% if transaccion %}
+                        <!-- ID de transacción -->
+                        <div class="text-center mt-6 pt-4 border-t border-base-300">
+                            <p class="text-sm text-base-content/60">ID de Transacción: {{ transaccion.id_transaccion|slice:":8" }}...</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <script>
+        // Variables globales
+        let denominacionesDisponibles = [];
+        const montoRequerido = parseFloat('{{ transaccion.monto_origen|strip_trailing_zeros }}');
+        const divisaSimbolo = '{{ transaccion.divisa_origen.simbolo }}';
+
+        // Cargar denominaciones al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarDenominacionesDeposito();
+        });
+
+        // Navegación con teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.location.href = '{% url "tauser:overview_operacion" %}';
+            }
+        });
+
+        async function cargarDenominacionesDeposito() {
+            try {
+                const response = await fetch('/stock/api/denominaciones-divisa/{{ transaccion.divisa_origen.codigo }}/');
+                if (!response.ok) {
+                    throw new Error('Error al cargar denominaciones');
+                }
+                
+                const denominaciones = await response.json();
+                denominacionesDisponibles = denominaciones;
+                
+                const container = document.getElementById('lista_denominaciones_deposito');
+                container.innerHTML = '';
+                
+                denominaciones.forEach(denom => {
+                    const div = document.createElement('div');
+                    div.className = 'form-control';
+                    div.innerHTML = `
+                        <label class="label">
+                            <span class="label-text">Billetes de ${denom} ${divisaSimbolo}</span>
+                        </label>
+                        <input type="number" class="input input-bordered" min="0" step="1" data-denominacion="${denom}" placeholder="Cantidad de billetes">
+                    `;
+                    container.appendChild(div);
+                    
+                    // Agregar event listeners al input recién creado
+                    const input = div.querySelector('input');
+                    
+                    // Prevenir caracteres no deseados (-, ., ,, e)
+                    input.addEventListener('keypress', function(e) {
+                        // Permitir solo números (0-9), backspace, delete, tab, escape, enter
+                        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'];
+                        const isNumber = /[0-9]/.test(e.key);
+                        
+                        if (!isNumber && !allowedKeys.includes(e.key)) {
+                            e.preventDefault();
+                        }
+                    });
+                    
+                    // Prevenir pegar contenido no válido
+                    input.addEventListener('paste', function(e) {
+                        e.preventDefault();
+                        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                        const numericValue = pastedText.replace(/[^0-9]/g, '');
+                        if (numericValue) {
+                            input.value = parseInt(numericValue) || '';
+                            actualizarMontoTotal();
+                        }
+                    });
+                    
+                    // Event listener para actualización en tiempo real
+                    input.addEventListener('input', function(e) {
+                        actualizarMontoTotal();
+                    });
+                    
+                    // Event listener para validación cuando se termina de editar
+                    input.addEventListener('change', function(e) {
+                        validarInput(e);
+                    });
+                    
+                    // También en blur para asegurar validación
+                    input.addEventListener('blur', function(e) {
+                        validarInput(e);
+                    });
+                });
+                
+                // Mostrar el contenedor de monto calculado
+                document.getElementById('monto_calculado_container').style.display = 'block';
+                
+                // Ejecutar cálculo inicial
+                actualizarMontoTotal();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al cargar denominaciones disponibles');
+            }
+        }
+
+        function validarInput(event) {
+            const input = event.target;
+            let valor = parseInt(input.value) || 0;
+            
+            // Validar que no sea negativo y sea entero
+            if (valor < 0) {
+                valor = 0;
+            }
+            valor = Math.floor(Math.abs(valor));
+            
+            // Solo actualizar si el valor cambió
+            if (input.value != valor) {
+                input.value = valor;
+                // Forzar actualización del cálculo cuando se modifica el valor
+                actualizarMontoTotal();
+            }
+        }
+
+        function actualizarMontoTotal() {
+            
+            let montoTotal = 0;
+            const inputs = document.querySelectorAll('#lista_denominaciones_deposito input[data-denominacion]');
+            
+            
+            inputs.forEach(input => {
+                const denominacion = parseFloat(input.dataset.denominacion);
+                const cantidad = parseInt(input.value) || 0;
+                
+                
+                // Solo sumar si la cantidad es válida
+                if (cantidad >= 0) {
+                    montoTotal += denominacion * cantidad;
+                }
+            });
+            
+            
+            // Actualizar display del monto total
+            const montoElement = document.getElementById('monto_total_calculado');
+            if (montoElement) {
+                montoElement.textContent = montoTotal.toFixed(2);
+            }
+            
+            // Validar si coincide con el monto requerido
+            const btnConfirmar = document.getElementById('btn_confirmar_deposito');
+            const container = document.getElementById('monto_calculado_container');
+            
+            if (Math.abs(montoTotal - montoRequerido) < 0.01) {
+                // Monto correcto
+                if (btnConfirmar) btnConfirmar.disabled = false;
+                if (container) {
+                    container.className = 'alert alert-success mb-6';
+                    const span = container.querySelector('span');
+                    if (span) {
+                        span.innerHTML = `
+                            <strong>Total calculado:</strong> ${montoTotal.toFixed(2)} ${divisaSimbolo}
+                            <br>
+                            <strong>¡Monto correcto!</strong> Puede proceder con el depósito.
+                        `;
+                    }
+                }
+            } else if (montoTotal > 0) {
+                // Monto incorrecto
+                if (btnConfirmar) btnConfirmar.disabled = true;
+                if (container) {
+                    container.className = 'alert alert-info mb-6';
+                    const span = container.querySelector('span');
+                    if (span) {
+                        span.innerHTML = `
+                            <strong>Total calculado:</strong> ${montoTotal.toFixed(2)} ${divisaSimbolo}
+                            <br>
+                            <strong>Monto requerido:</strong> ${montoRequerido.toFixed(2)} ${divisaSimbolo}
+                            <br>
+                            <strong>Diferencia:</strong> ${(montoTotal - montoRequerido).toFixed(2)} ${divisaSimbolo}
+                        `;
+                    }
+                }
+            } else {
+                // Sin billetes
+                if (btnConfirmar) btnConfirmar.disabled = true;
+                if (container) {
+                    container.className = 'alert alert-info mb-6';
+                    const span = container.querySelector('span');
+                    if (span) {
+                        span.innerHTML = `
+                            <strong>Total calculado:</strong> 0.00 ${divisaSimbolo}
+                            <br>
+                            <strong>Monto requerido:</strong> ${montoRequerido.toFixed(2)} ${divisaSimbolo}
+                        `;
+                    }
+                }
+            }
+        }
+
+        function mostrarError(mensaje) {
+            // Crear una alerta temporal
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-error mb-4';
+            alertDiv.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>${mensaje}</span>
+            `;
+            
+            // Insertar al inicio del card-body
+            const cardBody = document.querySelector('.card-body');
+            cardBody.insertBefore(alertDiv, cardBody.firstChild);
+            
+            // Remover después de 5 segundos
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Validación del formulario antes de enviar
+        document.getElementById('form_deposito_billetes')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const inputs = document.querySelectorAll('#lista_denominaciones_deposito input[data-denominacion]');
+            const denominaciones = [];
+            let montoTotal = 0;
+            
+            inputs.forEach(input => {
+                const cantidad = parseInt(input.value) || 0;
+                const denominacion = parseFloat(input.dataset.denominacion);
+                
+                if (cantidad > 0) {
+                    denominaciones.push({
+                        denominacion: denominacion,
+                        cantidad: cantidad
+                    });
+                    montoTotal += denominacion * cantidad;
+                }
+            });
+            
+            if (denominaciones.length === 0) {
+                mostrarError('Debe ingresar al menos una cantidad mayor a 0');
+                return;
+            }
+            
+            if (Math.abs(montoTotal - montoRequerido) >= 0.01) {
+                mostrarError('El monto total de los billetes debe coincidir exactamente con el monto requerido');
+                return;
+            }
+            
+            // Crear input hidden con las denominaciones
+            const payloadInput = document.createElement('input');
+            payloadInput.type = 'hidden';
+            payloadInput.name = 'denominaciones_json';
+            payloadInput.value = JSON.stringify(denominaciones);
+            this.appendChild(payloadInput);
+            
+            // Enviar el formulario
+            this.submit();
+        });
+        </script>
+    </body>
+</html>

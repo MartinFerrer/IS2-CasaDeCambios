@@ -155,7 +155,14 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "es-PY"  # Español de Paraguay
 
+TIME_ZONE = "America/Asuncion"  # Zona horaria de Paraguay
+
+USE_I18N = True
 USE_L10N = True  # Habilitar localización de formatos de número, fecha, etc.
+USE_TZ = True  # Habilitar soporte de zonas horarias
+
+# Configurar zona horaria por defecto para templates
+os.environ.setdefault('TZ', 'America/Asuncion')
 
 USE_THOUSAND_SEPARATOR = True
 
