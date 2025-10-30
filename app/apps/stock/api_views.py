@@ -9,7 +9,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .services import (
+    cancelar_movimiento,
     cargar_denominaciones_divisa,
+    cargar_denominaciones_divisa_especifica,
     depositar_divisas,
     extraer_divisas,
     obtener_denominaciones_disponibles,
@@ -200,7 +202,7 @@ def depositar_divisas_api(request):
         return JsonResponse({
             'success': True,
             'data': {
-                'movimiento_id': movimiento.id,
+                'movimiento_id': movimiento.pk,
                 'mensaje': 'Depósito realizado exitosamente'
             }
         })
@@ -272,7 +274,7 @@ def extraer_divisas_api(request):
         return JsonResponse({
             'success': True,
             'data': {
-                'movimiento_id': movimiento.id,
+                'movimiento_id': movimiento.pk,
                 'mensaje': 'Extracción realizada exitosamente'
             }
         })
@@ -292,3 +294,50 @@ def extraer_divisas_api(request):
             'success': False,
             'error': f'Error interno: {e!s}'
         }, status=500)
+
+
+@require_http_methods(["GET"])
+def api_denominaciones_divisa(request, divisa_codigo):
+    """API para obtener denominaciones disponibles de una divisa específica.
+
+    Args:
+        request (HttpRequest): Solicitud HTTP.
+        divisa_codigo (str): Código de la divisa (ej. 'USD').
+
+    Returns:
+        JsonResponse: Lista de denominaciones disponibles.
+
+    """
+    try:
+        denominaciones = cargar_denominaciones_divisa_especifica(divisa_codigo)
+        return JsonResponse(denominaciones, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': f'Error al cargar denominaciones: {e!s}'}, status=500)
+
+@require_http_methods(["POST"])
+def api_cancelar_movimiento_transaccion(request, transaccion_id=None):
+    """API para cancelar un movimiento de stock.
+
+    Args:
+        request (HttpRequest): Solicitud HTTP.
+        transaccion_id (int, optional): ID de la transacción asociada al movimiento a cancelar.
+
+    Returns:
+        JsonResponse: Resultado de la operación.
+
+    """
+    from .models import MovimientoStock
+    try:
+        movimiento_stock = None
+        if transaccion_id:
+            movimiento_stock = MovimientoStock.objects.filter(
+                transaccion=transaccion_id,
+                estado='pendiente'
+            ).first()
+        movimiento_id = movimiento_stock.pk if movimiento_stock else None
+        cancelar_movimiento(movimiento_id)
+        return JsonResponse({'success': True, 'message': 'Movimiento cancelado exitosamente.'})
+    except ValidationError as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Error interno: {e!s}'}, status=500)

@@ -109,7 +109,6 @@
                             <th class="bg-blue-100">Denominaciones</th>
                             <th class="bg-blue-100">Valor Total</th>
                             <th class="bg-blue-100">Motivo</th>
-                            <th class="bg-blue-100">Transacción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -144,13 +143,6 @@
                                     <td class="text-sm">{{ movimiento.resumen_denominaciones }}</td>
                                     <td class="font-mono">{{ movimiento.valor_total_movimiento|strip_trailing_zeros }} {{ movimiento.divisa.codigo }}</td>
                                     <td class="max-w-xs truncate">{{ movimiento.motivo|default:"" }}</td>
-                                    <td>
-                                        {% if movimiento.transaccion %}
-                                            <span class="text-blue-600 font-mono text-sm">#{{ movimiento.transaccion.id }}</span>
-                                        {% else %}
-                                            <span class="text-gray-400">-</span>
-                                        {% endif %}
-                                    </td>
                                 </tr>
                             {% endfor %}
                         {% else %}
