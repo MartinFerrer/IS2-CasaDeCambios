@@ -810,6 +810,12 @@
             } else {
                 // Error al abrir ventana (bloqueador de popups)
                 showToast('Error: No se pudo abrir la ventana del banco. Revisa el bloqueador de ventanas emergentes.', 'error');
+                
+                // Cancelar la reserva de billetes si es una compra
+                if ('{{ transaccion.tipo_operacion }}' === 'compra') {
+                    cancelarReserva(transaccionId);
+                }
+                
                 restaurarBotonPagar();
             }
         }
