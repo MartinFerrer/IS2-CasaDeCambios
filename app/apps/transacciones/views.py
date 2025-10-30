@@ -33,21 +33,21 @@ from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, Tar
 
 def obtener_medio_financiero_por_identificador(identificador, cliente):
     """Obtiene el objeto de medio financiero basado en el identificador.
-    
+
     Args:
         identificador: String como 'tarjeta_1', 'cuenta_2', 'billetera_3', etc.
         cliente: Objeto Cliente al que pertenece el medio
-        
+
     Returns:
         Objeto del medio financiero (TarjetaCredito, CuentaBancaria, BilleteraElectronica) o None
-        
+
     """
     if not identificador or identificador == "efectivo":
         return None
 
     try:
         # Separar tipo y ID del identificador
-        partes = identificador.split('_')
+        partes = identificador.split("_")
         if len(partes) != 2:
             return None
 

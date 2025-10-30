@@ -3,57 +3,80 @@
     Comprar Divisa
 {% endblock title %}
 {% block content %}
-<div class="container mx-auto p-8">
-    <h2 class="text-3xl font-bold mb-4 text-center">Comprar Divisa</h2>
-
-    {% if user.is_authenticated %}
-        {% if request.cliente %}
-            <div class="card bg-base-100 shadow-lg p-6 mb-6">
-                <h3 class="text-xl font-semibold mb-4">Cliente Seleccionado: {{ request.cliente.nombre }}</h3>
-
-                <!-- Formulario de compra -->
-                <form id="compra-form">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="label">
-                                <span class="label-text">Divisa a Comprar</span>
-                            </label>
-                            <select id="divisa-select" class="select select-bordered w-full" required>
-                                <option value="">Seleccione una divisa</option>
-                                {% for divisa in divisas %}
-                                    <option value="{{ divisa.codigo }}">{{ divisa.codigo }} - {{ divisa.nombre }}</option>
-                                {% endfor %}
-                            </select>
+    <div class="container mx-auto p-8">
+        <h2 class="text-3xl font-bold mb-4 text-center">Comprar Divisa</h2>
+        {% if user.is_authenticated %}
+            {% if request.cliente %}
+                <div class="card bg-base-100 shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-semibold mb-4">Cliente Seleccionado: {{ request.cliente.nombre }}</h3>
+                    <!-- Formulario de compra -->
+                    <form id="compra-form">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Divisa a Comprar</span>
+                                </label>
+                                <select id="divisa-select" class="select select-bordered w-full" required>
+                                    <option value="">Seleccione una divisa</option>
+                                    {% for divisa in divisas %}
+                                        <option value="{{ divisa.codigo }}">{{ divisa.codigo }} - {{ divisa.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Monto ({{ request.cliente.tipo_cliente.nombre|default:'PYG' }})</span>
+                                </label>
+                                <input type="number"
+                                       id="monto-input"
+                                       name="monto"
+                                       min="1"
+                                       step="1"
+                                       class="input input-bordered w-full validator"
+                                       placeholder="Ingrese el monto entero"
+                                       title="El monto debe ser un número entero"
+                                       required>
+                                <p id="monto-error"
+                                   class="validator-hint text-error text-sm mt-1 hidden">
+                                    El monto debe ser un número entero
+                                </p>
+                            </div>
                         </div>
-
-                        <div>
-                            <label class="label">
-                                <span class="label-text">Monto ({{ request.cliente.tipo_cliente.nombre|default:'PYG' }})</span>
-                            </label>
-                            <input type="number"
-                                   name="monto"
-                                   min="1"
-                                   step="0.01"
-                                   class="input input-bordered w-full"
-                                   placeholder="Ingrese el monto"
-                                   required>
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-success w-full">Proceder a Comprar</button>
                         </div>
-                    </div>
-
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-success w-full">Proceder a Comprar</button>
-                    </div>
-                </form>
-            </div>
+                    </form>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">Seleccione un cliente desde su perfil para poder realizar compras.</div>
+            {% endif %}
         {% else %}
-            <div class="alert alert-warning">
-                Seleccione un cliente desde su perfil para poder realizar compras.
-            </div>
+            <div class="alert alert-info">Debe iniciar sesión para poder comprar divisas.</div>
         {% endif %}
-    {% else %}
-        <div class="alert alert-info">
-            Debe iniciar sesión para poder comprar divisas.
-        </div>
-    {% endif %}
-</div>
+    </div>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const montoInput = document.getElementById('monto-input');
+    const montoError = document.getElementById('monto-error');
+
+    if (montoInput) {
+        montoInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+
+            // Validar si es un número entero
+            if (value && !Number.isInteger(parseFloat(value))) {
+                // Mostrar error y cambiar estilo del input
+                montoError.classList.remove('hidden');
+                e.target.classList.remove('input-bordered');
+                e.target.classList.add('input-error');
+            } else {
+                // Ocultar error y restaurar estilo normal
+                montoError.classList.add('hidden');
+                e.target.classList.remove('input-error');
+                e.target.classList.add('input-bordered');
+            }
+        });
+    }
+});
+    </script>
 {% endblock content %}
