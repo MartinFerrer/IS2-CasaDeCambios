@@ -269,7 +269,7 @@
                     } else if (hostname === 'localhost' && port === '8080') {
                         return 'http://localhost:5001/api/procesar-transferencia';
                     } else if (hostname.includes('herokuapp.com')) {
-                        return `${protocol}//${hostname}:5001/api/procesar-transferencia`;
+                        return `https://global-exchange-simulador-ec091cfa7acb.herokuapp.com/api/procesar-transferencia`;
                     } else {
                         return `http://${hostname}:5001/api/procesar-transferencia`;
                     }
