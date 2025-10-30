@@ -83,7 +83,36 @@
     <!-- Plotly.js CDN -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
+/**
+ * Gestor de Tasas de Cambio
+ * 
+ * Esta clase maneja la visualización y actualización de las tasas de cambio,
+ * incluyendo la vista de tasas actuales y el historial gráfico de las mismas.
+ * 
+ * @class TasasManager
+ * @description Gestiona la carga, visualización y actualización de tasas de cambio
+ * y sus historiales. Incluye funcionalidades para:
+ * - Cargar tasas actuales desde el API
+ * - Mostrar historial gráfico usando Plotly.js
+ * - Filtrar datos por período (7, 30, 90, 180, 365 días)
+ * - Agrupar datos según el período seleccionado
+ * - Calcular y mostrar tendencias de precios
+ */
 class TasasManager {
+    /**
+     * Constructor de la clase TasasManager
+     * 
+     * Inicializa el gestor de tasas de cambio, configurando las URLs del API,
+     * colores para los gráficos, y establece el auto-refresh de datos cada 30 segundos.
+     * 
+     * @constructor
+     * @property {string} apiUrl - URL del endpoint API para obtener tasas de cambio
+     * @property {Array<string>} colors - Paleta de colores para visualizaciones
+     * @property {string} currentView - Vista actual ('tasas' o 'historial')
+     * @property {Array} divisasDisponibles - Lista de divisas disponibles
+     * @property {Array} tasasActuales - Tasas de cambio actuales
+     * @property {Object} historialDivisas - Historial de tasas por divisa
+     */
     constructor() {
         this.apiUrl = "{% url 'operaciones:tasas_cambio_api' %}";
         this.colors = ["#22c55e", "#ef4444", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899"];
@@ -102,6 +131,21 @@ class TasasManager {
         }, 30000); 
     }
 
+    /**
+     * Inicializa los elementos DOM y configura los event listeners
+     * 
+     * Obtiene referencias a todos los elementos DOM necesarios para la funcionalidad
+     * y configura los manejadores de eventos para interacciones del usuario.
+     * 
+     * @method initializeElements
+     * @returns {void}
+     * 
+     * Elementos inicializados:
+     * - Elementos de la vista de tasas actuales
+     * - Elementos de la vista de historial
+     * - Selectores de divisa y período
+     * - Botones de acción (actualizar, toggle, retry)
+     */
     initializeElements() {
         this.loadingElement = document.getElementById('loading-tasas');
         this.errorElement = document.getElementById('error-tasas');
@@ -128,6 +172,12 @@ class TasasManager {
         this.periodoSelect.addEventListener('change', () => this.loadHistorial());
     }
 
+    /**
+     * Alterna entre la vista de tasas actuales y la vista de historial
+     * 
+     * @method toggleView
+     * @returns {void}
+     */
     toggleView() {
         if (this.currentView === 'tasas') {
             this.showHistorialView();
@@ -183,6 +233,18 @@ class TasasManager {
         this.emptyElement.classList.remove('hidden');
     }
 
+    /**
+     * Formatea un número según la configuración regional paraguaya
+     * 
+     * @method formatNumber
+     * @param {number} number - Número a formatear
+     * @param {number} [maxDecimals=0] - Cantidad máxima de decimales
+     * @returns {string} Número formateado con separadores de miles
+     * 
+     * @example
+     * formatNumber(7500.50, 2) // "7.500,50"
+     * formatNumber(1000000) // "1.000.000"
+     */
     formatNumber(number, maxDecimals = 0) {
         return new Intl.NumberFormat('es-PY', {
             minimumFractionDigits: 0,
@@ -190,6 +252,42 @@ class TasasManager {
         }).format(number);
     }
 
+    /**
+     * Carga las tasas de cambio desde el API
+     * 
+     * Obtiene las tasas actuales y sus historiales del backend, procesa los datos
+     * y actualiza la interfaz. Si hay historial disponible, calcula los precios
+     * de compra y venta para cada registro histórico.
+     * 
+     * @async
+     * @method loadTasas
+     * @returns {Promise<void>}
+     * @throws {Error} Si la petición al API falla
+     * 
+     * Proceso:
+     * 1. Realiza petición fetch al API
+     * 2. Procesa el historial de cada divisa
+     * 3. Calcula precios de compra/venta históricos
+     * 4. Actualiza la vista con los datos obtenidos
+     * 
+     * Estructura de datos esperada:
+     * {
+     *   tasas: [{
+     *     divisa: { codigo, nombre, simbolo, flag_url },
+     *     precio_compra: number,
+     *     precio_venta: number,
+     *     historial: [{
+     *       fecha_registro: string (ISO),
+     *       precio_base: number,
+     *       comision_compra: number,
+     *       comision_venta: number,
+     *       precio_compra_calculado: number,
+     *       precio_venta_calculado: number,
+     *       motivo: string
+     *     }]
+     *   }]
+     * }
+     */
     async loadTasas() {
         try {
             if (!this.tasasTbody.innerHTML) this.showLoading();
@@ -238,6 +336,21 @@ class TasasManager {
         }
     }
 
+    /**
+     * Renderiza la tabla de tasas de cambio actuales
+     * 
+     * Genera dinámicamente las filas de la tabla con información de cada divisa,
+     * incluyendo banderas, precios e indicadores de tendencia.
+     * 
+     * @method renderTasas
+     * @param {Array<Object>} tasas - Array de objetos con información de tasas
+     * @returns {void}
+     * 
+     * Calcula tendencias comparando:
+     * - Última tasa con penúltima tasa del historial
+     * - Muestra iconos indicadores (↑ subida, ↓ bajada, = sin cambio)
+     * - Calcula porcentaje y diferencia absoluta
+     */
     renderTasas(tasas) {
         const fragment = document.createDocumentFragment();
 
@@ -315,6 +428,19 @@ class TasasManager {
         this.tasasTbody.appendChild(fragment);
     }
 
+    /**
+     * Genera el ícono indicador de tendencia de precio
+     * 
+     * @method getTrendIcon
+     * @param {string} direction - Dirección de la tendencia ('up', 'down', 'neutral')
+     * @param {string} tooltip - Texto descriptivo para mostrar al pasar el mouse
+     * @returns {string} HTML del ícono SVG con tooltip
+     * 
+     * Colores utilizados:
+     * - Verde (#22c55e): Tendencia alcista
+     * - Rojo (#ef4444): Tendencia bajista
+     * - Gris (#9ca3af): Sin cambio significativo
+     */
     getTrendIcon(direction, tooltip) {
         const iconClasses = "h-4 w-4 inline-block";
 
@@ -344,6 +470,15 @@ class TasasManager {
         }
     }
 
+    /**
+     * Actualiza el selector de divisas con las tasas disponibles
+     * 
+     * @method updateDivisasSelect
+     * @param {Array<Object>} tasas - Array de tasas de cambio disponibles
+     * @returns {void}
+     * 
+     * Preserva la selección actual del usuario si la divisa sigue disponible.
+     */
     updateDivisasSelect(tasas) {
         this.divisasDisponibles = tasas;
         const currentValue = this.divisaSelect.value;
@@ -362,6 +497,33 @@ class TasasManager {
         }
     }
 
+    /**
+     * Carga y procesa el historial de tasas para visualización gráfica
+     * 
+     * Filtra y agrupa los datos históricos según el período seleccionado,
+     * aplicando diferentes estrategias de agrupamiento para optimizar la visualización.
+     * 
+     * @method loadHistorial
+     * @returns {void}
+     * 
+     * Estrategias de agrupamiento por período:
+     * - 7 días: Muestra cada día individualmente
+     * - 30 días: Muestra cada día individualmente
+     * - 90 días: Agrupa cada 3 días
+     * - 180 días (6 meses): Agrupa por mes
+     * - 365 días (1 año): Agrupa por mes
+     * 
+     * Proceso:
+     * 1. Filtra datos por rango de fechas (últimos N días)
+     * 2. Agrupa según estrategia del período
+     * 3. Toma solo la última cotización de cada grupo
+     * 4. Formatea fechas para visualización
+     * 5. Renderiza el gráfico
+     * 
+     * Nota: El filtrado usa (período - 1) para incluir exactamente N días
+     * contando desde hoy. Por ejemplo, "últimos 7 días" incluye desde hace
+     * 6 días hasta hoy, totalizando 7 días.
+     */
     loadHistorial() {
         const divisaSeleccionada = this.divisaSelect.value;
         const periodo = parseInt(this.periodoSelect.value) || 30;
@@ -562,6 +724,43 @@ class TasasManager {
         this.emptyHistorial.classList.add('hidden');
     }
 
+    /**
+     * Renderiza el gráfico de historial de tasas usando Plotly.js
+     * 
+     * Crea un gráfico de líneas interactivo mostrando la evolución de los
+     * precios de compra y venta a lo largo del tiempo.
+     * 
+     * @method renderChart
+     * @param {Array<Object>} historial - Datos históricos procesados y agrupados
+     * @param {string} divisaCodigo - Código de la divisa (ej: 'USD', 'BRL')
+     * @returns {void}
+     * 
+     * Características del gráfico:
+     * - Dos trazas: Compra (azul oscuro) y Venta (azul claro)
+     * - Interpolación spline para suavizado de líneas
+     * - Relleno entre líneas para mejor visualización
+     * - Rango dinámico del eje Y con margen del 12%
+     * - Hover unificado mostrando ambos precios
+     * - Responsive y optimizado para dispositivos móviles
+     * 
+     * Configuración de colores:
+     * - Línea Compra: #1e3a8a (azul oscuro)
+     * - Marcador Compra: #22c55e (verde)
+     * - Línea Venta: #38bdf8 (azul claro)
+     * - Marcador Venta: #86efac (verde claro)
+     * - Relleno Compra: rgba(30, 58, 138, 0.65)
+     * - Relleno Venta: rgba(56, 189, 248, 0.45)
+     * 
+     * @example
+     * // Datos de entrada esperados
+     * historial = [{
+     *   fecha_iso: '2025-10-24T05:00:00Z',
+     *   fecha_chart: 'Jue 24',
+     *   fecha_display: 'jueves, 24 de octubre de 2025, 05:00',
+     *   precio_compra: 7500.50,
+     *   precio_venta: 7600.75
+     * }]
+     */
     renderChart(historial, divisaCodigo) {
         this.emptyHistorial.classList.add('hidden');
 
@@ -726,6 +925,15 @@ class TasasManager {
         }
     }
 
+    /**
+     * Renderiza un gráfico vacío con mensaje informativo
+     * 
+     * Se muestra cuando no hay una divisa seleccionada o cuando no hay
+     * datos disponibles para el período solicitado.
+     * 
+     * @method renderEmptyChart
+     * @returns {void}
+     */
     renderEmptyChart() {
         this.emptyHistorial.classList.remove('hidden');
         this.hideLoadingHistorial();
