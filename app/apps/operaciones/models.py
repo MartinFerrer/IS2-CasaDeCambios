@@ -11,6 +11,7 @@ from decimal import Decimal
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 
 class Divisa(models.Model):
@@ -303,7 +304,7 @@ class TasaCambioHistorial(models.Model):
     precio_base = models.DecimalField(max_digits=9, decimal_places=3)
     comision_compra = models.DecimalField(max_digits=7, decimal_places=3)
     comision_venta = models.DecimalField(max_digits=7, decimal_places=3)
-    fecha_registro = models.DateTimeField(auto_now_add=True)
+    fecha_registro = models.DateTimeField(default=timezone.now)
     activo = models.BooleanField(default=True)
     motivo = models.CharField(max_length=255, help_text="Motivo del cambio (ej. Creación, Edición, Desactivación)")
 
