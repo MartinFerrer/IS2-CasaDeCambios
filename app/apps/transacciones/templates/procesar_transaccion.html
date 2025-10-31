@@ -710,11 +710,8 @@
                         });
                     } else {
                         // No hay cambio, proceder con el pago
-                        if ('{{ transaccion.tipo_operacion }}' === 'compra') {
-                            verificarDisponibilidadTauser(transaccionId);
-                        } else {
-                            continuarConPago(transaccionId);
-                        }
+                        // Verificar MFA primero (si está habilitado) antes de cualquier operación
+                        verificarDisponibilidadTauser(transaccionId);
                     }
                 } else {
                     // Error en verificación, mostrar advertencia pero permitir continuar
@@ -730,37 +727,22 @@
             });
         }
 
-        function verificarDisponibilidadTauser(transaccionId) {
-            fetch(`/transacciones/api/verificar-disponibilidad-tauser/${transaccionId}/`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    console.warn('Error:', data.message);
-                    showToast(`Error: ${data.message || 'No hay stock suficiente en el Tauser para completar la transacción.'} Intente nuevamente más tarde.`, 'error');
-                    restaurarBotonPagar();
-                }
-                else {
-                    // Proceder con el pago si hay disponibilidad
-                    continuarConPago(transaccionId);
-                }
-            })
-            .catch(error => {
-                console.error('Error al verificar disponibilidad del Tauser:', error);
-            });
-        }
-        function continuarConPago(transaccionId) {
-            const btnPagar = document.getElementById('btnPagarTransaccion');
+        function verificarDisponibilidadTauser(transaccionId, mfaYaVerificado = false) {
+            console.log('=== VERIFICAR DISPONIBILIDAD TAUSER ===');
+            console.log('Transacción ID:', transaccionId);
+            console.log('MFA ya verificado:', mfaYaVerificado);
 
-            // Verificar si MFA está habilitado
+            // Verificar si MFA está habilitado ANTES de reservar stock o continuar
             const mfaHabilitado = {{ mfa_habilitado|yesno:"true,false" }};
+            const tipoOperacion = '{{ transaccion.tipo_operacion }}';
 
-            if (mfaHabilitado) {
-                // Si MFA está habilitado, solicitar verificación
+            console.log('MFA Habilitado:', mfaHabilitado);
+            console.log('Tipo Operación:', tipoOperacion);
+
+            // Si MFA está habilitado Y NO ha sido verificado aún, abrir modal
+            if (mfaHabilitado && !mfaYaVerificado) {
+                console.log('🔐 MFA habilitado y NO verificado - Abriendo modal MFA');
+                const btnPagar = document.getElementById('btnPagarTransaccion');
                 btnPagar.innerHTML = `
                     <span class="loading loading-spinner loading-sm"></span>
                     <div class="text-left">
@@ -769,21 +751,70 @@
                     </div>
                 `;
 
-                // Abrir modal de MFA
+                // Abrir modal de MFA sin reservar stock
                 abrirModalMFA(transaccionId);
-            } else {
-                // Si MFA no está habilitado, ir directo al banco
-                btnPagar.innerHTML = `
-                    <span class="loading loading-spinner loading-sm"></span>
-                    <div class="text-left">
-                        <div class="font-semibold">Procesando...</div>
-                        <div class="text-xs opacity-60">Abriendo banco</div>
-                    </div>
-                `;
-
-                // Proceder directo con el banco
-                abrirVentanaBanco(transaccionId);
+                return; // Salir aquí, el flujo continúa después de validar MFA
             }
+
+            // Si llegamos aquí, MFA ya fue verificado o no está habilitado
+            // Proceder con la reserva de stock (solo para compras)
+            console.log('✅ Procediendo a verificar stock en TAUSER');
+
+            if (tipoOperacion === 'compra') {
+                console.log('� Es COMPRA - Haciendo petición al backend');
+
+                fetch(`/transacciones/api/verificar-disponibilidad-tauser/${transaccionId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    }
+                })
+                .then(response => {
+                    console.log('Respuesta del servidor (status):', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Respuesta del servidor (data):', data);
+
+                    if (!data.success) {
+                        console.warn('❌ Error al verificar stock:', data.message);
+                        showToast(`Error: ${data.message || 'No hay stock suficiente en el Tauser para completar la transacción.'} Intente nuevamente más tarde.`, 'error');
+                        restaurarBotonPagar();
+                    }
+                    else {
+                        console.log('✅ Stock verificado y reservado exitosamente!');
+                        console.log('Denominaciones:', data.denominaciones);
+
+                        // Proceder con el pago
+                        continuarConPago(transaccionId);
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error al verificar disponibilidad del Tauser:', error);
+                    showToast('Error al verificar disponibilidad. Intente nuevamente.', 'error');
+                    restaurarBotonPagar();
+                });
+            } else {
+                // Para ventas, continuar directamente al pago sin verificar stock
+                console.log('💰 Es VENTA - Continuando directamente al pago');
+                continuarConPago(transaccionId);
+            }
+        }
+
+        function continuarConPago(transaccionId) {
+            const btnPagar = document.getElementById('btnPagarTransaccion');
+
+            // Actualizar el botón para indicar que se está abriendo el banco
+            btnPagar.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                <div class="text-left">
+                    <div class="font-semibold">Procesando...</div>
+                    <div class="text-xs opacity-60">Abriendo banco</div>
+                </div>
+            `;
+
+            // Proceder con el banco (el stock ya está reservado si MFA estaba habilitado)
+            abrirVentanaBanco(transaccionId);
         }
 
         function abrirVentanaBanco(transaccionId) {
@@ -1461,23 +1492,30 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Código correcto, cerrar modal y proceder con el pago
+                    // Código correcto, cerrar modal
                     document.getElementById('mfaModal').close();
                     showToast('Código MFA verificado correctamente', 'success');
 
                     // Actualizar el botón de pagar
                     const btnPagar = document.getElementById('btnPagarTransaccion');
+
+                    console.log('=== MFA VERIFICADO ===');
+                    console.log('Transacción ID:', transaccionPendienteMFA);
+                    console.log('Llamando a verificarDisponibilidadTauser con MFA ya verificado');
+
                     btnPagar.innerHTML = `
                         <span class="loading loading-spinner loading-sm"></span>
                         <div class="text-left">
                             <div class="font-semibold">Procesando...</div>
-                            <div class="text-xs opacity-60">Abriendo banco</div>
+                            <div class="text-xs opacity-60">Verificando disponibilidad...</div>
                         </div>
                     `;
 
-                    // Proceder con el pago
+                    // Llamar a verificarDisponibilidadTauser con MFA ya verificado
+                    // Esta función se encargará de reservar el stock si es compra
+                    // o continuar directo al pago si es venta
                     setTimeout(() => {
-                        abrirVentanaBanco(transaccionPendienteMFA);
+                        verificarDisponibilidadTauser(transaccionPendienteMFA, true);
                     }, 500);
                 } else {
                     // Código incorrecto
