@@ -558,6 +558,59 @@ def api_verificar_stock_tauser(request: HttpRequest, transaccion_id: str) -> Jso
         return JsonResponse({"error": f"Error interno: {e!s}"}, status=500)
 
 
+@require_GET
+def api_verificar_disponibilidad_tauser_previo(request: HttpRequest, tauser_id: int) -> JsonResponse:
+    """Verifica la disponibilidad de stock en un Tauser ANTES de crear la transacción.
+
+    Args:
+        request: HttpRequest con parámetros GET:
+            - divisa: código de la divisa (ej. "USD")
+            - monto: cantidad a verificar
+
+    Returns:
+        JsonResponse indicando si hay stock disponible y detalles
+
+    """
+    try:
+        from apps.tauser.models import Tauser
+
+        divisa_codigo = request.GET.get("divisa")
+        monto_str = request.GET.get("monto")
+
+        if not divisa_codigo or not monto_str:
+            return JsonResponse({"error": "Parámetros faltantes: divisa y monto son requeridos"}, status=400)
+
+        try:
+            monto = int(float(monto_str))
+        except (ValueError, TypeError):
+            return JsonResponse({"error": "Monto inválido"}, status=400)
+
+        # Obtener el Tauser
+        tauser = get_object_or_404(Tauser, id=tauser_id)
+
+        # Verificar stock disponible usando seleccionar_denominaciones_optimas
+        stock_info = StockDivisaTauser.seleccionar_denominaciones_optimas(tauser.id, divisa_codigo, monto)
+
+        if stock_info:
+            return JsonResponse(
+                {
+                    "disponible": True,
+                    "mensaje": "Stock suficiente disponible en el Tauser seleccionado",
+                    "denominaciones": stock_info,
+                }
+            )
+        else:
+            return JsonResponse(
+                {
+                    "disponible": False,
+                    "mensaje": f"No hay stock suficiente de {divisa_codigo} en el Tauser para cubrir el monto solicitado",
+                }
+            )
+
+    except Exception as e:
+        return JsonResponse({"error": f"Error al verificar disponibilidad: {e!s}"}, status=500)
+
+
 def comprar_divisa_view(request):
     """Página para iniciar una operación de compra de divisas.
 
@@ -1108,12 +1161,24 @@ def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
         incluye las divisas disponibles y el cliente asociado (si existe).
     :rtype: django.http.HttpResponse
     """
+    from apps.seguridad.models import PerfilMFA
+
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
     tauser = Tauser.objects.all()
+
+    # Verificar si el usuario tiene MFA habilitado para transacciones
+    mfa_habilitado = False
+    try:
+        perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+        mfa_habilitado = perfil_mfa.mfa_habilitado_transacciones
+    except PerfilMFA.DoesNotExist:
+        pass
+
     context = {
         "divisas": divisas,
         "tausers": tauser,
         "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY,
+        "mfa_habilitado": mfa_habilitado,
         # El cliente se obtiene automáticamente del middleware en request.cliente
     }
     return render(request, "realizar_transaccion.html", context)
@@ -2362,12 +2427,75 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
             )
 
             if es_compra_con_tauser:
-                # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
-                transaccion.estado = "pendiente"
-                mensaje = "Pago procesado exitosamente con Stripe. Pendiente de retiro en TAUSER"
+                # COMPRA con pago Stripe: necesitamos extraer las divisas del Tauser
+                try:
+                    divisa_codigo = transaccion.divisa_destino.codigo
+                    monto = int(transaccion.monto_destino)
+
+                    # Verificar que hay un Tauser asociado
+                    if not transaccion.tauser:
+                        raise ValueError("No hay Tauser asociado a la transacción")
+
+                    # Verificar stock disponible y obtener denominaciones óptimas
+                    stock_info = StockDivisaTauser.seleccionar_denominaciones_optimas(
+                        transaccion.tauser.id, divisa_codigo, monto
+                    )
+
+                    if not stock_info:
+                        # No hay stock suficiente - cancelar transacción
+                        transaccion.estado = "cancelada"
+                        transaccion.motivo_cancelacion = "Stock insuficiente en el Tauser después del pago con Stripe"
+                        transaccion.save()
+                        stripe_payment.save()
+                        return JsonResponse(
+                            {
+                                "error": "Stock insuficiente en el Tauser para completar la transacción",
+                                "transaccion_id": str(transaccion.id_transaccion),
+                            },
+                            status=400,
+                        )
+
+                    # Extraer (reservar) las divisas del Tauser
+                    extraer_divisas(
+                        tauser_id=transaccion.tauser.id,
+                        divisa_id=divisa_codigo,
+                        transaccion=transaccion,
+                        denominaciones_cantidades=stock_info,
+                        panel_admin=False,
+                    )
+
+                    # COMPRA: pago exitoso, stock reservado, pendiente de retiro en TAUSER
+                    transaccion.estado = "pendiente"
+                    transaccion.fecha_pago = timezone.now()
+                    mensaje = "Pago procesado exitosamente con Stripe. Pendiente de retiro en TAUSER"
+
+                except ValueError as ve:
+                    # Error de validación - cancelar transacción
+                    transaccion.estado = "cancelada"
+                    transaccion.motivo_cancelacion = f"Error al reservar stock: {ve!s}"
+                    transaccion.save()
+                    stripe_payment.save()
+                    return JsonResponse(
+                        {"error": str(ve), "transaccion_id": str(transaccion.id_transaccion)}, status=400
+                    )
+                except Exception as e:
+                    # Error inesperado - cancelar transacción
+                    transaccion.estado = "cancelada"
+                    transaccion.motivo_cancelacion = f"Error al procesar stock: {e!s}"
+                    transaccion.save()
+                    stripe_payment.save()
+                    return JsonResponse(
+                        {
+                            "error": "Error al procesar la reserva de stock",
+                            "transaccion_id": str(transaccion.id_transaccion),
+                        },
+                        status=500,
+                    )
             else:
                 # Otros casos: completar la transacción
                 transaccion.estado = "completada"
+                transaccion.fecha_pago = timezone.now()
+                transaccion.fecha_completada = timezone.now()
                 mensaje = "Pago procesado exitosamente con Stripe"
 
         elif intent.status in ["requires_payment_method", "requires_confirmation"]:
