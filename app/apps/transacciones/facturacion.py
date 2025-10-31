@@ -604,7 +604,7 @@ def generar_factura_electronica(transaccion, max_intentos: int = 10) -> Tuple[bo
 
     try:
         # Verificar estado
-        if transaccion.estado != "completada":
+        if transaccion.estado != "completada" and not transaccion.fecha_pago:
             msg = f"Transacción debe estar completada (estado actual: {transaccion.estado})"
             logger.warning(msg)
             return False, msg
@@ -941,8 +941,8 @@ def procesar_facturacion_post_pago(transaccion) -> Tuple[bool, str]:
     """
     try:
         # Solo procesar si la transacción está completada
-        if transaccion.estado != "completada":
-            msg = f"Transacción no está completada (estado: {transaccion.estado})"
+        if transaccion.estado != "completada" and not transaccion.fecha_pago:
+            msg = f"Transacción no está completada (estado: {transaccion.estado}, fecha_pago: {transaccion.fecha_pago})"
             logger.warning(msg)
             return False, msg
 
