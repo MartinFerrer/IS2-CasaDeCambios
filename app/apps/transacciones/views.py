@@ -1161,12 +1161,24 @@ def realizar_transaccion_view(request: HttpRequest) -> HttpResponse:
         incluye las divisas disponibles y el cliente asociado (si existe).
     :rtype: django.http.HttpResponse
     """
+    from apps.seguridad.models import PerfilMFA
+
     divisas = Divisa.objects.filter(estado="activo").exclude(codigo="PYG")
     tauser = Tauser.objects.all()
+
+    # Verificar si el usuario tiene MFA habilitado para transacciones
+    mfa_habilitado = False
+    try:
+        perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
+        mfa_habilitado = perfil_mfa.mfa_habilitado_transacciones
+    except PerfilMFA.DoesNotExist:
+        pass
+
     context = {
         "divisas": divisas,
         "tausers": tauser,
         "STRIPE_PUBLISHABLE_KEY": settings.STRIPE_PUBLISHABLE_KEY,
+        "mfa_habilitado": mfa_habilitado,
         # El cliente se obtiene automáticamente del middleware en request.cliente
     }
     return render(request, "realizar_transaccion.html", context)

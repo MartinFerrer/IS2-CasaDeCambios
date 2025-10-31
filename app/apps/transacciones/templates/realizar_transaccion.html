@@ -397,6 +397,66 @@
                 </form>
             </div>
         </div>
+        <!-- Modal de verificación MFA -->
+        <dialog id="mfaModal" class="modal">
+            <div class="modal-box w-11/12 max-w-md">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="font-bold text-lg text-blue-600 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6 inline mr-2"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Verificación de Seguridad (MFA)
+                </h3>
+                <p class="mb-4 text-gray-700">
+                    Por favor, ingresa el código de 6 dígitos desde tu aplicación de autenticación (Google Authenticator, Authy, etc.).
+                </p>
+                <div class="form-control mb-6">
+                    <label class="label">
+                        <span class="label-text font-semibold">Código MFA</span>
+                    </label>
+                    <input type="text"
+                           id="mfaCode"
+                           maxlength="6"
+                           placeholder="000000"
+                           class="input input-bordered text-center text-2xl tracking-widest font-mono"
+                           required>
+                    <label class="label">
+                        <span class="label-text-alt text-gray-500">El código expira cada 30 segundos</span>
+                    </label>
+                </div>
+                <div id="mfaError" class="alert alert-error mb-4 hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="mfaErrorMessage"></span>
+                </div>
+                <div class="modal-action mt-4 flex justify-end space-x-2">
+                    <button type="button" onclick="cerrarModalMFA()" class="btn btn-ghost">Cancelar</button>
+                    <button type="button"
+                            id="confirmMFABtn"
+                            onclick="verificarCodigoMFA()"
+                            class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5 mr-2"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Verificar Código
+                    </button>
+                </div>
+            </div>
+        </dialog>
         <script src="https://js.stripe.com/v3/"></script>
         <!-- Módulos JavaScript para transacciones -->
         <script src="{% static 'js/transacciones/formatters.js' %}"></script>
@@ -851,9 +911,18 @@
             // Verificar si el método de pago es Stripe
             const metodoPago = metodoPagoSelect.value;
             if (metodoPago === 'stripe_new' || metodoPago.startsWith('stripe_')) {
-                // Ir directo a Stripe (MFA se verifica después en procesar_transaccion)
+                // Para Stripe, verificar MFA primero si está habilitado
+                const mfaHabilitado = {{ mfa_habilitado|yesno:"true,false" }};
+
                 confirmationModal.classList.remove('modal-open');
-                await showStripePaymentModal();
+
+                if (mfaHabilitado) {
+                    // Mostrar modal de MFA antes de Stripe
+                    abrirModalMFAParaStripe();
+                } else {
+                    // Si no hay MFA, ir directo a Stripe
+                    await showStripePaymentModal();
+                }
                 return;
             }
 
@@ -1240,7 +1309,146 @@
             }
         });
 
+        // ===== FUNCIONES MFA PARA STRIPE =====
 
+        let mfaValidadoParaStripe = false;
+
+        function abrirModalMFAParaStripe() {
+            // Limpiar el campo de código
+            const mfaCodeInput = document.getElementById('mfaCode');
+            mfaCodeInput.value = '';
+
+            // Ocultar mensaje de error
+            document.getElementById('mfaError').classList.add('hidden');
+
+            // Abrir modal
+            document.getElementById('mfaModal').showModal();
+
+            // Focus en el input
+            setTimeout(() => {
+                mfaCodeInput.focus();
+            }, 100);
+        }
+
+        function cerrarModalMFA() {
+            document.getElementById('mfaModal').close();
+            mfaValidadoParaStripe = false;
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function verificarCodigoMFA() {
+            const mfaCodeInput = document.getElementById('mfaCode');
+            const codigo = mfaCodeInput.value.trim();
+
+            // Validar que el código tenga 6 dígitos
+            if (!codigo || codigo.length !== 6 || !/^\d{6}$/.test(codigo)) {
+                mostrarErrorMFA('El código debe tener exactamente 6 dígitos numéricos');
+                return;
+            }
+
+            const confirmBtn = document.getElementById('confirmMFABtn');
+            const originalText = confirmBtn.innerHTML;
+
+            // Deshabilitar el botón mientras se verifica
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                Verificando...
+            `;
+
+            try {
+                // Usar la API de verificación de MFA sin redirecciones
+                const response = await fetch('/seguridad/api/verify-mfa-code/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        codigo: codigo
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.mfa_token) {
+                    // Código correcto, cerrar modal
+                    document.getElementById('mfaModal').close();
+                    mfaValidadoParaStripe = true;
+
+                    showSuccess('Código MFA verificado correctamente');
+
+                    // Ahora mostrar el modal de Stripe
+                    setTimeout(() => {
+                        showStripePaymentModal();
+                    }, 500);
+                } else {
+                    // Código incorrecto
+                    mostrarErrorMFA(data.error || 'Código MFA incorrecto. Por favor, inténtalo de nuevo.');
+
+                    // Restaurar botón
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = originalText;
+
+                    // Limpiar el campo
+                    mfaCodeInput.value = '';
+                    mfaCodeInput.focus();
+                }
+            } catch (error) {
+                console.error('Error al verificar MFA:', error);
+                mostrarErrorMFA('Error de conexión. Por favor, inténtalo de nuevo.');
+
+                // Restaurar botón
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalText;
+            }
+        }
+
+        function mostrarErrorMFA(mensaje) {
+            const errorDiv = document.getElementById('mfaError');
+            const errorMessage = document.getElementById('mfaErrorMessage');
+
+            errorMessage.textContent = mensaje;
+            errorDiv.classList.remove('hidden');
+
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Permitir solo números en el campo MFA
+        const mfaCodeInput = document.getElementById('mfaCode');
+        if (mfaCodeInput) {
+            mfaCodeInput.addEventListener('input', function(e) {
+                // Eliminar cualquier carácter que no sea un dígito
+                this.value = this.value.replace(/\D/g, '');
+            });
+
+            // Permitir enviar con Enter
+            mfaCodeInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    verificarCodigoMFA();
+                }
+            });
+        }
+
+        // ===== FIN FUNCIONES MFA =====
 
         // Inicialización
         updateLabelsLocal();
