@@ -1,0 +1,29 @@
+<!-- Vista de tasas actuales -->
+<div id="tasas-view">
+    <h3 class="text-2xl font-semibold mb-4 text-center">Tasas de Cambio Actuales</h3>
+    <div id="loading-tasas" class="flex justify-center items-center py-8">
+        <div class="loading loading-spinner loading-md"></div>
+        <span class="ml-2">Cargando tasas...</span>
+    </div>
+    <div id="error-tasas" class="alert alert-error hidden">
+        <span>Error al cargar las tasas de cambio. Por favor, intenta de nuevo.</span>
+        <button id="retry-btn" class="btn btn-sm btn-outline">Reintentar</button>
+    </div>
+    <div id="tasas-container" class="overflow-x-auto mb-6 hidden">
+        <table class="table-auto w-full">
+            <thead class="text-black border-b border-gray-300">
+                <tr>
+                    <th class="py-2 px-4 text-left">Divisa</th>
+                    <th class="py-2 px-4 text-center">Compra (₲)</th>
+                    <th class="py-2 px-4 text-center">Venta (₲)</th>
+                </tr>
+            </thead>
+            <tbody id="tasas-tbody">
+                <!-- Filas dinámicas -->
+            </tbody>
+        </table>
+    </div>
+    <div id="empty-tasas" class="text-center py-8 text-gray-500 hidden">
+        <p>No hay tasas de cambio disponibles en este momento.</p>
+    </div>
+</div>

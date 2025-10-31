@@ -337,6 +337,23 @@
       ],
       "problemMatcher": []
     },
+    {
+      "label": "prod: deploy-heroku",
+      "type": "process",
+      "command": "${workspaceFolder}/app/.venv/bin/python",
+      "windows": {
+        "command": "${workspaceFolder}/app/.venv/Scripts/python.exe"
+      },
+      "args": [
+        "dev.py",
+        "deploy-heroku"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
     // ==== PROD ====
     {
       "label": "prod: build",
@@ -428,6 +445,6 @@
         "shell-prod"
       ],
       "problemMatcher": []
-    }
+    },
   ]
 }

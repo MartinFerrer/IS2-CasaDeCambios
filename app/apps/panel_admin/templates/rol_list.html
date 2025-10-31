@@ -1,10 +1,10 @@
 {# apps/panel_admin/templates/panel_admin/rol_list.html #}
 {% extends "base.html" %}
-{% block title %}Gestión de grupos{% endblock %}
+{% block title %}Gestión de Roles y Permisos{% endblock %}
 {% block body_class %}bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen{% endblock %}
 {# Usamos header específico para admin #}
 {% block header %}
-    {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin_conditional.html" %}
 {% endblock %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
@@ -25,19 +25,56 @@
                             </svg>
                             {{ grupo.name|title }}
                         </h2>
-                        <div class="mb-4">
-                            <div class="badge badge-outline mb-2">
-                                {{ grupo.permissions.count }} permiso{{ grupo.permissions.count|pluralize }}
-                            </div>
+                        <div class="mb-4 flex items-center justify-between">
+                            <div class="badge badge-outline mb-2">{{ grupo.permission_count }} permiso{{ grupo.permission_count|pluralize }}</div>
+                            <button class="btn btn-sm btn-primary"
+                                    onclick="document.getElementById('modal_asignar_{{ grupo.id }}').showModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-4 w-4"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Agregar permiso
+                            </button>
                         </div>
-                        {% if grupo.permissions.exists %}
+                        {% if grupo.permissions %}
                             <div class="overflow-x-auto">
                                 <h3 class="font-semibold text-gray-700 mb-2">Permisos asignados:</h3>
-                                <div class="space-y-1 max-h-64 overflow-y-auto">
-                                    {% for permission in grupo.permissions.all %}
-                                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                            <span class="text-sm font-medium text-gray-800">{{ permission.name }}</span>
-                                            <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">{{ permission.codename }}</span>
+                                <div class="mb-2">
+                                    <input id="search_assigned_{{ grupo.id }}"
+                                           type="search"
+                                           placeholder="Filtrar permisos asignados..."
+                                           class="input input-sm input-bordered w-full"
+                                           oninput="filterAssigned({{ grupo.id }})" />
+                                </div>
+                                <div id="assigned_perms_{{ grupo.id }}"
+                                     class="space-y-1 max-h-64 overflow-y-auto">
+                                    {% for permission in grupo.permissions %}
+                                        <div class="perm-item flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100"
+                                             data-name="{{ permission.display_name|default:permission.name }}"
+                                             data-codename="{{ permission.codename }}">
+                                            <div class="flex-1">
+                                                <span class="text-sm font-medium text-gray-800">{{ permission.display_name|default:permission.name }}</span>
+                                                <span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded ml-2">{{ permission.codename }}</span>
+                                            </div>
+                                            <form method="post"
+                                                  action="{% url 'rol_desasignar_permiso' grupo.id permission.id %}"
+                                                  class="inline">
+                                                {% csrf_token %}
+                                                <button type="submit"
+                                                        class="btn btn-ghost btn-xs text-red-600 hover:text-red-800"
+                                                        onclick="return confirm('¿Estás seguro de quitar este permiso?')">
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         class="h-4 w-4"
+                                                         fill="none"
+                                                         viewBox="0 0 24 24"
+                                                         stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </form>
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -59,6 +96,60 @@
                         </div>
                     </div>
                 </div>
+                {# Modal para asignar permisos #}
+                <dialog id="modal_asignar_{{ grupo.id }}" class="modal">
+                    <div class="modal-box w-11/12 max-w-3xl">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <h3 class="font-bold text-lg text-blue-700 mb-4">Agregar Permiso a: {{ grupo.name }}</h3>
+                        <form method="post" action="{% url 'rol_asignar_permiso' grupo.id %}">
+                            {% csrf_token %}
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Seleccione un permiso</span>
+                                </label>
+                                <div class="mb-2">
+                                    <input id="search_modal_{{ grupo.id }}"
+                                           type="search"
+                                           placeholder="Filtrar permisos..."
+                                           class="input input-sm input-bordered w-full"
+                                           oninput="filterModalOptions({{ grupo.id }})" />
+                                </div>
+                                <select id="select_perm_{{ grupo.id }}"
+                                        name="permiso_id"
+                                        class="select select-bordered w-full"
+                                        required>
+                                    <option value="">-- Seleccione un permiso --</option>
+                                    {% for app_label, permisos in permisos_por_app.items %}
+                                        <optgroup label="{{ app_label|title }}">
+                                            {% for permiso in permisos %}
+                                                <option value="{{ permiso.id }}">{{ permiso.display_name|default:permiso.name }} ({{ permiso.codename }})</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="modal-action">
+                                <button type="submit" class="btn btn-primary">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="h-5 w-5 mr-2"
+                                         fill="none"
+                                         viewBox="0 0 24 24"
+                                         stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Agregar
+                                </button>
+                                <button type="button"
+                                        class="btn btn-ghost"
+                                        onclick="document.getElementById('modal_asignar_{{ grupo.id }}').close()">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </dialog>
             {% empty %}
                 <div class="col-span-full">
                     <div class="card bg-white shadow-xl">
@@ -91,7 +182,7 @@
                         </svg>
                     </div>
                     <div class="stat-title">Total de roles</div>
-                    <div class="stat-value text-primary">{{ grupos.count }}</div>
+                    <div class="stat-value text-primary">{{ grupos|length }}</div>
                     <div class="stat-desc">roles configurados en el sistema</div>
                 </div>
                 {% for grupo in grupos %}
@@ -106,11 +197,46 @@
                             </svg>
                         </div>
                         <div class="stat-title">{{ grupo.name|title }}</div>
-                        <div class="stat-value text-secondary">{{ grupo.user_set.count }}</div>
+                        <div class="stat-value text-secondary">{{ grupo.user_count }}</div>
                         <div class="stat-desc">usuarios con este rol</div>
                     </div>
                 {% endfor %}
             </div>
         </div>
     </div>
+{% endblock %}
+{% block extra_scripts %}
+    <script>
+// Filtra las opciones del select dentro del modal por texto (display_name o codename)
+function filterModalOptions(grupoId) {
+    const query = document.getElementById(`search_modal_${grupoId}`).value.toLowerCase();
+    const select = document.getElementById(`select_perm_${grupoId}`);
+    if (!select) return;
+
+    for (let i = 0; i < select.options.length; i++) {
+        const opt = select.options[i];
+        const text = (opt.text || '').toLowerCase();
+        // Mostrar siempre la opción vacía
+        if (opt.value === "") { opt.style.display = ''; continue; }
+        opt.style.display = text.indexOf(query) !== -1 ? '' : 'none';
+    }
+}
+
+// Filtra los permisos ya asignados en la lista de un rol
+function filterAssigned(grupoId) {
+    const q = document.getElementById(`search_assigned_${grupoId}`).value.toLowerCase();
+    const container = document.getElementById(`assigned_perms_${grupoId}`);
+    if (!container) return;
+    const items = container.querySelectorAll('.perm-item');
+    items.forEach((it) => {
+        const name = (it.dataset.name || '').toLowerCase();
+        const codename = (it.dataset.codename || '').toLowerCase();
+        if (name.indexOf(q) !== -1 || codename.indexOf(q) !== -1) {
+            it.style.display = '';
+        } else {
+            it.style.display = 'none';
+        }
+    });
+}
+    </script>
 {% endblock %}

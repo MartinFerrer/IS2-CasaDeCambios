@@ -1,0 +1,26 @@
+{% extends "error_base.html" %}
+{% block title %}Página No Encontrada - Global Exchange{% endblock %}
+{% block body_gradient %}from-purple-50 via-purple-100 to-gray-50{% endblock %}
+{% block error_icon %}
+    <svg class="w-20 h-20 text-purple-500"
+         fill="currentColor"
+         viewBox="0 0 24 24"
+         xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+    </svg>
+{% endblock %}
+{% block error_title %}404{% endblock %}
+{% block error_code %}Página No Encontrada{% endblock %}
+{% block alert_class %}bg-purple-50 border border-purple-200{% endblock %}
+{% block text_class %}text-purple-700{% endblock %}
+{% block text_muted_class %}text-purple-600{% endblock %}
+{% block error_message %}La página que buscas no existe o ha sido movida.{% endblock %}
+{% block error_description %}Esto puede deberse a:{% endblock %}
+{% block error_list %}
+    <ul class="text-purple-600 text-left mt-2 space-y-1">
+        <li>• URL incorrecta o mal escrita</li>
+        <li>• Página eliminada o reubicada</li>
+        <li>• Enlace roto o desactualizado</li>
+        <li>• Permisos de acceso restringidos</li>
+    </ul>
+{% endblock %}

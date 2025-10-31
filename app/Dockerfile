@@ -5,6 +5,8 @@
 # Use a Python slim bookworm image with uv pre-installed
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
+ARG INSTALL_DEV_DEPS=false
+
 # Change the working directory to the app directory
 WORKDIR /app
 
@@ -41,7 +43,11 @@ COPY pyproject.toml uv.lock /_lock/
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --extra dev
+    if [ "$INSTALL_DEV_DEPS" = "true" ]; then \
+    uv sync --frozen --no-install-project --extra dev; \
+    else \
+    uv sync --frozen --no-install-project --no-dev; \
+    fi
 
 # Copy the rest of the project source code
 COPY . /app
@@ -66,7 +72,11 @@ RUN test -f /app/static/css/output.css
 # Install the project itself
 # Installing separately from dependencies allows optimal layer caching
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --extra dev
+    if [ "$INSTALL_DEV_DEPS" = "true" ]; then \
+    uv sync --frozen --extra dev; \
+    else \
+    uv sync --frozen --no-dev; \
+    fi
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"

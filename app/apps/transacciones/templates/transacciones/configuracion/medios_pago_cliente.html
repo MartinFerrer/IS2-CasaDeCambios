@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Medios de Pago - {{ cliente.nombre }}{% endblock %}
+{% block title %}Medios Financieros - {{ cliente.nombre }}{% endblock %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-6xl mx-auto">
@@ -7,20 +7,21 @@
             <div class="mb-8">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Medios de Pago</h1>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">Medios Financieros</h1>
                         <p class="text-gray-600">
                             Cliente: <span class="font-medium">{{ cliente.nombre }}</span> ({{ cliente.ruc }})
                         </p>
                     </div>
-                    <a href="{% url 'transacciones:configuracion_medios_pago' %}"
+                    <a href="{% url 'usuarios:configuracion_usuario' %}"
                        class="btn btn-outline">
-                        <svg class="w-4 h-4 mr-2"
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
                              fill="none"
-                             stroke="currentColor"
-                             viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                         </svg>
-                        Volver a Clientes
+                        Volver a Configuración
                     </a>
                 </div>
             </div>
@@ -68,11 +69,22 @@
                                             <span class="font-medium">Titular:</span> {{ tarjeta.nombre_titular }}
                                         </p>
                                         <p>
+                                            <span class="font-medium">Emisor:</span> {{ tarjeta.entidad.nombre }}
+                                        </p>
+                                        <p>
                                             <span class="font-medium">Vence:</span> {{ tarjeta.fecha_expiracion|date:"m/Y" }}
                                         </p>
                                         <p>
                                             <span class="font-medium">Creada:</span> {{ tarjeta.fecha_creacion|date:"d/m/Y" }}
                                         </p>
+                                        <!-- Indicadores de habilitación -->
+                                        <div class="flex flex-wrap gap-1 mt-2">
+                                            {% if tarjeta.habilitado_para_pago %}<span class="badge badge-success badge-sm">✓ Pago</span>{% endif %}
+                                            {% if tarjeta.habilitado_para_cobro %}<span class="badge badge-info badge-sm">✓ Cobro</span>{% endif %}
+                                            {% if not tarjeta.habilitado_para_pago and not tarjeta.habilitado_para_cobro %}
+                                                <span class="badge badge-warning badge-sm">⚠ No habilitado</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
                                         <a href="{% url 'transacciones:editar_tarjeta' cliente.id tarjeta.id %}"
@@ -146,7 +158,7 @@
                                     </h3>
                                     <div class="text-sm space-y-1">
                                         <p>
-                                            <span class="font-medium">Banco:</span> {{ cuenta.banco }}
+                                            <span class="font-medium">Banco:</span> {{ cuenta.entidad.nombre }}
                                         </p>
                                         <p>
                                             <span class="font-medium">Cuenta:</span> {{ cuenta.get_numero_enmascarado }}
@@ -162,6 +174,14 @@
                                         <p>
                                             <span class="font-medium">Creada:</span> {{ cuenta.fecha_creacion|date:"d/m/Y" }}
                                         </p>
+                                        <!-- Indicadores de habilitación -->
+                                        <div class="flex flex-wrap gap-1 mt-2">
+                                            {% if cuenta.habilitado_para_pago %}<span class="badge badge-success badge-sm">✓ Pago</span>{% endif %}
+                                            {% if cuenta.habilitado_para_cobro %}<span class="badge badge-info badge-sm">✓ Cobro</span>{% endif %}
+                                            {% if not cuenta.habilitado_para_pago and not cuenta.habilitado_para_cobro %}
+                                                <span class="badge badge-warning badge-sm">⚠ No habilitado</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
                                         <a href="{% url 'transacciones:editar_cuenta_bancaria' cliente.id cuenta.id %}"
@@ -235,7 +255,7 @@
                                     </h3>
                                     <div class="text-sm space-y-1">
                                         <p>
-                                            <span class="font-medium">Proveedor:</span> {{ billetera.get_proveedor_display }}
+                                            <span class="font-medium">Proveedor:</span> {{ billetera.entidad.nombre }}
                                         </p>
                                         <p>
                                             <span class="font-medium">ID:</span> {{ billetera.identificador }}
@@ -253,6 +273,14 @@
                                         <p>
                                             <span class="font-medium">Creada:</span> {{ billetera.fecha_creacion|date:"d/m/Y" }}
                                         </p>
+                                        <!-- Indicadores de habilitación -->
+                                        <div class="flex flex-wrap gap-1 mt-2">
+                                            {% if billetera.habilitado_para_pago %}<span class="badge badge-success badge-sm">✓ Pago</span>{% endif %}
+                                            {% if billetera.habilitado_para_cobro %}<span class="badge badge-info badge-sm">✓ Cobro</span>{% endif %}
+                                            {% if not billetera.habilitado_para_pago and not billetera.habilitado_para_cobro %}
+                                                <span class="badge badge-warning badge-sm">⚠ No habilitado</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="card-actions justify-end mt-3 gap-2">
                                         <a href="{% url 'transacciones:editar_billetera' cliente.id billetera.id %}"
@@ -290,7 +318,7 @@
             </div>
         </div>
     </div>
-    <!-- Modal de confirmación para eliminar medio de pago -->
+    <!-- Modal de confirmación para eliminar medio financiero -->
     <div id="deleteModal" class="modal">
         <div class="modal-box">
             <form method="dialog">
@@ -300,7 +328,7 @@
             </form>
             <h3 class="font-bold text-lg text-red-600 mb-4">Confirmar eliminación</h3>
             <p class="py-4">
-                ¿Estás seguro de que deseas eliminar el medio de pago "<span id="modalItemName"></span>"?
+                ¿Estás seguro de que deseas eliminar el medio financiero "<span id="modalItemName"></span>"?
             </p>
             <p class="text-sm text-gray-500 mb-4">Esta acción no se puede deshacer.</p>
             <div class="modal-action">
@@ -321,7 +349,7 @@
             const form = document.getElementById('deleteForm');
             const nombre = document.getElementById('modalItemName');
 
-            // Actualizar el nombre del medio de pago en el modal
+            // Actualizar el nombre del medio financiero en el modal
             nombre.textContent = alias;
 
             // Construir la URL de eliminación con el cliente_id

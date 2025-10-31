@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            {% block title %}Error - Global Exchange{% endblock %}
+        </title>
+        <meta name="keywords" content="error, Global Exchange">
+        {% load static %}
+        <link rel="icon"
+              type="image/x-icon"
+              href="{% static 'images/favicon.ico' %}">
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="min-h-screen bg-gradient-to-br {% block body_gradient %}from-red-50 via-red-100 to-gray-50{% endblock %} flex items-center justify-center">
+        <div class="bg-white shadow-2xl rounded-3xl overflow-hidden w-full max-w-2xl p-10 text-center">
+            <!-- Logo Global Exchange -->
+            <div class="mb-6 bg-white rounded-full p-4 flex items-center justify-center mx-auto w-20 h-20">
+                <img src="{% static 'images/favicon.ico' %}"
+                     alt="Global Exchange Logo"
+                     class="w-16 h-16"
+                     width="64"
+                     height="64">
+            </div>
+            <!-- Error Icon -->
+            <div class="mb-6 flex justify-center">
+                {% block error_icon %}
+                    <svg class="w-20 h-20 text-red-500"
+                         fill="currentColor"
+                         viewBox="0 0 24 24"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2l10.5 18H1.5L12 2zm0 3L4.5 18h15L12 5zm-1 8h2v2h-2v-2zm0-6h2v4h-2V7z" />
+                    </svg>
+                {% endblock %}
+            </div>
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                {% block error_title %}Error{% endblock %}
+            </h1>
+            <h2 class="text-xl text-gray-600 mb-6">
+                {% block error_code %}{% endblock %}
+            </h2>
+            <div class="{% block alert_class %}bg-red-50 border border-red-200{% endblock %} rounded-lg p-6 mb-8">
+                <p class="{% block text_class %}text-red-700{% endblock %} text-lg mb-4">
+                    <strong>
+                        {% block error_message %}{% endblock %}
+                    </strong>
+                </p>
+                <p class="{% block text_muted_class %}text-red-600{% endblock %}">
+                    {% block error_description %}{% endblock %}
+                </p>
+                {% block error_list %}{% endblock %}
+            </div>
+            <div class="space-y-4">
+                {% block action_buttons %}
+                    <button onclick="window.history.back()"
+                            class="inline-block w-full py-3 bg-gray-600 text-white rounded-xl font-semibold hover:bg-gray-700 transition">
+                        Volver Atrás
+                    </button>
+                    <a href="{% url 'presentacion:home' %}"
+                       class="inline-block w-full py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition">
+                        Ir al Inicio
+                    </a>
+                {% endblock %}
+            </div>
+            <div class="mt-8 text-gray-500 text-sm">
+                {% block footer_message %}<p>Si el problema persiste, contacta al administrador del sistema.</p>{% endblock %}
+            </div>
+        </div>
+        {% block extra_scripts %}{% endblock %}
+    </body>
+</html>

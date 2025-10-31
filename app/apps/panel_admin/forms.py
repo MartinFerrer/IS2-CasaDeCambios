@@ -1,7 +1,9 @@
 """Clases de Formularios para la aplicación de panel administrativo."""
 
-from apps.usuarios.models import Cliente, Usuario
 from django import forms
+
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente, Usuario
 
 
 class UsuarioForm(forms.ModelForm):
@@ -29,3 +31,13 @@ class ClienteForm(forms.ModelForm):
         widgets = {
             "tipo_cliente": forms.Select(),
         }
+
+
+class TauserForm(forms.ModelForm):
+    """Formulario de Tauser."""
+
+    class Meta:
+        """Meta clase conteniendo los campos del formulario de tauser."""
+
+        model = Tauser
+        fields = ["nombre", "ubicacion"]

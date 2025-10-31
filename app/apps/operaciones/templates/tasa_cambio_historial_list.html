@@ -7,7 +7,7 @@
     bg-gradient-to-br from-blue-50 to-blue-200 min-h-screen
 {% endblock body_class %}
 {% block header %}
-    {% include "includes/header_admin.html" %}
+    {% include "includes/header_admin_conditional.html" %}
 {% endblock header %}
 {% block content %}
     <div class="container mx-auto px-4 py-8">
@@ -70,10 +70,10 @@
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
-                            <th class="bg-blue-100">Fecha y Hora</th>
+                            <th class="bg-blue-100">Fecha y Hora de Actualización</th>
                             <th class="bg-blue-100">Divisa Origen</th>
                             <th class="bg-blue-100">Divisa Destino</th>
-                            <th class="bg-blue-100">Valor (Gs.)</th>
+                            <th class="bg-blue-100">Precio Base (Gs.)</th>
                             <th class="bg-blue-100">Comisión Compra (Gs.)</th>
                             <th class="bg-blue-100">Comisión Venta (Gs.)</th>
                             <th class="bg-blue-100">Estado</th>
@@ -87,7 +87,7 @@
                                     <td>{{ registro.fecha_registro }}</td>
                                     <td>{{ registro.divisa_origen }}</td>
                                     <td>{{ registro.divisa_destino }}</td>
-                                    <td>{{ registro.valor|strip_trailing_zeros }}</td>
+                                    <td>{{ registro.precio_base|strip_trailing_zeros }}</td>
                                     <td>{{ registro.comision_compra|strip_trailing_zeros }}</td>
                                     <td>{{ registro.comision_venta|strip_trailing_zeros }}</td>
                                     <td>

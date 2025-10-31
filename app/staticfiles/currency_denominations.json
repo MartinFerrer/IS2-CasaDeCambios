@@ -1,0 +1,2624 @@
+[
+  {
+    "currency": "Abkhazian apsar",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Abkhazian_apsar",
+    "denominations": [
+      "10",
+      "25",
+      "50",
+      "100",
+      "500"
+    ],
+    "snippets": [
+      "10, 25, 50, 100, 500 apsark"
+    ]
+  },
+  {
+    "currency": "Afghan afghani",
+    "iso": "AFN",
+    "url": "https://en.wikipedia.org/wiki/Afghan_afghani",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "Afs. 10, Afs. 20, Afs. 50, Afs. 100, Afs. 500 and Afs. 1,000"
+    ]
+  },
+  {
+    "currency": "Euro",
+    "iso": "EUR",
+    "url": "https://en.wikipedia.org/wiki/Euro",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "€5 \n ,  \n €10 \n ,  \n €20 \n ,  \n €50 \n ,  \n €100 \n [ \n 2 \n ]"
+    ]
+  },
+  {
+    "currency": "Albanian lek",
+    "iso": "ALL",
+    "url": "https://en.wikipedia.org/wiki/Albanian_lek",
+    "denominations": [
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "200, 500, 1,000, 2,000, 5,000 Lekë"
+    ]
+  },
+  {
+    "currency": "Algerian dinar",
+    "iso": "DZD",
+    "url": "https://en.wikipedia.org/wiki/Algerian_dinar",
+    "denominations": [
+      "1",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "500, 1000, 2000 DA \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "Angolan kwanza",
+    "iso": "AOA",
+    "url": "https://en.wikipedia.org/wiki/Angolan_kwanza",
+    "denominations": [
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "200, 500, 1,000, 2,000, 5,000 kwanzas"
+    ]
+  },
+  {
+    "currency": "Eastern Caribbean dollar",
+    "iso": "XCD",
+    "url": "https://en.wikipedia.org/wiki/Eastern_Caribbean_dollar",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "EC$2, EC$5, EC$10, EC$20, EC$50, EC$100"
+    ]
+  },
+  {
+    "currency": "Argentine peso",
+    "iso": "ARS",
+    "url": "https://en.wikipedia.org/wiki/Argentine_peso",
+    "denominations": [
+      "2",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "10000",
+      "20000"
+    ],
+    "snippets": [
+      "10, 20, 50, 100, 200, 500, 1,000, 2,000, 10,000 and 20,000 pesos \n [ \n 2 \n ]"
+    ]
+  },
+  {
+    "currency": "Armenian dram",
+    "iso": "AMD",
+    "url": "https://en.wikipedia.org/wiki/Armenian_dram",
+    "denominations": [
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000"
+    ],
+    "snippets": [
+      "֏1,000, ֏2,000, ֏5,000, ֏10,000, ֏20,000, ֏50,000"
+    ]
+  },
+  {
+    "currency": "Aruban florin",
+    "iso": "AWG",
+    "url": "https://en.wikipedia.org/wiki/Aruban_florin",
+    "denominations": [
+      "10",
+      "25",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "Afl. 10, Afl. 25, Afl. 50, Afl. 100, Afl. 200"
+    ]
+  },
+  {
+    "currency": "Saint Helena pound",
+    "iso": "SHP",
+    "url": "https://en.wikipedia.org/wiki/Saint_Helena_pound",
+    "denominations": [
+      "5",
+      "10",
+      "20"
+    ],
+    "snippets": [
+      "£5, £10, £20"
+    ]
+  },
+  {
+    "currency": "Australian dollar",
+    "iso": "AUD",
+    "url": "https://en.wikipedia.org/wiki/Australian_dollar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$5 \n ,  \n $10 \n ,  \n $20 \n ,  \n $50 \n ,  \n $100"
+    ]
+  },
+  {
+    "currency": "Azerbaijani manat",
+    "iso": "AZN",
+    "url": "https://en.wikipedia.org/wiki/Azerbaijani_manat",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "₼1, ₼5, ₼10,  \n ₼20 \n ,  \n ₼50 \n , ₼100, ₼200"
+    ]
+  },
+  {
+    "currency": "Bahamian dollar",
+    "iso": "BSD",
+    "url": "https://en.wikipedia.org/wiki/Bahamian_dollar",
+    "denominations": [
+      "1",
+      "2",
+      "3",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$ \n 1 \n ⁄ \n 2 \n ,  \n $1 \n ,  \n $3 \n ,  \n $5 \n ,  \n $10 \n ,  \n $20 \n ,  \n $50 \n ,  \n $100"
+    ]
+  },
+  {
+    "currency": "Bahraini dinar",
+    "iso": "BHD",
+    "url": "https://en.wikipedia.org/wiki/Bahraini_dinar",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20"
+    ],
+    "snippets": [
+      "BD  \n 1 \n ⁄ \n 2 \n , BD 1, BD 5, BD 10, BD 20"
+    ]
+  },
+  {
+    "currency": "Bangladeshi taka",
+    "iso": "BDT",
+    "url": "https://en.wikipedia.org/wiki/Bangladeshi_taka",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "৳ \n 2,  \n ৳ \n 5,  \n ৳ \n 10,   \n ৳ \n 20,   \n ৳ \n 50,  \n ৳ \n 100,  \n ৳ \n 200,  \n ৳ \n 500 and  \n ৳ \n 1000"
+    ]
+  },
+  {
+    "currency": "Barbadian dollar",
+    "iso": "BBD",
+    "url": "https://en.wikipedia.org/wiki/Barbadian_dollar",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$2, $5, $10, $20, $50, $100"
+    ]
+  },
+  {
+    "currency": "Belarusian ruble",
+    "iso": "BYN",
+    "url": "https://en.wikipedia.org/wiki/Belarusian_ruble",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "Rbls 5, Rbls 10, Rbls 20, Rbls 50, Rbls 100, Rbls 200"
+    ]
+  },
+  {
+    "currency": "Belize dollar",
+    "iso": "BZD",
+    "url": "https://en.wikipedia.org/wiki/Belize_dollar",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$2 \n ,  \n $5 \n ,  \n $10 \n ,  \n $20 \n ,  \n $50 \n ,  \n $100"
+    ]
+  },
+  {
+    "currency": "West African CFA franc",
+    "iso": "XOF",
+    "url": "https://en.wikipedia.org/wiki/West_African_CFA_franc",
+    "denominations": [
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "500, 1,000, 2,000, 5,000, 10,000 francs"
+    ]
+  },
+  {
+    "currency": "Bermudian dollar",
+    "iso": "BMD",
+    "url": "https://en.wikipedia.org/wiki/Bermudian_dollar",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$2, $5, $10, $20, $50, $100"
+    ]
+  },
+  {
+    "currency": "Bhutanese ngultrum",
+    "iso": "BTN",
+    "url": "https://en.wikipedia.org/wiki/Bhutanese_ngultrum",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "Nu.1, Nu.5, Nu.10, Nu.20, Nu.50, Nu.100, Nu.500, Nu.1000 \n [ \n 1 \n ] \n [ \n 2 \n ]"
+    ]
+  },
+  {
+    "currency": "Bolivian boliviano",
+    "iso": "BOB",
+    "url": "https://en.wikipedia.org/wiki/Bolivian_boliviano",
+    "denominations": [
+      "1",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "Bs10, 20, 50, 100, 200 \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "United States dollar",
+    "iso": "USD",
+    "url": "https://en.wikipedia.org/wiki/United_States_dollar",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$1 \n ,  \n $5 \n ,  \n $10 \n ,  \n $20 \n ,  \n $50 \n ,  \n $100"
+    ]
+  },
+  {
+    "currency": "Bosnia and Herzegovina convertible mark",
+    "iso": "BAM",
+    "url": "https://en.wikipedia.org/wiki/Bosnia_and_Herzegovina_convertible_mark",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "KM 10, KM 20, KM 50, KM 100"
+    ]
+  },
+  {
+    "currency": "Botswana pula",
+    "iso": "BWP",
+    "url": "https://en.wikipedia.org/wiki/Botswana_pula",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "10, 20, 50, 100, 200 pula"
+    ]
+  },
+  {
+    "currency": "Brazilian real",
+    "iso": "BRL",
+    "url": "https://en.wikipedia.org/wiki/Brazilian_real",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "R$ 2, R$ 5, R$ 10, R$ 20, R$ 50, R$ 100, R$ 200"
+    ]
+  },
+  {
+    "currency": "Brunei dollar",
+    "iso": "BND",
+    "url": "https://en.wikipedia.org/wiki/Brunei_dollar",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "$1, $2, $5, $10, $50, $100, $500, $1000"
+    ]
+  },
+  {
+    "currency": "Bulgarian lev",
+    "iso": "BGN",
+    "url": "https://en.wikipedia.org/wiki/Bulgarian_lev",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "5, 10, 20, 50, 100 leva"
+    ]
+  },
+  {
+    "currency": "Burundian franc",
+    "iso": "BIF",
+    "url": "https://en.wikipedia.org/wiki/Burundian_franc",
+    "denominations": [
+      "100",
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "100, 500, 1,000, 2,000, 5,000, 10,000 francs"
+    ]
+  },
+  {
+    "currency": "Cambodian riel",
+    "iso": "KHR",
+    "url": "https://en.wikipedia.org/wiki/Cambodian_riel",
+    "denominations": [
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000"
+    ],
+    "snippets": [
+      "100៛, 200៛, 500៛, 1,000៛, 2,000៛, 5,000៛, 10,000៛, 20,000៛, 50,000៛"
+    ]
+  },
+  {
+    "currency": "Central African CFA franc",
+    "iso": "XAF",
+    "url": "https://en.wikipedia.org/wiki/Central_African_CFA_franc",
+    "denominations": [
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "500, 1,000, 2,000, 5,000, 10,000 francs"
+    ]
+  },
+  {
+    "currency": "Canadian dollar",
+    "iso": "CAD",
+    "url": "https://en.wikipedia.org/wiki/Canadian_dollar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$5 \n ,  \n $10 \n ,  \n $20 \n ,  \n $50 \n ,  \n $100"
+    ]
+  },
+  {
+    "currency": "Cape Verdean escudo",
+    "iso": "CVE",
+    "url": "https://en.wikipedia.org/wiki/Cape_Verdean_escudo",
+    "denominations": [
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "200, 500, 1000, 2000, 5000 escudos"
+    ]
+  },
+  {
+    "currency": "Cayman Islands dollar",
+    "iso": "KYD",
+    "url": "https://en.wikipedia.org/wiki/Cayman_Islands_dollar",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "25",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$1, $5, $10, $25, $50, $100"
+    ]
+  },
+  {
+    "currency": "Chilean peso",
+    "iso": "CLP",
+    "url": "https://en.wikipedia.org/wiki/Chilean_peso",
+    "denominations": [
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000"
+    ],
+    "snippets": [
+      "1,000, 2,000, 5,000, 10,000, 20,000 pesos"
+    ]
+  },
+  {
+    "currency": "Renminbi",
+    "iso": "CNY",
+    "url": "https://en.wikipedia.org/wiki/Renminbi",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "¥1, ¥5, ¥10, ¥20, ¥50, ¥100"
+    ]
+  },
+  {
+    "currency": "Colombian peso",
+    "iso": "COP",
+    "url": "https://en.wikipedia.org/wiki/Colombian_peso",
+    "denominations": [
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000",
+      "100000"
+    ],
+    "snippets": [
+      "$2,000, $5,000, $10,000, $20,000, $50,000, $100,000"
+    ]
+  },
+  {
+    "currency": "Comorian franc",
+    "iso": "KMF",
+    "url": "https://en.wikipedia.org/wiki/Comorian_franc",
+    "denominations": [
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "500 FC, 1,000 FC, 2,000 FC, 5,000 FC, 10,000 FC"
+    ]
+  },
+  {
+    "currency": "Congolese franc",
+    "iso": "CDF",
+    "url": "https://en.wikipedia.org/wiki/Congolese_franc",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "5000",
+      "10000",
+      "20000"
+    ],
+    "snippets": [
+      "(1, 5, 10, 20, 50 centimes, 1, 5, 10,  \n obsolete \n ) \n20, 50, 100, 200, 500, 1,000, 5,000, 10,000, 20,000 francs"
+    ]
+  },
+  {
+    "currency": "Cook Islands dollar",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Cook_Islands_dollar",
+    "denominations": [
+      "3",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "$3, $10, $20, $50"
+    ]
+  },
+  {
+    "currency": "Costa Rican colón",
+    "iso": "CRC",
+    "url": "https://en.wikipedia.org/wiki/Costa_Rican_col%C3%B3n",
+    "denominations": [
+      "000",
+      "1",
+      "2",
+      "5",
+      "10",
+      "20"
+    ],
+    "snippets": [
+      "₡1 000, ₡2 000, ₡5 000, ₡10 000, ₡20 000"
+    ]
+  },
+  {
+    "currency": "Cuban peso",
+    "iso": "CUP",
+    "url": "https://en.wikipedia.org/wiki/Cuban_peso",
+    "denominations": [
+      "1",
+      "2",
+      "3",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "$1, $3, $5, $10, $20, $50, $100, $200, $500, $1,000 \n [ \n 1 \n ] \n [ \n 2 \n ]"
+    ]
+  },
+  {
+    "currency": "Caribbean guilder",
+    "iso": "XCG",
+    "url": "https://en.wikipedia.org/wiki/Caribbean_guilder",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "10Cg, 20Cg, 50Cg, 100Cg, 200Cg"
+    ]
+  },
+  {
+    "currency": "Czech koruna",
+    "iso": "CZK",
+    "url": "https://en.wikipedia.org/wiki/Czech_koruna",
+    "denominations": [
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "100 Kč, 200 Kč, 500 Kč, 1,000 Kč, 2,000 Kč"
+    ]
+  },
+  {
+    "currency": "Danish krone",
+    "iso": "DKK",
+    "url": "https://en.wikipedia.org/wiki/Danish_krone",
+    "denominations": [
+      "1",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "50, 100, 200, 500 kroner \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "Djiboutian franc",
+    "iso": "DJF",
+    "url": "https://en.wikipedia.org/wiki/Djiboutian_franc",
+    "denominations": [
+      "40",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "40 (commemorative), 1000, 2000, 5000, 10,000 Fdj"
+    ]
+  },
+  {
+    "currency": "Dominican peso",
+    "iso": "DOP",
+    "url": "https://en.wikipedia.org/wiki/Dominican_peso",
+    "denominations": [
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "50, 100, 200, 500, 1000, 2000 pesos dominicanos"
+    ]
+  },
+  {
+    "currency": "Egyptian pound",
+    "iso": "EGP",
+    "url": "https://en.wikipedia.org/wiki/Egyptian_pound",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "£1, £5, £10, £20, £50, £100, £200"
+    ]
+  },
+  {
+    "currency": "Eritrean nakfa",
+    "iso": "ERN",
+    "url": "https://en.wikipedia.org/wiki/Eritrean_nakfa",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "1, 5, 10, 20, 50, 100 nakfa"
+    ]
+  },
+  {
+    "currency": "Swazi lilangeni",
+    "iso": "SZL",
+    "url": "https://en.wikipedia.org/wiki/Swazi_lilangeni",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "E10, E20, E50, E100, E200"
+    ]
+  },
+  {
+    "currency": "Ethiopian birr",
+    "iso": "ETB",
+    "url": "https://en.wikipedia.org/wiki/Ethiopian_birr",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "1, 5, 10, 50, 100, 200 birr"
+    ]
+  },
+  {
+    "currency": "Falkland Islands pound",
+    "iso": "FKP",
+    "url": "https://en.wikipedia.org/wiki/Falkland_Islands_pound",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "£5, £10, £20, £50"
+    ]
+  },
+  {
+    "currency": "Fijian dollar",
+    "iso": "FJD",
+    "url": "https://en.wikipedia.org/wiki/Fijian_dollar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$5 \n ,  \n $10 \n ,  \n $20 \n ,  \n $50 \n ,  \n $100"
+    ]
+  },
+  {
+    "currency": "CFP franc",
+    "iso": "XPF",
+    "url": "https://en.wikipedia.org/wiki/CFP_franc",
+    "denominations": [
+      "500",
+      "1000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "F 500 \n ,  \n F 1,000 \n ,  \n F 5,000 \n ,  \n F 10,000"
+    ]
+  },
+  {
+    "currency": "Gambian dalasi",
+    "iso": "GMD",
+    "url": "https://en.wikipedia.org/wiki/Gambian_dalasi",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "25",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "5, 10, 20, 25, 50, 100, 200 dalasis"
+    ]
+  },
+  {
+    "currency": "Georgian lari",
+    "iso": "GEL",
+    "url": "https://en.wikipedia.org/wiki/Georgian_lari",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "₾5, ₾10, ₾20, ₾50, ₾100"
+    ]
+  },
+  {
+    "currency": "Ghanaian cedi",
+    "iso": "GHS",
+    "url": "https://en.wikipedia.org/wiki/Ghanaian_cedi",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "GH₵1, GH₵2, GH₵5, GH₵10, GH₵20, GH₵50, GH₵100, GH₵200"
+    ]
+  },
+  {
+    "currency": "Gibraltar pound",
+    "iso": "GIP",
+    "url": "https://en.wikipedia.org/wiki/Gibraltar_pound",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "£5, £10, £20, £50"
+    ]
+  },
+  {
+    "currency": "Guatemalan quetzal",
+    "iso": "GTQ",
+    "url": "https://en.wikipedia.org/wiki/Guatemalan_quetzal",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "1, 5, 10, 20, 50, 100, 200 quetzales"
+    ]
+  },
+  {
+    "currency": "Guernsey pound",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Guernsey_pound",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "£1, £5, £10, £20, £50"
+    ]
+  },
+  {
+    "currency": "Guinean franc",
+    "iso": "GNF",
+    "url": "https://en.wikipedia.org/wiki/Guinean_franc",
+    "denominations": [
+      "100",
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000"
+    ],
+    "snippets": [
+      "100, 500, 1,000, 2,000, 5,000, 10,000, 20,000 francs"
+    ]
+  },
+  {
+    "currency": "Guyanese dollar",
+    "iso": "GYD",
+    "url": "https://en.wikipedia.org/wiki/Guyanese_dollar",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "$20, $50, $100, $500, $1000, $2000, $5000"
+    ]
+  },
+  {
+    "currency": "Haitian gourde",
+    "iso": "HTG",
+    "url": "https://en.wikipedia.org/wiki/Haitian_gourde",
+    "denominations": [
+      "10",
+      "25",
+      "50",
+      "100",
+      "250",
+      "500"
+    ],
+    "snippets": [
+      "G 10, G 25, G 50, G 100, G 250, G 500"
+    ]
+  },
+  {
+    "currency": "Honduran lempira",
+    "iso": "HNL",
+    "url": "https://en.wikipedia.org/wiki/Honduran_lempira",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "L1, L2, L5, L10, L20, L50, L100, L200, L500"
+    ]
+  },
+  {
+    "currency": "Hong Kong dollar",
+    "iso": "HKD",
+    "url": "https://en.wikipedia.org/wiki/Hong_Kong_dollar",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "HK$10 \n ,  \n HK$20 \n ,  \n HK$50 \n ,  \n HK$100 \n ,  \n HK$500 \n ,  \n HK$1,000"
+    ]
+  },
+  {
+    "currency": "Hungarian forint",
+    "iso": "HUF",
+    "url": "https://en.wikipedia.org/wiki/Hungarian_forint",
+    "denominations": [
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000"
+    ],
+    "snippets": [
+      "500 Ft, 1,000 Ft, 2,000 Ft, 5,000 Ft, 10,000 Ft, 20,000 Ft"
+    ]
+  },
+  {
+    "currency": "Icelandic króna",
+    "iso": "ISK",
+    "url": "https://en.wikipedia.org/wiki/Icelandic_kr%C3%B3na",
+    "denominations": [
+      "500",
+      "1000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "500, 1,000, 5,000, 10,000 króna"
+    ]
+  },
+  {
+    "currency": "Indian rupee",
+    "iso": "INR",
+    "url": "https://en.wikipedia.org/wiki/Indian_rupee",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "₹ \n 10 \n ,  \n ₹ \n 20 \n ,  \n ₹ \n 50 \n ,  \n ₹ \n 100 \n ,  \n ₹ \n 200 \n ,  \n ₹ \n 500"
+    ]
+  },
+  {
+    "currency": "Indonesian rupiah",
+    "iso": "IDR",
+    "url": "https://en.wikipedia.org/wiki/Indonesian_rupiah",
+    "denominations": [
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000",
+      "100000"
+    ],
+    "snippets": [
+      "Rp1,000, Rp2,000, Rp5,000, Rp10,000, Rp20,000, Rp50,000, Rp100,000"
+    ]
+  },
+  {
+    "currency": "Iranian rial",
+    "iso": "IRR",
+    "url": "https://en.wikipedia.org/wiki/Iranian_rial",
+    "denominations": [
+      "10000",
+      "20000",
+      "50000",
+      "100000"
+    ],
+    "snippets": [
+      "Rls 10,000, Rls 20,000, Rls 50,000, Rls 100,000"
+    ]
+  },
+  {
+    "currency": "Iraqi dinar",
+    "iso": "IQD",
+    "url": "https://en.wikipedia.org/wiki/Iraqi_dinar",
+    "denominations": [
+      "250",
+      "500",
+      "1000",
+      "5000",
+      "10000",
+      "25000"
+    ],
+    "snippets": [
+      "IQD 250, IQD 500, IQD 1,000, IQD 5,000, IQD 10,000,  IQD 25,000"
+    ]
+  },
+  {
+    "currency": "Manx pound",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Manx_pound",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "£1, £5, £10, £20, £50"
+    ]
+  },
+  {
+    "currency": "Israeli new shekel",
+    "iso": "ILS",
+    "url": "https://en.wikipedia.org/wiki/Israeli_new_shekel",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "₪20 \n ,  \n ₪50 \n ,  \n ₪100 \n ,  \n ₪200"
+    ]
+  },
+  {
+    "currency": "Jamaican dollar",
+    "iso": "JMD",
+    "url": "https://en.wikipedia.org/wiki/Jamaican_dollar",
+    "denominations": [
+      "50",
+      "100",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "$50 \n ,  \n $100 \n ,  \n $500 \n ,  \n $1000 \n ,\n \n $2000 \n ,  \n $5000"
+    ]
+  },
+  {
+    "currency": "Japanese yen",
+    "iso": "JPY",
+    "url": "https://en.wikipedia.org/wiki/Japanese_yen",
+    "denominations": [
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "¥1,000 \n ,  \n ¥2,000 \n ,  \n ¥5,000 \n ,  \n ¥10,000"
+    ]
+  },
+  {
+    "currency": "Jersey pound",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Jersey_pound",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "£1, £5, £10, £20, £50"
+    ]
+  },
+  {
+    "currency": "Jordanian dinar",
+    "iso": "JOD",
+    "url": "https://en.wikipedia.org/wiki/Jordanian_dinar",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "1, 5, 10, 20, 50 dinars"
+    ]
+  },
+  {
+    "currency": "Kazakhstani tenge",
+    "iso": "KZT",
+    "url": "https://en.wikipedia.org/wiki/Kazakhstani_tenge",
+    "denominations": [
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000"
+    ],
+    "snippets": [
+      "₸200, ₸500, ₸1,000, ₸2,000, ₸5,000, ₸10,000, ₸20,000"
+    ]
+  },
+  {
+    "currency": "Kenyan shilling",
+    "iso": "KES",
+    "url": "https://en.wikipedia.org/wiki/Kenyan_shilling",
+    "denominations": [
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "50/ \n = \n , 100/ \n = \n , 200/ \n = \n , 500/ \n = \n , 1,000/ \n ="
+    ]
+  },
+  {
+    "currency": "Kiribati dollar",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Kiribati_dollar",
+    "denominations": [      
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "Australian notes circulate",
+      "[ edit ]"
+    ]
+  },
+  {
+    "currency": "North Korean won",
+    "iso": "KPW",
+    "url": "https://en.wikipedia.org/wiki/North_Korean_won",
+    "denominations": [
+      "1",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "₩100, ₩200, ₩500, ₩1000, ₩2000, ₩5000 \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "South Korean won",
+    "iso": "KRW",
+    "url": "https://en.wikipedia.org/wiki/South_Korean_won",
+    "denominations": [
+      "1000",
+      "5000",
+      "10000",
+      "50000"
+    ],
+    "snippets": [
+      "₩1,000, ₩5,000, ₩10,000, ₩50,000"
+    ]
+  },
+  {
+    "currency": "Kuwaiti dinar",
+    "iso": "KWD",
+    "url": "https://en.wikipedia.org/wiki/Kuwaiti_dinar",
+    "denominations": [
+      "1",
+      "2",
+      "4",
+      "5",
+      "10",
+      "20"
+    ],
+    "snippets": [
+      "KD  \n 1 \n ⁄ \n 4 \n , KD  \n 1 \n ⁄ \n 2 \n , KD 1, KD 5, KD 10, KD 20"
+    ]
+  },
+  {
+    "currency": "Kyrgyz som",
+    "iso": "KGS",
+    "url": "https://en.wikipedia.org/wiki/Kyrgyz_som",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "20, 50, 100, 200, 500, 1,000 som"
+    ]
+  },
+  {
+    "currency": "Lao kip",
+    "iso": "LAK",
+    "url": "https://en.wikipedia.org/wiki/Lao_kip",
+    "denominations": [
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000",
+      "100000"
+    ],
+    "snippets": [
+      "1,000₭, 2,000₭, 5,000₭, 10,000₭, 20,000₭, 50,000₭, 100,000₭"
+    ]
+  },
+  {
+    "currency": "Lebanese pound",
+    "iso": "LBP",
+    "url": "https://en.wikipedia.org/wiki/Lebanese_pound",
+    "denominations": [
+      "5000",
+      "10000",
+      "20000",
+      "50000",
+      "100000"
+    ],
+    "snippets": [
+      "LL 5,000, LL 10,000, LL 20,000, LL 50,000, LL 100,000"
+    ]
+  },
+  {
+    "currency": "Lesotho loti",
+    "iso": "LSL",
+    "url": "https://en.wikipedia.org/wiki/Lesotho_loti",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "M10, M20, M50, M100, M200"
+    ]
+  },
+  {
+    "currency": "Liberian dollar",
+    "iso": "LRD",
+    "url": "https://en.wikipedia.org/wiki/Liberian_dollar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "L$5, L$10, L$20, L$50, L$100, L$500, L$1,000"
+    ]
+  },
+  {
+    "currency": "Libyan dinar",
+    "iso": "LYD",
+    "url": "https://en.wikipedia.org/wiki/Libyan_dinar",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "LD 1, LD 5, LD 10, LD 20, LD 50"
+    ]
+  },
+  {
+    "currency": "Swiss franc",
+    "iso": "CHF",
+    "url": "https://en.wikipedia.org/wiki/Swiss_franc",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "1000"
+    ],
+    "snippets": [
+      "10, 20, 50, 100, 200, 1000 francs"
+    ]
+  },
+  {
+    "currency": "Macanese pataca",
+    "iso": "MOP",
+    "url": "https://en.wikipedia.org/wiki/Macanese_pataca",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "500"
+    ],
+    "snippets": [
+      "$10, $20, $50, $100, $500"
+    ]
+  },
+  {
+    "currency": "Malagasy ariary",
+    "iso": "MGA",
+    "url": "https://en.wikipedia.org/wiki/Malagasy_ariary",
+    "denominations": [
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "100, 200, 500, 1000, 2000, 5000, 10,000 Ar"
+    ]
+  },
+  {
+    "currency": "Malawian kwacha",
+    "iso": "MWK",
+    "url": "https://en.wikipedia.org/wiki/Malawian_kwacha",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "20, 50, 100, 200, 500, 1,000, 2,000, 5,000 kwacha"
+    ]
+  },
+  {
+    "currency": "Malaysian ringgit",
+    "iso": "MYR",
+    "url": "https://en.wikipedia.org/wiki/Malaysian_ringgit",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "RM1, RM5, RM10, RM20, RM50, RM100"
+    ]
+  },
+  {
+    "currency": "Maldivian rufiyaa",
+    "iso": "MVR",
+    "url": "https://en.wikipedia.org/wiki/Maldivian_rufiyaa",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "500"
+    ],
+    "snippets": [
+      "Rf. 5, Rf. 10, Rf. 20, Rf. 50, Rf. 100, Rf. 500"
+    ]
+  },
+  {
+    "currency": "Mauritanian ouguiya",
+    "iso": "MRU",
+    "url": "https://en.wikipedia.org/wiki/Mauritanian_ouguiya",
+    "denominations": [
+      "2",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "20, 50, 100, 200, 500, 1000 ouguiya \n [ \n 2 \n ]"
+    ]
+  },
+  {
+    "currency": "Mauritian rupee",
+    "iso": "MUR",
+    "url": "https://en.wikipedia.org/wiki/Mauritian_rupee",
+    "denominations": [
+      "25",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "Rs. 25/-, Rs. 50/-, Rs. 100/-, Rs. 200/-, Rs. 500/-, Rs. 1,000/-, Rs. 2,000/-"
+    ]
+  },
+  {
+    "currency": "Mexican peso",
+    "iso": "MXN",
+    "url": "https://en.wikipedia.org/wiki/Mexican_peso",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "$20, $50, $100, $200, $500"
+    ]
+  },
+  {
+    "currency": "Moldovan leu",
+    "iso": "MDL",
+    "url": "https://en.wikipedia.org/wiki/Moldovan_leu",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "20, 50, 100, 200, 500, 1000 lei"
+    ]
+  },
+  {
+    "currency": "Mongolian tögrög",
+    "iso": "MNT",
+    "url": "https://en.wikipedia.org/wiki/Mongolian_t%C3%B6gr%C3%B6g",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000",
+      "5000",
+      "10000",
+      "20000"
+    ],
+    "snippets": [
+      "₮10, ₮20, ₮50, ₮100, ₮500, ₮1,000, ₮5,000, ₮10,000, ₮20,000"
+    ]
+  },
+  {
+    "currency": "Moroccan dirham",
+    "iso": "MAD",
+    "url": "https://en.wikipedia.org/wiki/Moroccan_dirham",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "20, 50, 100, 200 dirhams"
+    ]
+  },
+  {
+    "currency": "Mozambican metical",
+    "iso": "MZN",
+    "url": "https://en.wikipedia.org/wiki/Mozambican_metical",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "20, 50, 100, 200, 500, 1000 meticais"
+    ]
+  },
+  {
+    "currency": "Burmese kyat",
+    "iso": "MMK",
+    "url": "https://en.wikipedia.org/wiki/Burmese_kyat",
+    "denominations": [
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "Ks. 50/-, Ks. 100/-, Ks. 200/-, Ks. 500/-, Ks. 1,000/-, Ks. 5,000/-, Ks. 10,000/-"
+    ]
+  },
+  {
+    "currency": "Namibian dollar",
+    "iso": "NAD",
+    "url": "https://en.wikipedia.org/wiki/Namibian_dollar",
+    "denominations": [
+      "10",
+      "20",
+      "30",
+      "50",
+      "60",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "N$10, N$20, N$30, N$50, N$60, N$100, N$200"
+    ]
+  },
+  {
+    "currency": "Nepalese rupee",
+    "iso": "NPR",
+    "url": "https://en.wikipedia.org/wiki/Nepalese_rupee",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "रु5 \n ,  \n रु10 \n ,  \n रु20 \n ,  \n रु50 \n ,  \n रु100 \n ,  \n रु500 \n ,  \n रु1000"
+    ]
+  },
+  {
+    "currency": "New Zealand dollar",
+    "iso": "NZD",
+    "url": "https://en.wikipedia.org/wiki/New_Zealand_dollar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$5 \n ,  \n $10 \n ,  \n $20 \n ,  \n $50 \n ,  \n $100"
+    ]
+  },
+  {
+    "currency": "Nicaraguan córdoba",
+    "iso": "NIO",
+    "url": "https://en.wikipedia.org/wiki/Nicaraguan_c%C3%B3rdoba",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "C$10, C$20, C$50, C$100, C$200, C$500, C$1000"
+    ]
+  },
+  {
+    "currency": "Nigerian naira",
+    "iso": "NGN",
+    "url": "https://en.wikipedia.org/wiki/Nigerian_naira",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "₦5 \n ,  \n ₦10 \n ,  \n ₦20 \n ,  \n ₦50 \n ,  \n ₦100 \n ,  \n ₦200 \n ,  \n ₦500 \n ,  \n ₦1000"
+    ]
+  },
+  {
+    "currency": "Macedonian denar",
+    "iso": "MKD",
+    "url": "https://en.wikipedia.org/wiki/Macedonian_denar",
+    "denominations": [
+      "10",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "10 MKD, 50 MKD, 100 MKD, 200 MKD, 500 MKD, 1,000 MKD, 2,000 MKD"
+    ]
+  },
+  {
+    "currency": "Turkish lira",
+    "iso": "TRY",
+    "url": "https://en.wikipedia.org/wiki/Turkish_lira",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "₺5, ₺10, ₺20, ₺50, ₺100, ₺200"
+    ]
+  },
+  {
+    "currency": "Norwegian krone",
+    "iso": "NOK",
+    "url": "https://en.wikipedia.org/wiki/Norwegian_krone",
+    "denominations": [
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "50, 100, 200, 500 kroner"
+    ]
+  },
+  {
+    "currency": "Omani rial",
+    "iso": "OMR",
+    "url": "https://en.wikipedia.org/wiki/Omani_rial",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "100 baisa,  \n 1 \n ⁄ \n 2 \n , 1, 5, 10, 20, 50 rials"
+    ]
+  },
+  {
+    "currency": "Pakistani rupee",
+    "iso": "PKR",
+    "url": "https://en.wikipedia.org/wiki/Pakistani_rupee",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000",
+      "5000"
+    ],
+    "snippets": [
+      "Rs 10, Rs 20, Rs 50, Rs 100, Rs 500, Rs 1,000, Rs 5,000"
+    ]
+  },
+  {
+    "currency": "Panamanian balboa",
+    "iso": "PAB",
+    "url": "https://en.wikipedia.org/wiki/Panamanian_balboa",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "None (U.S. banknotes are employed instead, although denominated in balboas)",
+      "[ edit ]"
+    ]
+  },
+  {
+    "currency": "Papua New Guinean kina",
+    "iso": "PGK",
+    "url": "https://en.wikipedia.org/wiki/Papua_New_Guinean_kina",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "K2, K5, K10, K20, K50, K100"
+    ]
+  },
+  {
+    "currency": "Paraguayan guaraní",
+    "iso": "PYG",
+    "url": "https://en.wikipedia.org/wiki/Paraguayan_guaran%C3%AD",
+    "denominations": [
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000",
+      "100000"
+    ],
+    "snippets": [
+      "₲2,000, ₲5,000, ₲10,000, ₲20,000, ₲50,000, ₲100,000"
+    ]
+  },
+  {
+    "currency": "Peruvian sol",
+    "iso": "PEN",
+    "url": "https://en.wikipedia.org/wiki/Peruvian_sol",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "S/10, S/20, S/50, S/100"
+    ]
+  },
+  {
+    "currency": "Philippine peso",
+    "iso": "PHP",
+    "url": "https://en.wikipedia.org/wiki/Philippine_peso",
+    "denominations": [
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "₱50 \n ,  \n ₱100 \n ,  \n ₱500 \n ,  \n ₱1000"
+    ]
+  },
+  {
+    "currency": "Polish złoty",
+    "iso": "PLN",
+    "url": "https://en.wikipedia.org/wiki/Polish_z%C5%82oty",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "10 zł \n ,  \n 20 zł \n ,  \n 50 zł \n ,  \n 100 zł \n ,  \n 200 zł"
+    ]
+  },
+  {
+    "currency": "Qatari riyal",
+    "iso": "QAR",
+    "url": "https://en.wikipedia.org/wiki/Qatari_riyal",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "QR 1, QR 5, QR 10, QR 50, QR 100, QR 200, QR 500"
+    ]
+  },
+  {
+    "currency": "Romanian leu",
+    "iso": "RON",
+    "url": "https://en.wikipedia.org/wiki/Romanian_leu",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "1 leu \n ,  \n 5 lei \n ,  \n 10 lei \n ,  \n 20 lei \n ,  \n 50 lei \n ,  \n 100 lei \n ,  \n 200 lei"
+    ]
+  },
+  {
+    "currency": "Russian ruble",
+    "iso": "RUB",
+    "url": "https://en.wikipedia.org/wiki/Russian_ruble",
+    "denominations": [
+      "5",
+      "10",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "5 ₽, 10 ₽, 50 ₽, 100 ₽, 200 ₽, 500 ₽, 1,000 ₽, 2,000 ₽, 5,000 ₽"
+    ]
+  },
+  {
+    "currency": "Rwandan franc",
+    "iso": "RWF",
+    "url": "https://en.wikipedia.org/wiki/Rwandan_franc",
+    "denominations": [
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "500, 1000, 2000, 5000 francs"
+    ]
+  },
+  {
+    "currency": "Samoan tālā",
+    "iso": "WST",
+    "url": "https://en.wikipedia.org/wiki/Samoan_t%C4%81l%C4%81",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$5, $10, $20, $50, $100"
+    ]
+  },
+  {
+    "currency": "São Tomé and Príncipe dobra",
+    "iso": "STN",
+    "url": "https://en.wikipedia.org/wiki/S%C3%A3o_Tom%C3%A9_and_Pr%C3%ADncipe_dobra",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "5, 10, 20, 50, 100, 200 dobras"
+    ]
+  },
+  {
+    "currency": "Saudi riyal",
+    "iso": "SAR",
+    "url": "https://en.wikipedia.org/wiki/Saudi_riyal",
+    "denominations": [
+      "5",
+      "10",
+      "50",
+      "100",
+      "500"
+    ],
+    "snippets": [
+      "5, 10, 50, 100, 500 riyals"
+    ]
+  },
+  {
+    "currency": "Serbian dinar",
+    "iso": "RSD",
+    "url": "https://en.wikipedia.org/wiki/Serbian_dinar",
+    "denominations": [
+      "1",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "din. 10, din. 20, din. 50, din. 100, din. 200, din. 500, din. 1,000, din. 2,000 \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "Seychellois rupee",
+    "iso": "SCR",
+    "url": "https://en.wikipedia.org/wiki/Seychellois_rupee",
+    "denominations": [
+      "1",
+      "10",
+      "25",
+      "50",
+      "100",
+      "500"
+    ],
+    "snippets": [
+      "R10, \n [ \n a \n ] \n  R25, R50, R100, R500 \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "Sierra Leonean leone",
+    "iso": "SLE",
+    "url": "https://en.wikipedia.org/wiki/Sierra_Leonean_leone",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20"
+    ],
+    "snippets": [
+      "Le 1, Le 2, Le 5, Le 10, Le 20"
+    ]
+  },
+  {
+    "currency": "Singapore dollar",
+    "iso": "SGD",
+    "url": "https://en.wikipedia.org/wiki/Singapore_dollar",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$2, $5, $10, $50, $100"
+    ]
+  },
+  {
+    "currency": "Solomon Islands dollar",
+    "iso": "SBD",
+    "url": "https://en.wikipedia.org/wiki/Solomon_Islands_dollar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$5, $10, $20, $50, $100"
+    ]
+  },
+  {
+    "currency": "Somali shilling",
+    "iso": "SOS",
+    "url": "https://en.wikipedia.org/wiki/Somali_shilling",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "5, 10, 20, 50, 100, 500, 1000, 5000, 10,000 shillings"
+    ]
+  },
+  {
+    "currency": "Somaliland shilling",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Somaliland_shilling",
+    "denominations": [
+      "1",
+      "100",
+      "500",
+      "1000",
+      "5000"
+    ],
+    "snippets": [
+      "100/-, 500/-, 1,000/-, 5,000/- \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "South African rand",
+    "iso": "ZAR",
+    "url": "https://en.wikipedia.org/wiki/South_African_rand",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200"
+    ],
+    "snippets": [
+      "R10, R20, R50, R100, R200"
+    ]
+  },
+  {
+    "currency": "South Sudanese pound",
+    "iso": "SSP",
+    "url": "https://en.wikipedia.org/wiki/South_Sudanese_pound",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "25",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "SSP 1, SSP 5, SSP 10, SSP 20, SSP 25, SSP 50, SSP 100, SSP 500, and SSP 1,000"
+    ]
+  },
+  {
+    "currency": "Sri Lankan rupee",
+    "iso": "LKR",
+    "url": "https://en.wikipedia.org/wiki/Sri_Lankan_rupee",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "20, 50, 100, 500, 1000, 2000,  5000 rupees"
+    ]
+  },
+  {
+    "currency": "Sudanese pound",
+    "iso": "SDG",
+    "url": "https://en.wikipedia.org/wiki/Sudanese_pound",
+    "denominations": [
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "LS 2, LS 5, LS 10, LS 20, LS 50, LS 100, LS 200, LS 500, LS 1,000"
+    ]
+  },
+  {
+    "currency": "Surinamese dollar",
+    "iso": "SRD",
+    "url": "https://en.wikipedia.org/wiki/Surinamese_dollar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "5, 10, 20, 50, 100, 200, 500 dollar"
+    ]
+  },
+  {
+    "currency": "Swedish krona",
+    "iso": "SEK",
+    "url": "https://en.wikipedia.org/wiki/Swedish_krona",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "20, 50, 100, 200, 500 kr"
+    ]
+  },
+  {
+    "currency": "Syrian pound",
+    "iso": "SYP",
+    "url": "https://en.wikipedia.org/wiki/Syrian_pound",
+    "denominations": [
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000"
+    ],
+    "snippets": [
+      "LS 50, LS 100, LS 200, LS 500, LS 1,000, LS 2,000, LS 5,000"
+    ]
+  },
+  {
+    "currency": "New Taiwan dollar",
+    "iso": "TWD",
+    "url": "https://en.wikipedia.org/wiki/New_Taiwan_dollar",
+    "denominations": [
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "$100, $200, $500, $1,000, $2,000"
+    ]
+  },
+  {
+    "currency": "Tajikistani somoni",
+    "iso": "TJS",
+    "url": "https://en.wikipedia.org/wiki/Tajikistani_somoni",
+    "denominations": [
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "SM 10, SM 20, SM 50, SM 100, SM 200, SM 500"
+    ]
+  },
+  {
+    "currency": "Tanzanian shilling",
+    "iso": "TZS",
+    "url": "https://en.wikipedia.org/wiki/Tanzanian_shilling",
+    "denominations": [
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "500/ \n = \n , 1,000/ \n = \n , 2,000/ \n = \n , 5,000/ \n = \n , 10,000/ \n ="
+    ]
+  },
+  {
+    "currency": "Thai baht",
+    "iso": "THB",
+    "url": "https://en.wikipedia.org/wiki/Thai_baht",
+    "denominations": [
+      "20",
+      "50",
+      "100",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "฿20, ฿50, ฿100, ฿500, ฿1000"
+    ]
+  },
+  {
+    "currency": "Tongan paʻanga",
+    "iso": "TOP",
+    "url": "https://en.wikipedia.org/wiki/Tongan_pa%CA%BBanga",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "T$1, T$2, T$5, T$10, T$20, T$50, T$100"
+    ]
+  },
+  {
+    "currency": "Transnistrian ruble",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Transnistrian_ruble",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "25",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "1, 5, 10, 25, 50, 100 rubles"
+    ]
+  },
+  {
+    "currency": "Trinidad and Tobago dollar",
+    "iso": "TTD",
+    "url": "https://en.wikipedia.org/wiki/Trinidad_and_Tobago_dollar",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "$1, $5, $10, $20, $50, $100"
+    ]
+  },
+  {
+    "currency": "Tunisian dinar",
+    "iso": "TND",
+    "url": "https://en.wikipedia.org/wiki/Tunisian_dinar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "5, 10, 20, 50 dinars"
+    ]
+  },
+  {
+    "currency": "Turkmenistani manat",
+    "iso": "TMT",
+    "url": "https://en.wikipedia.org/wiki/Turkmen_manat",
+    "denominations": [
+      "1",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"
+    ],
+    "snippets": [
+      "1, 5, 10,  \n 20 \n ,  \n 50 \n , and 100 manats"
+    ]
+  },
+  {
+    "currency": "Tuvaluan dollar",
+    "iso": "(",
+    "url": "https://en.wikipedia.org/wiki/Tuvaluan_dollar",
+    "denominations": [      
+      "5",
+      "10",
+      "20",
+      "50",
+      "100"],
+    "snippets": [
+      "Australian dollar notes \n  circulate",
+      "[ edit ]"
+    ]
+  },
+  {
+    "currency": "Ugandan shilling",
+    "iso": "UGX",
+    "url": "https://en.wikipedia.org/wiki/Ugandan_shilling",
+    "denominations": [
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000"
+    ],
+    "snippets": [
+      "1,000/ \n = \n , 2,000/ \n = \n , 5,000/ \n = \n , 10,000/ \n = \n , 20,000/ \n = \n , 50,000/ \n ="
+    ]
+  },
+  {
+    "currency": "Ukrainian hryvnia",
+    "iso": "UAH",
+    "url": "https://en.wikipedia.org/wiki/Ukrainian_hryvnia",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "₴1, ₴2, ₴5, ₴10, ₴20, ₴50, ₴100, ₴200, ₴500, ₴1,000"
+    ]
+  },
+  {
+    "currency": "United Arab Emirates dirham",
+    "iso": "AED",
+    "url": "https://en.wikipedia.org/wiki/United_Arab_Emirates_dirham",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "Dhs5, Dhs10, Dhs20, Dhs50, Dhs100, Dhs200, Dhs500, Dhs1,000"
+    ]
+  },
+  {
+    "currency": "Sterling",
+    "iso": "GBP",
+    "url": "https://en.wikipedia.org/wiki/Pound_sterling",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50"
+    ],
+    "snippets": [
+      "£5 \n £10 \n £20 \n £50"
+    ]
+  },
+  {
+    "currency": "Uruguayan peso",
+    "iso": "UYU",
+    "url": "https://en.wikipedia.org/wiki/Uruguayan_peso",
+    "denominations": [
+      "2",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500",
+      "1000",
+      "2000"
+    ],
+    "snippets": [
+      "$20, $50, $100, $200, $500, $1000, $2000 \n [ \n 2 \n ]"
+    ]
+  },
+  {
+    "currency": "Uzbekistani sum",
+    "iso": "UZS",
+    "url": "https://en.wikipedia.org/wiki/Uzbekistani_sum",
+    "denominations": [
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000",
+      "100000",
+      "200000"
+    ],
+    "snippets": [
+      "2,000, 5,000, 10,000, 20,000, 50,000, 100,000, 200,000 sum"
+    ]
+  },
+  {
+    "currency": "Vanuatu vatu",
+    "iso": "VUV",
+    "url": "https://en.wikipedia.org/wiki/Vanuatu_vatu",
+    "denominations": [
+      "1",
+      "200",
+      "500",
+      "1000",
+      "2000",
+      "5000",
+      "10000"
+    ],
+    "snippets": [
+      "VT 200, VT 500, VT 1,000, VT 2,000, VT 5,000, VT 10,000 \n [ \n 1 \n ]"
+    ]
+  },
+  {
+    "currency": "Venezuelan sovereign bolívar",
+    "iso": "VES",
+    "url": "https://en.wikipedia.org/wiki/Venezuelan_bol%C3%ADvar#Sovereign_bolívar",
+    "denominations": [
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "Bs. 5, Bs. 10, Bs. 20, Bs. 50, Bs. 100, Bs. 200, Bs. 500"
+    ]
+  },
+  {
+    "currency": "Vietnamese đồng",
+    "iso": "VND",
+    "url": "https://en.wikipedia.org/wiki/Vietnamese_%C4%91%E1%BB%93ng",
+    "denominations": [
+      "1000",
+      "2000",
+      "5000",
+      "10000",
+      "20000",
+      "50000",
+      "100000",
+      "200000",
+      "500000"
+    ],
+    "snippets": [
+      "1,000₫, 2,000₫, 5,000₫, 10,000₫, 20,000₫, 50,000₫, 100,000₫, 200,000₫, 500,000₫"
+    ]
+  },
+  {
+    "currency": "Yemeni rial",
+    "iso": "YER",
+    "url": "https://en.wikipedia.org/wiki/Yemeni_rial",
+    "denominations": [
+      "50",
+      "100",
+      "200",
+      "250",
+      "500",
+      "1000"
+    ],
+    "snippets": [
+      "YRls 50, YRls 100, YRls 200, YRls 250, YRls 500, YRls 1,000"
+    ]
+  },
+  {
+    "currency": "Zambian kwacha",
+    "iso": "ZMW",
+    "url": "https://en.wikipedia.org/wiki/Zambian_kwacha",
+    "denominations": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "50",
+      "100",
+      "200",
+      "500"
+    ],
+    "snippets": [
+      "2, 5, 10, 20,  \n 50 \n ,  \n 100 \n , 200, 500 kwacha \n [ \n 1 \n ] \n [ \n 2 \n ]"
+    ]
+  },
+  {
+    "currency": "Zimbabwe gold",
+    "iso": "ZWG",
+    "url": "https://en.wikipedia.org/wiki/Zimbabwe_Gold",
+    "denominations": [
+      "10",
+      "20"
+    ],
+    "snippets": [
+      "ZWG10, ZWG20"
+    ]
+  }
+]

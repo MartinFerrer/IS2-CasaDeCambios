@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Editar Perfil - Global Exchange{% endblock %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50">
+    <div class="w-full max-w-lg bg-white rounded-lg shadow-lg p-8">
+        <div class="mb-6 text-center">
+            <h1 class="text-2xl font-bold text-gray-800">Editar Perfil</h1>
+            <p class="text-gray-500 text-sm">Actualiza tu nombre manteniendo tu correo intacto</p>
+        </div>
+
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Correo electrónico (deshabilitado) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                <input type="email" value="{{ usuario.email }}"
+                       class="input input-bordered w-full bg-gray-100 cursor-not-allowed"
+                       disabled>
+            </div>
+
+            <!-- Nombre -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input type="text" name="nombre" value="{{ usuario.nombre }}"
+                       placeholder="Ingrese su nombre"
+                       class="input input-bordered w-full focus:border-blue-500 focus:ring focus:ring-blue-200">
+            </div>
+
+            <!-- Botones -->
+            <div class="flex justify-end space-x-3">
+                <a href="{% url 'usuarios:configuracion_usuario' %}"
+                   class="btn btn-outline btn-sm">Cancelar</a>
+                <button type="submit"
+                        class="btn btn-primary btn-sm flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Guardar
+                </button>
+            </div>
+
+            <!-- Mensajes -->
+            {% if messages %}
+                <div class="mt-4 space-y-2">
+                    {% for message in messages %}
+                        <div class="alert alert-info shadow-sm">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

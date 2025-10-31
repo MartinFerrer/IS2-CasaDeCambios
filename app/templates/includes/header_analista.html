@@ -1,0 +1,112 @@
+{# templates/includes/header_analista.html #}
+<header class="bg-blue-700 text-white shadow-lg p-4">
+    <div class="container mx-auto flex flex-wrap justify-between items-center">
+        <div class="flex items-center">
+            <a href="{% url 'panel_inicio' %}" class="text-2xl font-bold">Global Exchange - Analista</a>
+        </div>
+        <div class="lg:hidden">
+            <button class="btn btn-ghost"
+                    onclick="document.getElementById('sidebar_menu').showModal()">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="h-6 w-6"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        {# Desktop navigation with limited analyst options #}
+        <div class="hidden lg:flex lg:items-center lg:space-x-4">
+            <a href="{% url 'divisa_list' %}"
+               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Divisas</a>
+            <a href="{% url 'tasa_cambio_listar' %}"
+               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Tasas de Cambio</a>
+            <a href="{% url 'tasa_cambio_historial_listar' %}"
+               class="text-white hover:text-gray-300 px-3 py-2 rounded-md text-sm font-medium">Historial</a>
+        </div>
+        {# Menú de usuario desplegable #}
+        <div class="flex-none hidden lg:flex">
+            <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-ghost rounded-btn m-1 hover:text-white">
+                    <span class="mr-2">{{ request.user.nombre|default:'Usuario' }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-5 w-5"
+                         viewBox="0 0 20 20"
+                         fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                </label>
+                <ul tabindex="0"
+                    class="menu dropdown-content z-[1] p-2 shadow bg-base-100 text-neutral rounded-box w-52">
+                    <li>
+                        <a>Perfil</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'presentacion:home' %}"
+                           class="text-green-600 font-semibold">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="w-4 h-4 mr-2"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                            </svg>
+                            Volver a Vista de Usuario
+                        </a>
+                    </li>
+                    <li class="border-t border-neutral-content mt-2 pt-2">
+                        <a href="{% url 'seguridad:logout' %}">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</header>
+{# Sidebar móvil (oculto en pantallas grandes) #}
+<dialog id="sidebar_menu" class="modal">
+    <div class="modal-box w-full max-w-xs p-0 rounded-lg shadow-lg bg-base-100 text-neutral">
+        <form method="dialog">
+            <button type="button"
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                    onclick="document.getElementById('sidebar_menu').close()">✕</button>
+        </form>
+        <nav class="menu p-4">
+            <a href="{% url 'panel_inicio' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Inicio</a>
+            <a href="{% url 'divisa_list' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Divisas</a>
+            <a href="{% url 'tasa_cambio_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Tasas de Cambio</a>
+            <a href="{% url 'tasa_cambio_historial_listar' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Historial de Tasas de Cambio</a>
+            <div class="border-t border-neutral-content my-3"></div>
+            <div class="mb-3 flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white">
+                    <span class="text-base font-bold">{{ request.user.nombre|default:'U'|first|upper }}</span>
+                </div>
+                <div>
+                    <span class="font-semibold block">{{ request.user.nombre|default:'Usuario' }}</span>
+                    <span class="text-xs block text-neutral-500">{{ request.user.email|default:'Sin email' }}</span>
+                </div>
+            </div>
+            <a href="#"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Mi Perfil</a>
+            <a href="{% url 'presentacion:home' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-green-100 transition text-green-600 font-semibold">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="w-4 h-4 mr-2"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
+                    </svg>
+                    Volver a Vista de Usuario
+                </div>
+            </a>
+            <a href="{% url 'seguridad:logout' %}"
+               class="block py-2 px-3 rounded text-red-500 hover:bg-red-100 transition">Cerrar Sesión</a>
+        </nav>
+    </div>
+</dialog>

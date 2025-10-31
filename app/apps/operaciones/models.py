@@ -8,8 +8,10 @@ Incluye:
 import uuid
 from decimal import Decimal
 
+from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 
 class Divisa(models.Model):
@@ -27,7 +29,7 @@ class Divisa(models.Model):
 
     codigo = models.CharField(primary_key=True, max_length=3, unique=True, help_text="(ej. PYG, USD, EUR).")
     nombre = models.CharField(max_length=50, help_text="(ej. Guaraní, Dólar Estadounidense).")
-    simbolo = models.CharField(max_length=5, help_text="(ej. ₲, $, €).")
+    simbolo = models.CharField(max_length=5, blank=True, default="", help_text="(ej. ₲, $, €).")
     estado = models.CharField(
         max_length=10,
         choices=[("activa", "Activa"), ("inactiva", "Inactiva")],
@@ -35,6 +37,8 @@ class Divisa(models.Model):
     )
 
     class Meta:
+        """Meta información para el modelo Divisa."""
+
         db_table = "divisa"
         verbose_name = "Divisa"
         verbose_name_plural = "Divisas"
@@ -48,18 +52,15 @@ class TasaCambio(models.Model):
     """Representa la Tasa de Cambio de una divisa a otra.
 
     Este modelo almacena el valor de la tasa de cambio entre dos divisas, junto
-    con las comisiones asociadas para la compra y venta. También incluye la fecha
-    en que la tasa entra en vigencia.
+    con las comisiones asociadas para la compra y venta.
 
     Argumentos:
         id_tasa_cambio (UUIDField): Identificador único para la tasa de cambio.
         divisa_origen (ForeignKey): La divisa desde la que se realiza la conversión.
         divisa_destino (ForeignKey): La divisa a la que se realiza la conversión.
-        valor (DecimalField): El valor de la tasa de cambio.
+        precio_base (DecimalField): El precio base de la divisa.
         comision_compra (DecimalField): Comisión aplicada al comprar la divisa destino.
         comision_venta (DecimalField): Comisión aplicada al vender la divisa destino.
-        fecha_vigencia (DateField): Fecha en que la tasa de cambio es válida.
-        hora_vigencia (TimeField): Hora en que la tasa de cambio es válida.
         activo (BooleanField): Indica si la tasa de cambio está actualmente activa.
 
     """
@@ -79,10 +80,10 @@ class TasaCambio(models.Model):
         related_name="tasas_destino",
         help_text="La divisa a la cual se va a convertir.",
     )
-    valor = models.DecimalField(
+    precio_base = models.DecimalField(
         max_digits=9,
         decimal_places=3,
-        help_text="El valor de la divisa de origen en términos de la divisa de destino.",
+        help_text="El precio base de la divisa de origen en términos de la divisa de destino.",
     )
     comision_compra = models.DecimalField(
         max_digits=7,
@@ -97,24 +98,20 @@ class TasaCambio(models.Model):
     fecha_actualizacion = models.DateTimeField(
         auto_now=True, help_text="Fecha y hora de la última actualización de la tasa."
     )
-    fecha_vigencia = models.DateField(help_text="Fecha a partir de la cual esta tasa es válida.")
     activo = models.BooleanField(
         default=True, help_text="Indica si la tasa de cambio está activa o ha sido desactivada."
     )
-    hora_vigencia = models.TimeField(
-        null=True, blank=True, help_text="Hora en la que la tasa de cambio entra en vigencia."
-    )
 
     def clean(self):
-        """Valida que una de las divisas en la tasa de cambio sea la Divisa base (PYG) y que los valores sean positivos."""
+        """Valida que una de las divisas sea la Divisa base (PYG) y que los valores sean positivos."""
         # Validar que una de las divisas sea PYG
         es_divisa_base = self.divisa_origen.codigo == "PYG" or self.divisa_destino.codigo == "PYG"
         if not es_divisa_base:
             raise ValidationError("Una de las divisas en la tasa de cambio debe ser la Divisa base (PYG).")
 
-        # Validar que el valor sea positivo
-        if self.valor is not None and self.valor <= 0:
-            raise ValidationError("El valor de la tasa de cambio debe ser positivo.")
+        # Validar que el precio base sea positivo
+        if self.precio_base is not None and self.precio_base <= 0:
+            raise ValidationError("El precio base de la divisa debe ser positivo.")
 
         # Validar que las comisiones sean no negativas
         if self.comision_compra is not None and self.comision_compra < 0:
@@ -123,10 +120,45 @@ class TasaCambio(models.Model):
         if self.comision_venta is not None and self.comision_venta < 0:
             raise ValidationError("La comisión de venta no puede ser negativa.")
 
+        # Validar que la comisión de compra sea menor que el precio base
+        if (
+            self.comision_compra is not None
+            and self.precio_base is not None
+            and self.comision_compra >= self.precio_base
+        ):
+            raise ValidationError(
+                {
+                    "comision_compra": "La comisión de compra debe ser menor que el precio base.\n"
+                    f"Precio base: {self.precio_base}, Comisión: {self.comision_compra}"
+                }
+            )
+
+        # Validar que la comisión de venta sea menor que el precio base
+        if self.comision_venta is not None and self.precio_base is not None and self.comision_venta >= self.precio_base:
+            raise ValidationError(
+                {
+                    "comision_venta": "La comisión de venta debe ser menor que el precio base.\n"
+                    f"Precio base: {self.precio_base}, Comisión: {self.comision_venta}"
+                }
+            )
+
     def save(self, *args, **kwargs):
         """Guarda el objeto después de validar los datos."""
+        # Obtener la instancia anterior para comparar cambios
+        instancia_anterior = None
+        if self.pk:
+            try:
+                instancia_anterior = TasaCambio.objects.get(pk=self.pk)
+            except TasaCambio.DoesNotExist:
+                pass
+
+        # Validar y guardar (esto reemplaza el save() anterior)
         self.full_clean()
         super().save(*args, **kwargs)
+
+        # Activar notificaciones si la cotización cambió
+        if instancia_anterior and instancia_anterior.precio_base != self.precio_base:
+            self._notificar_cambio_cotizacion(instancia_anterior)
 
     # Las siguientes funciones no se definen como campos del modelo en Django,
     # sino como métodos de la clase para encapsular la lógica de negocio.
@@ -143,11 +175,161 @@ class TasaCambio(models.Model):
     def consultar_tasa_actual(self) -> Decimal:
         """Método para consultar la tasa de cambio actual.
 
-        Retorna el valor actual de la tasa de cambio almacenado en el atributo 'valor'.
+        Retorna el precio base actual de la divisa almacenado en el atributo 'precio_base'.
         En esta clase se define la clave primaria (PK) y las restricciones de unicidad
         para asegurar la integridad de los datos de operaciones de cambio.
         """
-        return self.valor
+        return self.precio_base
+
+    @property
+    def tasa_compra(self) -> Decimal:
+        """Calcula la tasa cuando la casa de cambio COMPRA divisa del cliente.
+
+        Cuando el cliente VENDE divisa a la casa, aplicamos comision_compra.
+        La casa compra más barato: precio_base - comision_compra
+
+        Esta property usa el módulo centralizado de cálculos para mantener consistencia.
+        """
+        from apps.transacciones.utils import calculos_tasas_comisiones
+
+        return calculos_tasas_comisiones.calcular_tasa_compra_base(self.precio_base, self.comision_compra)
+
+    @property
+    def tasa_venta(self) -> Decimal:
+        """Calcula la tasa cuando la casa de cambio VENDE divisa al cliente.
+
+        Cuando el cliente COMPRA divisa de la casa, aplicamos comision_venta.
+        La casa vende más caro: precio_base + comision_venta
+
+        Esta property usa el módulo centralizado de cálculos para mantener consistencia.
+        """
+        from apps.transacciones.utils import calculos_tasas_comisiones
+
+        return calculos_tasas_comisiones.calcular_tasa_venta_base(self.precio_base, self.comision_venta)
+
+    # Notificación de cambios en la cotización
+    def _notificar_cambio_cotizacion(self, instancia_anterior):
+        """Notifica automáticamente a clientes con transacciones pendientes sobre cambios en cotización"""
+        variacion_porcentaje = 0
+        if instancia_anterior.precio_base and instancia_anterior.precio_base > 0:
+            variacion_porcentaje = (
+                (self.precio_base - instancia_anterior.precio_base) / instancia_anterior.precio_base
+            ) * 100
+            variacion_porcentaje = round(variacion_porcentaje, 2)
+
+        datos_cambio = {
+            "divisa_origen": self.divisa_origen.codigo,
+            "divisa_destino": self.divisa_destino.codigo,
+            "fecha_actualizacion": self.fecha_actualizacion,
+            "cotizacion_anterior": instancia_anterior.precio_base,
+            "cotizacion_nueva": self.precio_base,
+            "tasa_compra_anterior": instancia_anterior.tasa_compra,
+            "tasa_compra_nueva": self.tasa_compra,
+            "tasa_venta_anterior": instancia_anterior.tasa_venta,
+            "tasa_venta_nueva": self.tasa_venta,
+            "variacion_porcentaje": variacion_porcentaje,
+        }
+
+        clientes_ids = self._obtener_clientes_con_transacciones_pendientes()
+
+        if not clientes_ids:
+            return
+
+        for cliente_id in clientes_ids:
+            try:
+                from django_q.tasks import async_task
+
+                async_task("apps.usuarios.tasks.enviar_notificacion_cambio_cotizacion", cliente_id, datos_cambio)
+            except Exception as e:
+                print(f"❌ ERROR CRÍTICO - Fallo al encolar notificación para cliente {cliente_id}: {e}")
+
+    def _obtener_clientes_con_transacciones_pendientes(self):
+        """Obtiene IDs de clientes que tienen transacciones pendientes con esta tasa de cambio"""
+        try:
+            Transaccion = apps.get_model("transacciones", "Transaccion")
+        except LookupError:
+            print("❌ ERROR CRÍTICO - Modelo Transaccion no encontrado")
+            return []
+
+        try:
+            # Buscar transacciones pendientes que usen esta tasa de cambio
+            transacciones_pendientes = (
+                Transaccion.objects.filter(estado="pendiente")
+                .filter(
+                    models.Q(divisa_origen=self.divisa_origen, divisa_destino=self.divisa_destino)
+                    | models.Q(divisa_origen=self.divisa_destino, divisa_destino=self.divisa_origen)
+                )
+                .select_related("cliente")
+            )
+
+            cliente_ids = list(set(transaccion.cliente_id for transaccion in transacciones_pendientes))
+            return cliente_ids
+
+        except Exception as e:
+            print(f"❌ ERROR CRÍTICO - Fallo al consultar transacciones pendientes: {e}")
+            return []
+
+    # Notificación de cambios en la cotización
+    def _notificar_cambio_cotizacion(self, instancia_anterior):
+        """Notifica automáticamente a clientes con transacciones pendientes sobre cambios en cotización"""
+        variacion_porcentaje = 0
+        if instancia_anterior.precio_base and instancia_anterior.precio_base > 0:
+            variacion_porcentaje = (
+                (self.precio_base - instancia_anterior.precio_base) / instancia_anterior.precio_base
+            ) * 100
+            variacion_porcentaje = round(variacion_porcentaje, 2)
+
+        datos_cambio = {
+            "divisa_origen": self.divisa_origen.codigo,
+            "divisa_destino": self.divisa_destino.codigo,
+            "fecha_actualizacion": self.fecha_actualizacion,
+            "cotizacion_anterior": instancia_anterior.precio_base,
+            "cotizacion_nueva": self.precio_base,
+            "tasa_compra_anterior": instancia_anterior.tasa_compra,
+            "tasa_compra_nueva": self.tasa_compra,
+            "tasa_venta_anterior": instancia_anterior.tasa_venta,
+            "tasa_venta_nueva": self.tasa_venta,
+            "variacion_porcentaje": variacion_porcentaje,
+        }
+
+        clientes_ids = self._obtener_clientes_con_transacciones_pendientes()
+
+        if not clientes_ids:
+            return
+
+        for cliente_id in clientes_ids:
+            try:
+                from django_q.tasks import async_task
+
+                async_task("apps.usuarios.tasks.enviar_notificacion_cambio_cotizacion", cliente_id, datos_cambio)
+            except Exception as e:
+                print(f"❌ ERROR CRÍTICO - Fallo al encolar notificación para cliente {cliente_id}: {e}")
+
+    def _obtener_clientes_con_transacciones_pendientes(self):
+        """Obtiene IDs de clientes que tienen transacciones pendientes con esta tasa de cambio"""
+        try:
+            Transaccion = apps.get_model("transacciones", "Transaccion")
+        except LookupError:
+            print("❌ ERROR CRÍTICO - Modelo Transaccion no encontrado")
+            return []
+
+        try:
+            # Buscar transacciones pendientes que usen esta tasa de cambio
+            transacciones_pendientes = (
+                Transaccion.objects.filter(estado="pendiente")
+                .filter(
+                    models.Q(divisa_origen=self.divisa_origen, divisa_destino=self.divisa_destino)
+                    | models.Q(divisa_origen=self.divisa_destino, divisa_destino=self.divisa_origen)
+                )
+                .select_related("cliente")
+            )
+
+            cliente_ids = list(set(transaccion.cliente_id for transaccion in transacciones_pendientes))
+            return cliente_ids
+
+        except Exception as e:
+            print(f"❌ ERROR CRÍTICO - Fallo al consultar transacciones pendientes: {e}")
+            return []
 
     class Meta:
         """Meta información para el modelo TasaCambio.
@@ -168,7 +350,7 @@ class TasaCambio(models.Model):
     def __str__(self):
         """Representación en string del objeto, útil para la administración."""
         estado = "Activa" if self.activo else "Inactiva"
-        return f"{self.divisa_origen} a {self.divisa_destino} - Valor: {self.valor} ({estado})"
+        return f"{self.divisa_origen} a {self.divisa_destino} - Precio Base: {self.precio_base} ({estado})"
 
 
 class TasaCambioHistorial(models.Model):
@@ -183,11 +365,9 @@ class TasaCambioHistorial(models.Model):
         tasa_cambio_original (ForeignKey): Referencia a la tasa de cambio original.
         divisa_origen (ForeignKey): La divisa desde la que se realiza la conversión.
         divisa_destino (ForeignKey): La divisa a la que se realiza la conversión.
-        valor (DecimalField): El valor de la tasa de cambio en el momento del registro.
+        precio_base (DecimalField): El precio base de la divisa en el momento del registro.
         comision_compra (DecimalField): Comisión aplicada al comprar la divisa destino.
         comision_venta (DecimalField): Comisión aplicada al vender la divisa destino.
-        fecha_vigencia (DateField): Fecha en que la tasa de cambio era válida.
-        hora_vigencia (TimeField): Hora en que la tasa de cambio era válida.
         fecha_registro (DateTimeField): Fecha y hora cuando se registró este historial.
         activo (BooleanField): Estado de la tasa de cambio en el momento del registro.
         motivo (CharField): Motivo del cambio realizado.
@@ -197,12 +377,10 @@ class TasaCambioHistorial(models.Model):
     tasa_cambio_original = models.ForeignKey("TasaCambio", on_delete=models.CASCADE, related_name="historial")
     divisa_origen = models.ForeignKey("Divisa", on_delete=models.PROTECT, related_name="tasas_historial_origen")
     divisa_destino = models.ForeignKey("Divisa", on_delete=models.PROTECT, related_name="tasas_historial_destino")
-    valor = models.DecimalField(max_digits=9, decimal_places=3)
+    precio_base = models.DecimalField(max_digits=9, decimal_places=3)
     comision_compra = models.DecimalField(max_digits=7, decimal_places=3)
     comision_venta = models.DecimalField(max_digits=7, decimal_places=3)
-    fecha_vigencia = models.DateField()
-    hora_vigencia = models.TimeField(null=True, blank=True)
-    fecha_registro = models.DateTimeField(auto_now_add=True)
+    fecha_registro = models.DateTimeField(default=timezone.now)
     activo = models.BooleanField(default=True)
     motivo = models.CharField(max_length=255, help_text="Motivo del cambio (ej. Creación, Edición, Desactivación)")
 

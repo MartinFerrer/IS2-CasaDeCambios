@@ -28,8 +28,15 @@ urlpatterns = [
     path("transacciones/", include("apps.transacciones.urls")),
     path("reportes/", include("apps.reportes.urls")),
     path("tauser/", include("apps.tauser.urls")),
+    path("stock/", include("apps.stock.urls")),
     # TODO: evaluar si estos necesitan urls
     path("seguridad/", include("apps.seguridad.urls")),
     path("operaciones/", include("apps.operaciones.urls")),
     path("usuarios/", include("apps.usuarios.urls")),
 ]
+
+# Configurar handlers de error personalizados
+handler400 = 'global_exchange_django.views.handler400'
+handler403 = 'global_exchange_django.views.handler403'
+handler404 = 'global_exchange_django.views.handler404'
+handler500 = 'global_exchange_django.views.handler500'
