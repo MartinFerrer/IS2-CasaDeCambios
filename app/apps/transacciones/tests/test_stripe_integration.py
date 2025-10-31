@@ -13,18 +13,18 @@ from django.test import Client, override_settings
 class TestStripeIntegration:
     """Tests para funcionalidades de Stripe."""
 
-    @patch("apps.transacciones.views.TasaCambio.objects.filter")
+    @patch("apps.operaciones.models.TasaCambio.objects.filter")
     def test_get_stripe_fixed_fee_pyg_success(self, mock_filter):
         """Test conversión correcta de comisión fija USD a PYG."""
-        # Mock de tasa de cambio USD
+        # Mock de tasa de cambio USD (usar precio_base, no tasa_venta)
         mock_tasa = MagicMock()
-        mock_tasa.tasa_venta = Decimal("7500.00")  # 1 USD = 7500 PYG
+        mock_tasa.precio_base = Decimal("7500.00")  # 1 USD = 7500 PYG
         mock_filter.return_value.first.return_value = mock_tasa
 
         resultado = _get_stripe_fixed_fee_pyg()
 
         # 0.30 USD * 7500 PYG/USD = 2250 PYG
-        assert resultado == Decimal("2250.00")
+        assert resultado == Decimal("2250")
         mock_filter.assert_called_once_with(divisa_origen__codigo="PYG", divisa_destino__codigo="USD", activo=True)
 
     @patch("apps.transacciones.views.TasaCambio.objects.filter")
@@ -133,17 +133,17 @@ class TestStripeIntegration:
         # Webhook debe responder con 200 aunque no procese completamente
         assert response.status_code in [200, 400]  # 400 si no encuentra transacción
 
-    @patch("apps.transacciones.views.TasaCambio.objects.filter")
+    @patch("apps.operaciones.models.TasaCambio.objects.filter")
     def test_stripe_dual_commission_calculation(self, mock_filter):
         """Test cálculo correcto de comisiones duales de Stripe."""
-        # Mock de tasa de cambio USD para que devuelva valor consistente
+        # Mock de tasa de cambio USD para que devuelva valor consistente (usar precio_base)
         mock_tasa = MagicMock()
-        mock_tasa.tasa_venta = Decimal("7500.00")  # 1 USD = 7500 PYG
+        mock_tasa.precio_base = Decimal("7500.00")  # 1 USD = 7500 PYG
         mock_filter.return_value.first.return_value = mock_tasa
 
         # Test que las funciones de comisión funcionan
         fee_fija = _get_stripe_fixed_fee_pyg()
-        assert fee_fija == Decimal("2250.00")  # 0.30 USD * 7500 = 2250 PYG
+        assert fee_fija == Decimal("2250")  # 0.30 USD * 7500 = 2250 PYG
 
         # Comisión variable: 2.9% de 100 USD = 2.90 USD
         # En PYG: 2.90 * 7500 = 21750 PYG (aproximado)

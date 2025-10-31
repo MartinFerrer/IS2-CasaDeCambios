@@ -8,14 +8,13 @@ from django.contrib.auth.models import (
 )
 from django.core.exceptions import ValidationError
 from django.db import models
-
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
 # TODO [SCRUM-110]: Documentar modelos usuarios
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, nombre, password=None, **extra_fields):
-        """Crea y guarda un usuario normal"""
+        """Crea y guarda un usuario normal."""
         if not email:
             raise ValueError("El usuario debe tener un correo electrónico")
         email = self.normalize_email(email)
@@ -25,7 +24,7 @@ class UsuarioManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, nombre, password=None, **extra_fields):
-        """Crea y guarda un superusuario"""
+        """Crea y guarda un superusuario."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(email, nombre, password, **extra_fields)

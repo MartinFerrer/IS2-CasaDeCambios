@@ -60,6 +60,11 @@ urlpatterns = [
         views.api_cancelar_transaccion,
         name="api_cancelar_transaccion",
     ),
+    path(
+        "api/verificar-mfa-pago/<str:transaccion_id>/",
+        views.verificar_mfa_pago,
+        name="verificar_mfa_pago",
+    ),
     path("api/procesar-pago-bancario/", views.api_procesar_pago_bancario, name="api_procesar_pago_bancario"),
     path("popup-banco/<str:transaccion_id>/", views.popup_banco_simulado, name="popup_banco_simulado"),
     path(

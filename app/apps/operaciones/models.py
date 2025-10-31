@@ -183,15 +183,91 @@ class TasaCambio(models.Model):
 
     @property
     def tasa_compra(self) -> Decimal:
-        """Calcula la tasa de compra aplicando la comisión correspondiente."""
-        # Para compra, el cliente paga más (precio_base + comisión)
-        return self.precio_base + self.comision_compra
+        """Calcula la tasa cuando la casa de cambio COMPRA divisa del cliente.
+
+        Cuando el cliente VENDE divisa a la casa, aplicamos comision_compra.
+        La casa compra más barato: precio_base - comision_compra
+
+        Esta property usa el módulo centralizado de cálculos para mantener consistencia.
+        """
+        from apps.transacciones.utils import calculos_tasas_comisiones
+
+        return calculos_tasas_comisiones.calcular_tasa_compra_base(self.precio_base, self.comision_compra)
 
     @property
     def tasa_venta(self) -> Decimal:
-        """Calcula la tasa de venta aplicando la comisión correspondiente."""
-        # Para venta, el cliente recibe menos (precio_base - comisión)
-        return self.precio_base - self.comision_venta
+        """Calcula la tasa cuando la casa de cambio VENDE divisa al cliente.
+
+        Cuando el cliente COMPRA divisa de la casa, aplicamos comision_venta.
+        La casa vende más caro: precio_base + comision_venta
+
+        Esta property usa el módulo centralizado de cálculos para mantener consistencia.
+        """
+        from apps.transacciones.utils import calculos_tasas_comisiones
+
+        return calculos_tasas_comisiones.calcular_tasa_venta_base(self.precio_base, self.comision_venta)
+
+    # Notificación de cambios en la cotización
+    def _notificar_cambio_cotizacion(self, instancia_anterior):
+        """Notifica automáticamente a clientes con transacciones pendientes sobre cambios en cotización"""
+        variacion_porcentaje = 0
+        if instancia_anterior.precio_base and instancia_anterior.precio_base > 0:
+            variacion_porcentaje = (
+                (self.precio_base - instancia_anterior.precio_base) / instancia_anterior.precio_base
+            ) * 100
+            variacion_porcentaje = round(variacion_porcentaje, 2)
+
+        datos_cambio = {
+            "divisa_origen": self.divisa_origen.codigo,
+            "divisa_destino": self.divisa_destino.codigo,
+            "fecha_actualizacion": self.fecha_actualizacion,
+            "cotizacion_anterior": instancia_anterior.precio_base,
+            "cotizacion_nueva": self.precio_base,
+            "tasa_compra_anterior": instancia_anterior.tasa_compra,
+            "tasa_compra_nueva": self.tasa_compra,
+            "tasa_venta_anterior": instancia_anterior.tasa_venta,
+            "tasa_venta_nueva": self.tasa_venta,
+            "variacion_porcentaje": variacion_porcentaje,
+        }
+
+        clientes_ids = self._obtener_clientes_con_transacciones_pendientes()
+
+        if not clientes_ids:
+            return
+
+        for cliente_id in clientes_ids:
+            try:
+                from django_q.tasks import async_task
+
+                async_task("apps.usuarios.tasks.enviar_notificacion_cambio_cotizacion", cliente_id, datos_cambio)
+            except Exception as e:
+                print(f"❌ ERROR CRÍTICO - Fallo al encolar notificación para cliente {cliente_id}: {e}")
+
+    def _obtener_clientes_con_transacciones_pendientes(self):
+        """Obtiene IDs de clientes que tienen transacciones pendientes con esta tasa de cambio"""
+        try:
+            Transaccion = apps.get_model("transacciones", "Transaccion")
+        except LookupError:
+            print("❌ ERROR CRÍTICO - Modelo Transaccion no encontrado")
+            return []
+
+        try:
+            # Buscar transacciones pendientes que usen esta tasa de cambio
+            transacciones_pendientes = (
+                Transaccion.objects.filter(estado="pendiente")
+                .filter(
+                    models.Q(divisa_origen=self.divisa_origen, divisa_destino=self.divisa_destino)
+                    | models.Q(divisa_origen=self.divisa_destino, divisa_destino=self.divisa_origen)
+                )
+                .select_related("cliente")
+            )
+
+            cliente_ids = list(set(transaccion.cliente_id for transaccion in transacciones_pendientes))
+            return cliente_ids
+
+        except Exception as e:
+            print(f"❌ ERROR CRÍTICO - Fallo al consultar transacciones pendientes: {e}")
+            return []
 
     # Notificación de cambios en la cotización
     def _notificar_cambio_cotizacion(self, instancia_anterior):
