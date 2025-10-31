@@ -222,7 +222,7 @@
                                         <td>
                                             <div class="flex gap-1">
                                                 <button class="btn btn-ghost btn-xs"
-                                                        onclick="verHistorial('{{ transaccion.id_transaccion }}')"
+                                                        onclick="event.stopPropagation(); verHistorial('{{ transaccion.id_transaccion }}')"
                                                         title="Ver historial de la transacción">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                          class="h-4 w-4"
@@ -233,10 +233,6 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </button>
-                                                {% if transaccion.estado == 'pendiente' and not transaccion.fecha_pago %}
-                                                    <a href="{% url 'transacciones:procesar_transaccion' transaccion.id_transaccion %}"
-                                                       class="btn btn-primary btn-xs">Procesar</a>
-                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
@@ -352,11 +348,11 @@
                                     </thead>
                                     <tbody>
                         `;
-                        
+
                         data.historial.forEach(evento => {
                             // Usar la función global para formatear fechas
                             const fechaFormateada = formatearFecha(evento.fecha);
-                            
+
                             historialHtml += `
                                 <tr>
                                     <td>${evento.accion}</td>
@@ -365,13 +361,13 @@
                                 </tr>
                             `;
                         });
-                        
+
                         historialHtml += `
                                     </tbody>
                                 </table>
                             </div>
                         `;
-                        
+
                         document.getElementById('historial-content').innerHTML = historialHtml;
                         document.getElementById('historial-modal').classList.add('modal-open');
                     } else {
