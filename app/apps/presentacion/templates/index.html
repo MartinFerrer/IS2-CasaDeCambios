@@ -9,64 +9,8 @@
             <div class="flex-1 bg-base-200 p-6 rounded-box shadow-lg relative">
                 <button id="toggle-view-btn"
                         class="absolute top-4 right-4 btn btn-sm btn-outline">Mostrar Historial</button>
-                <!-- Tasas actuales -->
-                <div id="tasas-view">
-                    <h3 class="text-2xl font-semibold mb-4 text-center">Tasas de Cambio Actuales</h3>
-                    <div id="loading-tasas" class="flex justify-center items-center py-8">
-                        <div class="loading loading-spinner loading-md"></div>
-                        <span class="ml-2">Cargando tasas...</span>
-                    </div>
-                    <div id="error-tasas" class="alert alert-error hidden">
-                        <span>Error al cargar las tasas de cambio. Por favor, intenta de nuevo.</span>
-                        <button id="retry-btn" class="btn btn-sm btn-outline">Reintentar</button>
-                    </div>
-                    <div id="tasas-container" class="overflow-x-auto mb-6 hidden">
-                        <table class="table-auto w-full">
-                            <thead class="text-black border-b border-gray-300">
-                                <tr>
-                                    <th class="py-2 px-4 text-left">Divisa</th>
-                                    <th class="py-2 px-4 text-center">Compra (₲)</th>
-                                    <th class="py-2 px-4 text-center">Venta (₲)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tasas-tbody">
-                                <!-- Filas dinámicas -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="empty-tasas" class="text-center py-8 text-gray-500 hidden">
-                        <p>No hay tasas de cambio disponibles en este momento.</p>
-                    </div>
-                </div>
-                <!-- Historial -->
-                <div id="historial-view" class="hidden">
-                    <h3 class="text-2xl font-semibold mb-4 text-center">Historial de Tasas</h3>
-                    <div class="mb-4 flex flex-wrap gap-2 justify-center">
-                        <select id="divisa-select" class="select select-bordered select-sm">
-                            <option value="">Seleccionar divisa</option>
-                        </select>
-                        <select id="periodo-select" class="select select-bordered select-sm">
-                            <option value="7">Últimos 7 días</option>
-                            <option value="30" selected>Últimos 30 días</option>
-                            <option value="90">Últimos 90 días</option>
-                        </select>
-                        <button id="actualizar-grafica-btn" class="btn btn-sm btn-primary">Actualizar</button>
-                    </div>
-                    <div id="loading-historial" class="flex justify-center items-center py-8">
-                        <div class="loading loading-spinner loading-md"></div>
-                        <span class="ml-2">Cargando historial...</span>
-                    </div>
-                    <div id="error-historial" class="alert alert-error hidden">
-                        <span>Error al cargar el historial. Por favor, intenta de nuevo.</span>
-                    </div>
-                    <div id="empty-historial" class="text-center py-8 text-gray-500 hidden">
-                        <p>No hay datos de historial disponibles para esta divisa.</p>
-                    </div>
-                    <!-- djlint:off H021 -->
-                    <div id="historial_plotly"
-                         class="bg-gray-50 w-full rounded-box historial-plotly"></div>
-                    <!-- djlint:on H021 -->
-                </div>
+                {% include "includes/tasas_actuales.html" %}
+                {% include "includes/historial_tasas.html" %}
             </div>
             <!-- Panel lateral -->
             <div class="flex-none w-full lg:w-1/4 bg-base-100 p-6 rounded-box shadow-lg flex flex-col gap-4">
@@ -139,7 +83,36 @@
     <!-- Plotly.js CDN -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script>
+/**
+ * Gestor de Tasas de Cambio
+ * 
+ * Esta clase maneja la visualización y actualización de las tasas de cambio,
+ * incluyendo la vista de tasas actuales y el historial gráfico de las mismas.
+ * 
+ * @class TasasManager
+ * @description Gestiona la carga, visualización y actualización de tasas de cambio
+ * y sus historiales. Incluye funcionalidades para:
+ * - Cargar tasas actuales desde el API
+ * - Mostrar historial gráfico usando Plotly.js
+ * - Filtrar datos por período (7, 30, 90, 180, 365 días)
+ * - Agrupar datos según el período seleccionado
+ * - Calcular y mostrar tendencias de precios
+ */
 class TasasManager {
+    /**
+     * Constructor de la clase TasasManager
+     * 
+     * Inicializa el gestor de tasas de cambio, configurando las URLs del API,
+     * colores para los gráficos, y establece el auto-refresh de datos cada 30 segundos.
+     * 
+     * @constructor
+     * @property {string} apiUrl - URL del endpoint API para obtener tasas de cambio
+     * @property {Array<string>} colors - Paleta de colores para visualizaciones
+     * @property {string} currentView - Vista actual ('tasas' o 'historial')
+     * @property {Array} divisasDisponibles - Lista de divisas disponibles
+     * @property {Array} tasasActuales - Tasas de cambio actuales
+     * @property {Object} historialDivisas - Historial de tasas por divisa
+     */
     constructor() {
         this.apiUrl = "{% url 'operaciones:tasas_cambio_api' %}";
         this.colors = ["#22c55e", "#ef4444", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899"];
@@ -158,6 +131,21 @@ class TasasManager {
         }, 30000);
     }
 
+    /**
+     * Inicializa los elementos DOM y configura los event listeners
+     * 
+     * Obtiene referencias a todos los elementos DOM necesarios para la funcionalidad
+     * y configura los manejadores de eventos para interacciones del usuario.
+     * 
+     * @method initializeElements
+     * @returns {void}
+     * 
+     * Elementos inicializados:
+     * - Elementos de la vista de tasas actuales
+     * - Elementos de la vista de historial
+     * - Selectores de divisa y período
+     * - Botones de acción (actualizar, toggle, retry)
+     */
     initializeElements() {
         this.loadingElement = document.getElementById('loading-tasas');
         this.errorElement = document.getElementById('error-tasas');
@@ -184,6 +172,12 @@ class TasasManager {
         this.periodoSelect.addEventListener('change', () => this.loadHistorial());
     }
 
+    /**
+     * Alterna entre la vista de tasas actuales y la vista de historial
+     * 
+     * @method toggleView
+     * @returns {void}
+     */
     toggleView() {
         if (this.currentView === 'tasas') {
             this.showHistorialView();
@@ -239,6 +233,18 @@ class TasasManager {
         this.emptyElement.classList.remove('hidden');
     }
 
+    /**
+     * Formatea un número según la configuración regional paraguaya
+     * 
+     * @method formatNumber
+     * @param {number} number - Número a formatear
+     * @param {number} [maxDecimals=0] - Cantidad máxima de decimales
+     * @returns {string} Número formateado con separadores de miles
+     * 
+     * @example
+     * formatNumber(7500.50, 2) // "7.500,50"
+     * formatNumber(1000000) // "1.000.000"
+     */
     formatNumber(number, maxDecimals = 0) {
         return new Intl.NumberFormat('es-PY', {
             minimumFractionDigits: 0,
@@ -246,6 +252,42 @@ class TasasManager {
         }).format(number);
     }
 
+    /**
+     * Carga las tasas de cambio desde el API
+     * 
+     * Obtiene las tasas actuales y sus historiales del backend, procesa los datos
+     * y actualiza la interfaz. Si hay historial disponible, calcula los precios
+     * de compra y venta para cada registro histórico.
+     * 
+     * @async
+     * @method loadTasas
+     * @returns {Promise<void>}
+     * @throws {Error} Si la petición al API falla
+     * 
+     * Proceso:
+     * 1. Realiza petición fetch al API
+     * 2. Procesa el historial de cada divisa
+     * 3. Calcula precios de compra/venta históricos
+     * 4. Actualiza la vista con los datos obtenidos
+     * 
+     * Estructura de datos esperada:
+     * {
+     *   tasas: [{
+     *     divisa: { codigo, nombre, simbolo, flag_url },
+     *     precio_compra: number,
+     *     precio_venta: number,
+     *     historial: [{
+     *       fecha_registro: string (ISO),
+     *       precio_base: number,
+     *       comision_compra: number,
+     *       comision_venta: number,
+     *       precio_compra_calculado: number,
+     *       precio_venta_calculado: number,
+     *       motivo: string
+     *     }]
+     *   }]
+     * }
+     */
     async loadTasas() {
         try {
             if (!this.tasasTbody.innerHTML) this.showLoading();
@@ -294,6 +336,21 @@ class TasasManager {
         }
     }
 
+    /**
+     * Renderiza la tabla de tasas de cambio actuales
+     * 
+     * Genera dinámicamente las filas de la tabla con información de cada divisa,
+     * incluyendo banderas, precios e indicadores de tendencia.
+     * 
+     * @method renderTasas
+     * @param {Array<object>} tasas - Array de objetos con información de tasas
+     * @returns {void}
+     * 
+     * Calcula tendencias comparando:
+     * - Última tasa con penúltima tasa del historial
+     * - Muestra iconos indicadores (↑ subida, ↓ bajada, = sin cambio)
+     * - Calcula porcentaje y diferencia absoluta
+     */
     renderTasas(tasas) {
         const fragment = document.createDocumentFragment();
 
@@ -371,6 +428,19 @@ class TasasManager {
         this.tasasTbody.appendChild(fragment);
     }
 
+    /**
+     * Genera el ícono indicador de tendencia de precio
+     * 
+     * @method getTrendIcon
+     * @param {string} direction - Dirección de la tendencia ('up', 'down', 'neutral')
+     * @param {string} tooltip - Texto descriptivo para mostrar al pasar el mouse
+     * @returns {string} HTML del ícono SVG con tooltip
+     * 
+     * Colores utilizados:
+     * - Verde (#22c55e): Tendencia alcista
+     * - Rojo (#ef4444): Tendencia bajista
+     * - Gris (#9ca3af): Sin cambio significativo
+     */
     getTrendIcon(direction, tooltip) {
         const iconClasses = "h-4 w-4 inline-block";
 
@@ -400,6 +470,15 @@ class TasasManager {
         }
     }
 
+    /**
+     * Actualiza el selector de divisas con las tasas disponibles
+     * 
+     * @method updateDivisasSelect
+     * @param {Array<object>} tasas - Array de tasas de cambio disponibles
+     * @returns {void}
+     * 
+     * Preserva la selección actual del usuario si la divisa sigue disponible.
+     */
     updateDivisasSelect(tasas) {
         this.divisasDisponibles = tasas;
         const currentValue = this.divisaSelect.value;
@@ -418,6 +497,33 @@ class TasasManager {
         }
     }
 
+    /**
+     * Carga y procesa el historial de tasas para visualización gráfica
+     * 
+     * Filtra y agrupa los datos históricos según el período seleccionado,
+     * aplicando diferentes estrategias de agrupamiento para optimizar la visualización.
+     * 
+     * @method loadHistorial
+     * @returns {void}
+     * 
+     * Estrategias de agrupamiento por período:
+     * - 7 días: Muestra cada día individualmente
+     * - 30 días: Muestra cada día individualmente
+     * - 90 días: Agrupa cada 3 días
+     * - 180 días (6 meses): Agrupa por mes
+     * - 365 días (1 año): Agrupa por mes
+     * 
+     * Proceso:
+     * 1. Filtra datos por rango de fechas (últimos N días)
+     * 2. Agrupa según estrategia del período
+     * 3. Toma solo la última cotización de cada grupo
+     * 4. Formatea fechas para visualización
+     * 5. Renderiza el gráfico
+     * 
+     * Nota: El filtrado usa (período - 1) para incluir exactamente N días
+     * contando desde hoy. Por ejemplo, "últimos 7 días" incluye desde hace
+     * 6 días hasta hoy, totalizando 7 días.
+     */
     loadHistorial() {
         const divisaSeleccionada = this.divisaSelect.value;
         const periodo = parseInt(this.periodoSelect.value) || 30;
@@ -427,34 +533,180 @@ class TasasManager {
             return;
         }
 
-        console.log(`📊 Cargando historial para ${divisaSeleccionada}, período: ${periodo} días`);
-
+        console.log(`Cargando historial para ${divisaSeleccionada}, período: ${periodo} días`);
+        
         this.showLoadingHistorial();
 
         setTimeout(() => {
             try {
-                let historial = this.historialDivisas[divisaSeleccionada];
+                let historial = [...this.historialDivisas[divisaSeleccionada]];
+                
+                console.log('Datos originales para', divisaSeleccionada, ':', historial.length, 'registros');
+                console.log('Período seleccionado:', periodo, 'días');
+                
+                // Establecer fecha límite (inicio del día hace N-1 días para incluir exactamente N días)
+                const ahora = new Date();
+                const fechaLimite = new Date(ahora);
+                fechaLimite.setDate(fechaLimite.getDate() - (periodo - 1)); // Cambio aquí: periodo - 1
+                fechaLimite.setHours(0, 0, 0, 0); // Establecer al inicio del día
+                
+                console.log('Fecha actual:', ahora.toISOString());
+                console.log('Fecha límite (últimos', periodo, 'días):', fechaLimite.toISOString());
+                
+                // Filtrar por fecha - comparando solo fechas, no horas
+                historial = historial.filter(h => {
+                    const fechaRegistro = new Date(h.fecha_iso);
+                    const incluir = fechaRegistro >= fechaLimite;
+                    if (periodo === 7) {
+                        console.log('Evaluando:', h.fecha_iso, '>=', fechaLimite.toISOString(), '=', incluir);
+                    }
+                    return incluir;
+                });
 
-                // Filtrar por período (últimos N registros o por fecha)
-                if (historial.length > periodo) {
-                    historial = historial.slice(-periodo);
-                }
+                console.log('Datos después de filtrar:', historial.length, 'registros');
 
                 if (historial.length === 0) {
+                    console.log('No hay datos en el rango seleccionado');
                     this.renderEmptyChart();
                     return;
                 }
 
-                console.log(`📈 Renderizando gráfico con ${historial.length} puntos para ${divisaSeleccionada}`);
+                console.log('Procesando historial por período:', periodo);
+
+                // Agrupar por período según la selección
+                const historialPorPeriodo = {};
+                historial.forEach(h => {
+                    const fecha = new Date(h.fecha_iso);
+                    let fechaKey;
+
+                    switch (periodo) {
+                        case 7:
+                        case 30:
+                            // Por día para 7 y 30 días
+                            fechaKey = fecha.toISOString().split('T')[0];
+                            console.log(`Período ${periodo} - Agrupando fecha ${h.fecha_iso} con key: ${fechaKey}`);
+                            break;
+                        case 90:
+                            // Cada 3 días para 90 días
+                            const diaBase = Math.floor(fecha.getDate() / 3) * 3;
+                            const fechaAgrupada = new Date(fecha);
+                            fechaAgrupada.setDate(diaBase + 1);
+                            fechaKey = fechaAgrupada.toISOString().split('T')[0];
+                            break;
+                        case 180:
+                            // Por mes para 6 meses
+                            fechaKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                            break;
+                        case 365:
+                            // Por mes para 1 año
+                            fechaKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                            break;
+                        default:
+                            fechaKey = fecha.toISOString().split('T')[0];
+                    }
+                    
+                    if (!historialPorPeriodo[fechaKey] || new Date(h.fecha_iso) > new Date(historialPorPeriodo[fechaKey].fecha_iso)) {
+                        historialPorPeriodo[fechaKey] = h;
+                    }
+                });
+
+                console.log('Claves agrupadas:', Object.keys(historialPorPeriodo).sort());
+                console.log('Total de registros agrupados:', Object.keys(historialPorPeriodo).length);
+
+                // Convertir el objeto agrupado de vuelta a array
+                historial = Object.values(historialPorPeriodo);
+
+                // Ordenar por fecha
+                historial.sort((a, b) => new Date(a.fecha_iso) - new Date(b.fecha_iso));
+
+                // Format dates for display
+                historial = historial.map(h => {
+                    const fecha = new Date(h.fecha_iso);
+                    let formatoEje;
+                    let formatoHover;
+
+                    switch (periodo) {
+                        case 7:
+                        case 30:
+                            // Por día
+                            formatoEje = {
+                                weekday: 'short',
+                                day: '2-digit'
+                            };
+                            formatoHover = {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            };
+                            break;
+                        case 90:
+                            // Cada 3 días
+                            formatoEje = {
+                                day: '2-digit',
+                                month: 'short'
+                            };
+                            formatoHover = {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            };
+                            break;
+                        case 180:
+                            // Por mes
+                            formatoEje = {
+                                month: 'short'
+                            };
+                            formatoHover = {
+                                year: 'numeric',
+                                month: 'long'
+                            };
+                            break;
+                        case 365:
+                            // Por mes en año
+                            formatoEje = {
+                                month: 'short',
+                                year: '2-digit'
+                            };
+                            formatoHover = {
+                                year: 'numeric',
+                                month: 'long'
+                            };
+                            break;
+                        default:
+                            formatoEje = {
+                                day: '2-digit',
+                                month: 'short'
+                            };
+                            formatoHover = {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            };
+                    }
+
+                    return {
+                        ...h,
+                        fecha_display: fecha.toLocaleDateString('es-PY', formatoHover),
+                        fecha_chart: fecha.toLocaleDateString('es-PY', formatoEje)
+                    };
+                });
+
+                console.log(`Renderizando gráfico con ${historial.length} puntos para ${divisaSeleccionada}`);
                 this.renderChart(historial, divisaSeleccionada);
                 this.hideLoadingHistorial();
 
             } catch (error) {
-                console.error('❌ Error al procesar historial:', error);
+                console.error('Error al procesar historial:', error);
                 this.showErrorHistorial();
             }
-        }, 500); // Pequeño delay para mostrar el loading
+        }, 500);
     }
+
 
     showLoadingHistorial() {
         this.loadingHistorial.classList.remove('hidden');
@@ -472,120 +724,223 @@ class TasasManager {
         this.emptyHistorial.classList.add('hidden');
     }
 
+    /**
+     * Renderiza el gráfico de historial de tasas usando Plotly.js
+     * 
+     * Crea un gráfico de líneas interactivo mostrando la evolución de los
+     * precios de compra y venta a lo largo del tiempo.
+     * 
+     * @method renderChart
+     * @param {Array<object>} historial - Datos históricos procesados y agrupados
+     * @param {string} divisaCodigo - Código de la divisa (ej: 'USD', 'BRL')
+     * @returns {void}
+     * 
+     * Características del gráfico:
+     * - Dos trazas: Compra (azul oscuro) y Venta (azul claro)
+     * - Interpolación spline para suavizado de líneas
+     * - Relleno entre líneas para mejor visualización
+     * - Rango dinámico del eje Y con margen del 12%
+     * - Hover unificado mostrando ambos precios
+     * - Responsive y optimizado para dispositivos móviles
+     * 
+     * Configuración de colores:
+     * - Línea Compra: #1e3a8a (azul oscuro)
+     * - Marcador Compra: #22c55e (verde)
+     * - Línea Venta: #38bdf8 (azul claro)
+     * - Marcador Venta: #86efac (verde claro)
+     * - Relleno Compra: rgba(30, 58, 138, 0.65)
+     * - Relleno Venta: rgba(56, 189, 248, 0.45)
+     * 
+     * @example
+     * // Datos de entrada esperados
+     * historial = [{
+     *   fecha_iso: '2025-10-24T05:00:00Z',
+     *   fecha_chart: 'Jue 24',
+     *   fecha_display: 'jueves, 24 de octubre de 2025, 05:00',
+     *   precio_compra: 7500.50,
+     *   precio_venta: 7600.75
+     * }]
+     */
     renderChart(historial, divisaCodigo) {
         this.emptyHistorial.classList.add('hidden');
 
-        // Ordenar historial cronológicamente
-        const historialOrdenado = [...historial].sort((a, b) => new Date(a.fecha_iso) - new Date(b.fecha_iso));
+        const historialOrdenado = [...historial].sort(
+            (a, b) => new Date(a.fecha_iso) - new Date(b.fecha_iso)
+        );
 
-        const fechas = historialOrdenado.map(h => h.fecha);
+        const fechasEje = historialOrdenado.map(h => h.fecha_chart);
+        const fechasHover = historialOrdenado.map(h => h.fecha_display);
         const preciosCompra = historialOrdenado.map(h => h.precio_compra);
         const preciosVenta = historialOrdenado.map(h => h.precio_venta);
-        const motivos = historialOrdenado.map(h => h.motivo);
 
-        console.log('📊 Datos para gráfico:', {
-            divisaCodigo,
-            fechas: fechas.length,
-            preciosCompra: preciosCompra.slice(0, 3),
-            preciosVenta: preciosVenta.slice(0, 3)
-        });
+        // Calcular rango dinámico (como Cambios Chaco)
+        const todosLosPrecios = [...preciosCompra, ...preciosVenta];
+        const precioMin = Math.min(...todosLosPrecios);
+        const precioMax = Math.max(...todosLosPrecios);
+        const margen = (precioMax - precioMin) * 0.12;
+        
+        const yMin = Math.max(0, precioMin - margen);
+        const yMax = precioMax + margen;
 
+        // TRACE COMPRA - Verde oscuro (estilo Cambios Chaco)
         const traceCompra = {
-            x: fechas,
+            x: fechasEje,
             y: preciosCompra,
             type: 'scatter',
             mode: 'lines+markers',
-            name: 'Precio Compra',
-            line: { color: '#22c55e', width: 3 },
-            marker: { size: 8, color: '#22c55e', line: { width: 2, color: '#ffffff' } },
-            hovertemplate: '<b>💰 Compra</b><br>' +
-                          'Fecha: %{x}<br>' +
-                          'Precio: ₲%{y:,.0f}<br>' +
-                          'Motivo: %{text}<br>' +
-                          '<extra></extra>',
-            text: motivos
+            name: 'Compra',
+            line: { 
+                color: '#1e3a8a',
+                width: 2.5,
+                shape: 'spline',
+                smoothing: 1.3
+            },
+            marker: { 
+                size: 6,
+                color: '#22c55e',
+                line: { color: '#fff', width: 2 }
+            },
+            fill: 'tozeroy',
+            fillcolor: 'rgba(30, 58, 138, 0.65)',
+            text: fechasHover,
+            hovertemplate: '<b>Compra</b><br>₲%{y:,.0f}<br><i>%{text}</i><extra></extra>'
         };
 
+        // TRACE VENTA - Verde claro (estilo Cambios Chaco)
         const traceVenta = {
-            x: fechas,
+            x: fechasEje,
             y: preciosVenta,
             type: 'scatter',
             mode: 'lines+markers',
-            name: 'Precio Venta',
-            line: { color: '#ef4444', width: 3 },
-            marker: { size: 8, color: '#ef4444', line: { width: 2, color: '#ffffff' } },
-            hovertemplate: '<b>💸 Venta</b><br>' +
-                          'Fecha: %{x}<br>' +
-                          'Precio: ₲%{y:,.0f}<br>' +
-                          'Motivo: %{text}<br>' +
-                          '<extra></extra>',
-            text: motivos
+            name: 'Venta',
+            line: { 
+                color: '#38bdf8',
+                width: 2.5,
+                shape: 'spline',
+                smoothing: 1.3
+            },
+            marker: { 
+                size: 6,
+                color: '#86efac',
+                line: { color: '#fff', width: 2 }
+            },
+            fill: 'tonexty',
+            fillcolor: 'rgba(56, 189, 248, 0.45)',
+            text: fechasHover,
+            hovertemplate: '<b>Venta</b><br>₲%{y:,.0f}<br><i>%{text}</i><extra></extra>'
         };
 
         const layout = {
             title: {
-                text: `📊 Historial de Tasas - ${divisaCodigo}`,
-                font: { size: 20, color: '#1f2937', family: 'Arial, sans-serif' },
-                x: 0.5
+                text: `Historial de Tasas - ${divisaCodigo}`,
+                font: { size: 24, color: '#374151', family: 'system-ui, -apple-system, sans-serif', weight: '600' },
+                x: 0.5,
+                xanchor: 'center',
+                y: 0.95
+            },
+            yaxis: { 
+                title: 'Guaraníes (₲)',
+                titlefont: { size: 14, color: '#4b5563' },
+                gridcolor: '#e5e7eb',
+                gridwidth: 1,
+                tickformat: ',.0f',
+                tickfont: { size: 12, color: '#6b7280' },
+                range: [yMin, yMax],
+                fixedrange: true,
+                zeroline: false,
+                showline: true,
+                linecolor: '#e5e7eb',
+                linewidth: 2
             },
             xaxis: {
-                title: '📅 Fecha',
-                gridcolor: '#e5e7eb',
-                titlefont: { size: 14, color: '#374151' },
-                tickangle: -45
+                showgrid: true,
+                gridcolor: '#f3f4f6',
+                gridwidth: 1,
+                tickangle: -45,
+                tickfont: { size: 10, color: '#6b7280', family: 'system-ui' },
+                tickmode: 'array',
+                ticktext: fechasEje,
+                tickvals: fechasEje,
+                automargin: true,
+                type: 'category',
+                fixedrange: true,
+                rangeslider: {
+                    visible: false
+                },
+                title: {
+                    text: 'Fecha',
+                    standoff: 15,
+                    font: { size: 12, color: '#4b5563' }
+                }
             },
-            yaxis: {
-                title: '💰 Precio (₲)',
-                gridcolor: '#e5e7eb',
-                tickformat: ',.0f',
-                titlefont: { size: 14, color: '#374151' }
-            },
-            plot_bgcolor: 'rgba(249,250,251,0.8)',
-            paper_bgcolor: 'rgba(255,255,255,1)',
-            margin: { l: 80, r: 40, t: 80, b: 80 },
-            legend: {
+
+            plot_bgcolor: '#ffffff',
+            paper_bgcolor: '#ffffff',
+            margin: { l: 80, r: 40, t: 80, b: 100 },
+            legend: { 
                 orientation: 'h',
                 x: 0.5,
                 xanchor: 'center',
-                y: -0.15,
-                bgcolor: 'rgba(255,255,255,0.8)',
-                bordercolor: '#e5e7eb',
-                borderwidth: 1
+                y: -0.2,
+                font: { size: 13, color: '#374151' },
+                bgcolor: 'rgba(255,255,255,0)',
+                borderwidth: 0
             },
             hovermode: 'x unified',
-            font: { family: 'Arial, sans-serif', size: 12 }
+            hoverlabel: {
+                bgcolor: '#1f2937',
+                bordercolor: '#1f2937',
+                font: { size: 12, color: '#fff', family: 'system-ui' }
+            },
+            font: { family: 'system-ui, -apple-system, sans-serif' },
+            autosize: true,
+            showlegend: true
         };
 
         const config = {
             responsive: true,
-            displayModeBar: true,
-            modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d'],
-            locale: 'es',
-            toImageButtonOptions: {
-                format: 'png',
-                filename: `historial_tasas_${divisaCodigo}_${new Date().toISOString().split('T')[0]}`,
-                height: 600,
-                width: 1000,
-                scale: 1
-            }
+            displayModeBar: false,
+            displaylogo: false,
+            scrollZoom: false,
+            doubleClick: false,
+            staticPlot: false,
+            dragmode: false
         };
 
         try {
             Plotly.newPlot('historial_plotly', [traceCompra, traceVenta], layout, config);
-            console.log('✅ Gráfico renderizado exitosamente');
+
+            // Animación suave
+            Plotly.animate('historial_plotly', {
+                data: [traceCompra, traceVenta],
+                layout: layout
+            }, {
+                transition: { duration: 600, easing: 'cubic-in-out' },
+                frame: { duration: 600 }
+            });
+
         } catch (error) {
-            console.error('❌ Error al renderizar gráfico:', error);
+            console.error('Error al renderizar gráfico:', error);
             this.showErrorHistorial();
         }
     }
 
+    /**
+     * Renderiza un gráfico vacío con mensaje informativo
+     * 
+     * Se muestra cuando no hay una divisa seleccionada o cuando no hay
+     * datos disponibles para el período solicitado.
+     * 
+     * @method renderEmptyChart
+     * @returns {void}
+     */
     renderEmptyChart() {
         this.emptyHistorial.classList.remove('hidden');
         this.hideLoadingHistorial();
 
         const layout = {
-            title: {
-                text: '📊 Selecciona una divisa para ver el historial',
+            title: { 
+                text: ' Selecciona una divisa para ver el historial', 
                 font: { size: 18, color: '#6b7280' },
                 x: 0.5
             },
