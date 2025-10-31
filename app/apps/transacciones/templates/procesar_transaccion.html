@@ -409,85 +409,6 @@
                 </div>
             </div>
         </div>
-        <!-- Acciones -->
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-                <h3 class="card-title text-primary mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-6 w-6"
-                         fill="none"
-                         viewBox="0 0 24 24"
-                         stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                    </svg>
-                    ¿Qué deseas hacer ahora?
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <a href="{% url 'transacciones:lista' %}" class="btn btn-primary btn-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        <div class="text-left">
-                            <div class="font-semibold">Mis Transacciones</div>
-                            <div class="text-xs opacity-60">Ver historial</div>
-                        </div>
-                    </a>
-                    <a href="{% url 'transacciones:realizar_transaccion' %}"
-                       class="btn btn-outline btn-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        <div class="text-left">
-                            <div class="font-semibold">Nueva Transacción</div>
-                            <div class="text-xs opacity-60">Realizar otra</div>
-                        </div>
-                    </a>
-                    <button id="btnPagarTransaccion"
-                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
-                            class="btn btn-success btn-lg"
-                            {% if transaccion.fecha_procesamiento %}disabled{% endif %}>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <div class="text-left">
-                            {% if transaccion.tipo_operacion == 'compra' %}
-                                <div class="font-semibold">Pagar Transacción</div>
-                                <div class="text-xs opacity-60">Procesar pago</div>
-                            {% else %}
-                                <div class="font-semibold">Generar Código</div>
-                                <div class="text-xs opacity-60">Generar código para Tauser</div>
-                            {% endif %}
-                        </div>
-                    </button>
-                    <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
-                            class="btn btn-error btn-outline btn-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="h-6 w-6"
-                             fill="none"
-                             viewBox="0 0 24 24"
-                             stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        <div class="text-left">
-                            <div class="font-semibold">Cancelar</div>
-                            <div class="text-xs opacity-60">Esta transacción</div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-        </div>
         <!-- Información adicional -->
         <div class="alert alert-info mb-6">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -865,12 +786,12 @@
             } else {
                 // Error al abrir ventana (bloqueador de popups)
                 showToast('Error: No se pudo abrir la ventana del banco. Revisa el bloqueador de ventanas emergentes.', 'error');
-                
+
                 // Cancelar la reserva de billetes si es una compra
                 if ('{{ transaccion.tipo_operacion }}' === 'compra') {
                     cancelarReserva(transaccionId);
                 }
-                
+
                 restaurarBotonPagar();
             }
         }
@@ -998,7 +919,7 @@
             console.log('Ventana cerrada después de completar:', data);
             // No hacer nada especial, el proceso ya se completó
         }
-        
+
         function cancelarReserva(transaccionId) {
             fetch(`/stock/api/cancelar-movimiento/${transaccionId}/`, {
                 method: 'POST',
