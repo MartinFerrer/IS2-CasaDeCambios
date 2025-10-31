@@ -246,6 +246,7 @@ def procesar_compra(request: HttpRequest) -> HttpResponse:
 
     """
     from django.core.exceptions import ValidationError
+    from django.utils import timezone
 
     from apps.stock.models import MovimientoStock
     from apps.stock.services import confirmar_movimiento
@@ -272,11 +273,13 @@ def procesar_compra(request: HttpRequest) -> HttpResponse:
             messages.error(request, "No se encontró movimiento de stock pendiente para esta transacción.")
             return redirect("tauser:bienvenida")
 
-        # Confirmar el movimiento en el servicio (solo necesita el ID)
+            # Confirmar el movimiento de stock
         confirmar_movimiento(movimiento_stock.pk)
 
-        # NO se genera factura en COMPRA (retiro de efectivo)
-        # La factura ya fue generada cuando el cliente pagó con tarjeta/transferencia/stripe
+        # Actualizar la transacción
+        transaccion.estado = "completada"
+        transaccion.fecha_completada = timezone.now()
+        transaccion.save()
 
         # Limpiar sesión ATM
         session_keys = ["transaccion_atm_id", "codigo_verificacion_validado", "mfa_completado"]
@@ -401,23 +404,29 @@ def procesar_billetes_venta(request: HttpRequest) -> HttpResponse:
 
         # Actualizar estado de la transacción
         transaccion.estado = "completada"
-        transaccion.fecha_pago = timezone.now()
+
+        # Setear fecha_pago solo si no existe (en VENTA es cuando se deposita efectivo, es el pago)
+        # En COMPRA, fecha_pago ya fue seteada al pagar con Stripe/banco
+        if not transaccion.fecha_pago:
+            transaccion.fecha_pago = timezone.now()
+
         transaccion.fecha_completada = timezone.now()
         transaccion.save()
 
-        # Generar factura electrónica SOLO en VENTA con efectivo (pago en TAUSER)
-        # En VENTA el cliente deposita efectivo = está pagando, por lo tanto se genera factura
-        try:
-            from apps.transacciones.facturacion import procesar_facturacion_post_pago
+        # Generar factura electrónica si no existe (VENTA con efectivo, pago en TAUSER)
+        # En COMPRA con pago previo, la factura ya fue generada
+        if not transaccion.cdc_factura:
+            try:
+                from apps.transacciones.facturacion import procesar_facturacion_post_pago
 
-            exito, mensaje = procesar_facturacion_post_pago(transaccion)
-            if exito:
-                print(f"✓ Factura generada para VENTA en efectivo: {mensaje}")
-            else:
-                print(f"✗ Error generando factura para VENTA en efectivo: {mensaje}")
-        except Exception as e:
-            # No fallar si la facturación falla
-            print(f"✗ Excepción generando factura para transacción TAUSER {transaccion.id_transaccion}: {e}")
+                exito, mensaje = procesar_facturacion_post_pago(transaccion)
+                if exito:
+                    print(f"✓ Factura generada en TAUSER: {mensaje}")
+                else:
+                    print(f"✗ Error generando factura en TAUSER: {mensaje}")
+            except Exception as e:
+                # No fallar si la facturación falla
+                print(f"✗ Excepción generando factura para transacción TAUSER {transaccion.id_transaccion}: {e}")
 
         # Limpiar sesión ATM
         session_keys = ["transaccion_atm_id", "codigo_verificacion_validado", "mfa_completado"]

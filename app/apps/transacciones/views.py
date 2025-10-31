@@ -1767,6 +1767,10 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
         # Guardar cambios
         transaccion.save()
 
+        # Generar factura electrónica si el pago fue exitoso
+        if exito:
+            _generar_factura_electronica(transaccion)
+
         return JsonResponse(
             {
                 "success": True,
@@ -2480,6 +2484,11 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
                     # COMPRA: pago exitoso, stock reservado, pendiente de retiro en TAUSER
                     transaccion.estado = "pendiente"
                     transaccion.fecha_pago = timezone.now()
+                    transaccion.save()
+
+                    # Generar factura electrónica al momento del pago
+                    _generar_factura_electronica(transaccion)
+
                     mensaje = "Pago procesado exitosamente con Stripe. Pendiente de retiro en TAUSER"
 
                 except ValueError as ve:
@@ -2525,8 +2534,8 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
         stripe_payment.save()
         transaccion.save()
 
-        # Generar factura electrónica si la transacción está completada
-        if transaccion.estado == "completada":
+        # Generar factura electrónica si hay fecha de pago (pago exitoso)
+        if transaccion.fecha_pago:
             _generar_factura_electronica(transaccion)
 
         return JsonResponse(
@@ -2636,6 +2645,9 @@ def _handle_payment_intent_succeeded(payment_intent):
             and transaccion.medio_cobro.lower() == "efectivo"
         )
 
+        # Siempre setear fecha_pago cuando el pago es exitoso
+        transaccion.fecha_pago = timezone.now()
+
         if es_compra_con_tauser:
             # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
             transaccion.estado = "pendiente"
@@ -2646,9 +2658,8 @@ def _handle_payment_intent_succeeded(payment_intent):
 
         transaccion.save()
 
-        # Generar factura electrónica si la transacción está completada
-        if transaccion.estado == "completada":
-            _generar_factura_electronica(transaccion)
+        # Generar factura electrónica al momento del pago (independiente del estado)
+        _generar_factura_electronica(transaccion)
 
     except StripePayment.DoesNotExist:
         print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")

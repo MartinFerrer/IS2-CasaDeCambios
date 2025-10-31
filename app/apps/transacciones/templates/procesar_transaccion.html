@@ -112,7 +112,7 @@
                     </ul>
                 </div>
             {% endif %}
-            {% if transaccion.estado == 'completada' %}
+            {% if transaccion.fecha_pago %}
                 <!-- Botón de Regenerar Factura (solo para testing) -->
                 <button onclick="regenerarFactura('{{ transaccion.id_transaccion }}')"
                         class="btn btn-warning btn-lg">

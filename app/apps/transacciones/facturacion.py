@@ -455,28 +455,37 @@ def _construir_de_payload(transaccion, num_doc: str) -> Dict:
 
     # Calcular monto en PYG (el monto pagado por el servicio)
     if transaccion.tipo_operacion == "compra":
-        # Cliente compra divisa extranjera, paga en PYG
-        monto_pyg = int(transaccion.monto_final) if transaccion.monto_final else 100
+        # Cliente compra divisa extranjera, paga en PYG (monto_origen)
+        monto_pyg = int(transaccion.monto_origen) if transaccion.monto_origen else 100
     else:
-        # Cliente vende divisa extranjera, recibe PYG
+        # Cliente vende divisa extranjera, recibe PYG (monto_destino)
         monto_pyg = int(transaccion.monto_destino) if transaccion.monto_destino else 100
 
-    # Obtener datos del cliente
+    # Obtener datos del cliente (receptor de la factura)
     cliente = transaccion.cliente
-    try:
-        # Intentar obtener primer usuario del cliente
-        usuario = cliente.usuarios.first()
-        email_cliente = usuario.email if usuario else "cliente@example.com"
-        nombre_cliente = f"{usuario.first_name} {usuario.last_name}".strip() if usuario else "Cliente"
-        if not nombre_cliente or nombre_cliente == "":
-            nombre_cliente = "Cliente"
-    except Exception:
-        email_cliente = "cliente@example.com"
-        nombre_cliente = "Cliente"
 
-    # Datos del receptor (usar emisor como default para testing)
-    ruc_receptor = emisor.get("ruc", "2595733")
-    dv_receptor = emisor.get("dv", "3")
+    # Extraer nombre y email del cliente
+    nombre_cliente = cliente.nombre if cliente.nombre else "Cliente"
+    email_cliente = cliente.email if cliente.email else "cliente@example.com"
+
+    # Extraer RUC y DV del cliente
+    # El RUC viene en formato "12345678-9" donde 9 es el DV
+    ruc_completo = cliente.ruc if cliente.ruc else "2595733-3"
+
+    try:
+        if "-" in ruc_completo:
+            # Formato "12345678-9"
+            partes = ruc_completo.split("-")
+            ruc_receptor = partes[0]
+            dv_receptor = partes[1]
+        else:
+            # Si no tiene guion, el último dígito es el DV
+            ruc_receptor = ruc_completo[:-1] if len(ruc_completo) > 1 else ruc_completo
+            dv_receptor = ruc_completo[-1] if len(ruc_completo) > 0 else "0"
+    except Exception as e:
+        logger.warning(f"Error extrayendo RUC/DV del cliente: {e}. Usando valores por defecto.")
+        ruc_receptor = "2595733"
+        dv_receptor = "3"
 
     # Construir descripción detallada del servicio
     divisa_origen = transaccion.divisa_origen.codigo if transaccion.divisa_origen else "USD"
@@ -564,7 +573,7 @@ def _construir_de_payload(transaccion, num_doc: str) -> Dict:
         "dCodSeg": "0",
         "dDVId": "0",
         "dSisFact": "1",
-        "dInfAdic": f"ID: {transaccion.id_transaccion} | {tipo_cambio_desc} | Tasa: {transaccion.tipo_cambio}",
+        "dInfAdic": f"ID: {transaccion.id_transaccion} | {tipo_cambio_desc} | Tasa: {transaccion.tasa_aplicada}",
     }
 
     return de
