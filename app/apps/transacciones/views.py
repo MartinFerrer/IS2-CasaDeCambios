@@ -10,6 +10,13 @@ from decimal import Decimal
 from typing import Dict
 
 import stripe
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -19,14 +26,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
-
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
-from apps.seguridad.decorators import client_required
-from apps.stock.models import MovimientoStock, StockDivisaTauser
-from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
-from apps.tauser.models import Tauser
-from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 from .utils import calculos_tasas_comisiones
@@ -2102,112 +2101,6 @@ def api_aceptar_nueva_cotizacion(request: HttpRequest, transaccion_id: str) -> J
         return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
     except Exception as e:
         print(f"Error al aceptar nueva cotización: {e}")
-        return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
-
-
-@require_GET
-@login_required
-def api_historial_transaccion(request: HttpRequest, transaccion_id: str) -> JsonResponse:
-    """API para obtener el historial de una transacción en formato JSON.
-
-    Args:
-        request: La solicitud HTTP.
-        transaccion_id: ID de la transacción a consultar.
-
-    Returns:
-        JsonResponse: Historial de la transacción.
-
-    """
-    try:
-        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id)
-
-        # Verificar que el usuario tenga permiso para ver esta transacción
-        cliente = getattr(request, "cliente", None)
-        if not (request.user.is_staff or (cliente and transaccion.cliente == cliente)):
-            return JsonResponse(
-                {"success": False, "message": "No tienes permisos para ver esta transacción"}, status=403
-            )
-
-        # Crear historial de acciones
-        historial = []
-
-        # Acción de creación
-        detalle_creacion = (
-            f"{strip_trailing_zeros(transaccion.monto_origen, 0)} {transaccion.divisa_origen.codigo} → "
-            f"{strip_trailing_zeros(transaccion.monto_destino, 0)} {transaccion.divisa_destino.codigo}"
-        )
-
-        historial.append(
-            {
-                "accion": "Transacción creada",
-                "fecha": transaccion.fecha_creacion.isoformat(),
-                "detalle": detalle_creacion,
-            }
-        )
-
-        # Acción de procesamiento
-        detalle_procesamiento = (
-            f"Código: {transaccion.codigo_verificacion}" if transaccion.codigo_verificacion else "Sin código"
-        )
-        if transaccion.fecha_procesamiento:
-            historial.append(
-                {
-                    "accion": "Transacción procesada",
-                    "fecha": transaccion.fecha_procesamiento.isoformat(),
-                    "detalle": detalle_procesamiento,
-                }
-            )
-
-        # Acción de pago (si existe)
-        detalle_pago = f"Medio de pago: {obtener_nombre_medio(transaccion.medio_pago, transaccion.cliente)}"
-        if transaccion.fecha_pago:
-            historial.append(
-                {"accion": "Pago procesado", "fecha": transaccion.fecha_pago.isoformat(), "detalle": detalle_pago}
-            )
-
-        # Transacción completada
-        if transaccion.estado == "completada" and transaccion.fecha_completada:
-            historial.append(
-                {
-                    "accion": "Transacción completada",
-                    "fecha": transaccion.fecha_completada.isoformat(),
-                    "detalle": "Entrega de fondos realizada",
-                }
-            )
-
-        # Si está cancelada
-        if transaccion.estado == "cancelada" or transaccion.estado == "cancelada_cotizacion":
-            motivo = transaccion.motivo_cancelacion or "Sin motivo especificado"
-            historial.append(
-                {
-                    "accion": "Transacción cancelada",
-                    "fecha": transaccion.fecha_actualizacion.isoformat(),
-                    "detalle": f"Motivo: {motivo}",
-                }
-            )
-
-        # Fecha de reserva del monto si la operación es de compra
-        from apps.stock.models import MovimientoStock
-
-        if transaccion.tipo_operacion == "compra":
-            if movimiento := MovimientoStock.objects.filter(
-                transaccion=transaccion, estado__in=["pendiente", "confirmado"]
-            ).first():
-                historial.append(
-                    {
-                        "accion": "Monto reservado en stock",
-                        "fecha": movimiento.fecha_creacion.isoformat() if movimiento else transaccion.fecha_creacion,
-                        "detalle": movimiento.resumen_denominaciones(),
-                    }
-                )
-
-        historial = sorted(historial, key=lambda x: x["fecha"])
-        return JsonResponse({"success": True, "historial": historial})
-
-    except Transaccion.DoesNotExist:
-        return JsonResponse({"success": False, "message": "Transacción no encontrada"}, status=404)
-    except Exception as e:
-        print(f"Error al obtener historial de transacción: {e}")
         return JsonResponse({"success": False, "message": "Error interno del servidor"}, status=500)
 
 

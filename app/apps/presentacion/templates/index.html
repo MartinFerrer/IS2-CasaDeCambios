@@ -85,10 +85,10 @@
     <script>
 /**
  * Gestor de Tasas de Cambio
- * 
+ *
  * Esta clase maneja la visualización y actualización de las tasas de cambio,
  * incluyendo la vista de tasas actuales y el historial gráfico de las mismas.
- * 
+ *
  * @class TasasManager
  * @description Gestiona la carga, visualización y actualización de tasas de cambio
  * y sus historiales. Incluye funcionalidades para:
@@ -101,10 +101,10 @@
 class TasasManager {
     /**
      * Constructor de la clase TasasManager
-     * 
+     *
      * Inicializa el gestor de tasas de cambio, configurando las URLs del API,
      * colores para los gráficos, y establece el auto-refresh de datos cada 30 segundos.
-     * 
+     *
      * @constructor
      * @property {string} apiUrl - URL del endpoint API para obtener tasas de cambio
      * @property {Array<string>} colors - Paleta de colores para visualizaciones
@@ -133,13 +133,13 @@ class TasasManager {
 
     /**
      * Inicializa los elementos DOM y configura los event listeners
-     * 
+     *
      * Obtiene referencias a todos los elementos DOM necesarios para la funcionalidad
      * y configura los manejadores de eventos para interacciones del usuario.
-     * 
+     *
      * @method initializeElements
      * @returns {void}
-     * 
+     *
      * Elementos inicializados:
      * - Elementos de la vista de tasas actuales
      * - Elementos de la vista de historial
@@ -174,7 +174,7 @@ class TasasManager {
 
     /**
      * Alterna entre la vista de tasas actuales y la vista de historial
-     * 
+     *
      * @method toggleView
      * @returns {void}
      */
@@ -235,12 +235,12 @@ class TasasManager {
 
     /**
      * Formatea un número según la configuración regional paraguaya
-     * 
+     *
      * @method formatNumber
      * @param {number} number - Número a formatear
      * @param {number} [maxDecimals=0] - Cantidad máxima de decimales
      * @returns {string} Número formateado con separadores de miles
-     * 
+     *
      * @example
      * formatNumber(7500.50, 2) // "7.500,50"
      * formatNumber(1000000) // "1.000.000"
@@ -254,22 +254,22 @@ class TasasManager {
 
     /**
      * Carga las tasas de cambio desde el API
-     * 
+     *
      * Obtiene las tasas actuales y sus historiales del backend, procesa los datos
      * y actualiza la interfaz. Si hay historial disponible, calcula los precios
      * de compra y venta para cada registro histórico.
-     * 
+     *
      * @async
      * @method loadTasas
      * @returns {Promise<void>}
      * @throws {Error} Si la petición al API falla
-     * 
+     *
      * Proceso:
      * 1. Realiza petición fetch al API
      * 2. Procesa el historial de cada divisa
      * 3. Calcula precios de compra/venta históricos
      * 4. Actualiza la vista con los datos obtenidos
-     * 
+     *
      * Estructura de datos esperada:
      * {
      *   tasas: [{
@@ -338,14 +338,14 @@ class TasasManager {
 
     /**
      * Renderiza la tabla de tasas de cambio actuales
-     * 
+     *
      * Genera dinámicamente las filas de la tabla con información de cada divisa,
      * incluyendo banderas, precios e indicadores de tendencia.
-     * 
+     *
      * @method renderTasas
      * @param {Array<object>} tasas - Array de objetos con información de tasas
      * @returns {void}
-     * 
+     *
      * Calcula tendencias comparando:
      * - Última tasa con penúltima tasa del historial
      * - Muestra iconos indicadores (↑ subida, ↓ bajada, = sin cambio)
@@ -430,12 +430,12 @@ class TasasManager {
 
     /**
      * Genera el ícono indicador de tendencia de precio
-     * 
+     *
      * @method getTrendIcon
      * @param {string} direction - Dirección de la tendencia ('up', 'down', 'neutral')
      * @param {string} tooltip - Texto descriptivo para mostrar al pasar el mouse
      * @returns {string} HTML del ícono SVG con tooltip
-     * 
+     *
      * Colores utilizados:
      * - Verde (#22c55e): Tendencia alcista
      * - Rojo (#ef4444): Tendencia bajista
@@ -472,11 +472,11 @@ class TasasManager {
 
     /**
      * Actualiza el selector de divisas con las tasas disponibles
-     * 
+     *
      * @method updateDivisasSelect
      * @param {Array<object>} tasas - Array de tasas de cambio disponibles
      * @returns {void}
-     * 
+     *
      * Preserva la selección actual del usuario si la divisa sigue disponible.
      */
     updateDivisasSelect(tasas) {
@@ -499,27 +499,27 @@ class TasasManager {
 
     /**
      * Carga y procesa el historial de tasas para visualización gráfica
-     * 
+     *
      * Filtra y agrupa los datos históricos según el período seleccionado,
      * aplicando diferentes estrategias de agrupamiento para optimizar la visualización.
-     * 
+     *
      * @method loadHistorial
      * @returns {void}
-     * 
+     *
      * Estrategias de agrupamiento por período:
      * - 7 días: Muestra cada día individualmente
      * - 30 días: Muestra cada día individualmente
      * - 90 días: Agrupa cada 3 días
      * - 180 días (6 meses): Agrupa por mes
      * - 365 días (1 año): Agrupa por mes
-     * 
+     *
      * Proceso:
      * 1. Filtra datos por rango de fechas (últimos N días)
      * 2. Agrupa según estrategia del período
      * 3. Toma solo la última cotización de cada grupo
      * 4. Formatea fechas para visualización
      * 5. Renderiza el gráfico
-     * 
+     *
      * Nota: El filtrado usa (período - 1) para incluir exactamente N días
      * contando desde hoy. Por ejemplo, "últimos 7 días" incluye desde hace
      * 6 días hasta hoy, totalizando 7 días.
@@ -534,25 +534,25 @@ class TasasManager {
         }
 
         console.log(`Cargando historial para ${divisaSeleccionada}, período: ${periodo} días`);
-        
+
         this.showLoadingHistorial();
 
         setTimeout(() => {
             try {
                 let historial = [...this.historialDivisas[divisaSeleccionada]];
-                
+
                 console.log('Datos originales para', divisaSeleccionada, ':', historial.length, 'registros');
                 console.log('Período seleccionado:', periodo, 'días');
-                
+
                 // Establecer fecha límite (inicio del día hace N-1 días para incluir exactamente N días)
                 const ahora = new Date();
                 const fechaLimite = new Date(ahora);
                 fechaLimite.setDate(fechaLimite.getDate() - (periodo - 1)); // Cambio aquí: periodo - 1
                 fechaLimite.setHours(0, 0, 0, 0); // Establecer al inicio del día
-                
+
                 console.log('Fecha actual:', ahora.toISOString());
                 console.log('Fecha límite (últimos', periodo, 'días):', fechaLimite.toISOString());
-                
+
                 // Filtrar por fecha - comparando solo fechas, no horas
                 historial = historial.filter(h => {
                     const fechaRegistro = new Date(h.fecha_iso);
@@ -604,7 +604,7 @@ class TasasManager {
                         default:
                             fechaKey = fecha.toISOString().split('T')[0];
                     }
-                    
+
                     if (!historialPorPeriodo[fechaKey] || new Date(h.fecha_iso) > new Date(historialPorPeriodo[fechaKey].fecha_iso)) {
                         historialPorPeriodo[fechaKey] = h;
                     }
@@ -726,15 +726,15 @@ class TasasManager {
 
     /**
      * Renderiza el gráfico de historial de tasas usando Plotly.js
-     * 
+     *
      * Crea un gráfico de líneas interactivo mostrando la evolución de los
      * precios de compra y venta a lo largo del tiempo.
-     * 
+     *
      * @method renderChart
      * @param {Array<object>} historial - Datos históricos procesados y agrupados
      * @param {string} divisaCodigo - Código de la divisa (ej: 'USD', 'BRL')
      * @returns {void}
-     * 
+     *
      * Características del gráfico:
      * - Dos trazas: Compra (azul oscuro) y Venta (azul claro)
      * - Interpolación spline para suavizado de líneas
@@ -742,7 +742,7 @@ class TasasManager {
      * - Rango dinámico del eje Y con margen del 12%
      * - Hover unificado mostrando ambos precios
      * - Responsive y optimizado para dispositivos móviles
-     * 
+     *
      * Configuración de colores:
      * - Línea Compra: #1e3a8a (azul oscuro)
      * - Marcador Compra: #22c55e (verde)
@@ -750,7 +750,7 @@ class TasasManager {
      * - Marcador Venta: #86efac (verde claro)
      * - Relleno Compra: rgba(30, 58, 138, 0.65)
      * - Relleno Venta: rgba(56, 189, 248, 0.45)
-     * 
+     *
      * @example
      * // Datos de entrada esperados
      * historial = [{
@@ -778,7 +778,7 @@ class TasasManager {
         const precioMin = Math.min(...todosLosPrecios);
         const precioMax = Math.max(...todosLosPrecios);
         const margen = (precioMax - precioMin) * 0.12;
-        
+
         const yMin = Math.max(0, precioMin - margen);
         const yMax = precioMax + margen;
 
@@ -789,13 +789,13 @@ class TasasManager {
             type: 'scatter',
             mode: 'lines+markers',
             name: 'Compra',
-            line: { 
+            line: {
                 color: '#1e3a8a',
                 width: 2.5,
                 shape: 'spline',
                 smoothing: 1.3
             },
-            marker: { 
+            marker: {
                 size: 6,
                 color: '#22c55e',
                 line: { color: '#fff', width: 2 }
@@ -813,13 +813,13 @@ class TasasManager {
             type: 'scatter',
             mode: 'lines+markers',
             name: 'Venta',
-            line: { 
+            line: {
                 color: '#38bdf8',
                 width: 2.5,
                 shape: 'spline',
                 smoothing: 1.3
             },
-            marker: { 
+            marker: {
                 size: 6,
                 color: '#86efac',
                 line: { color: '#fff', width: 2 }
@@ -838,7 +838,7 @@ class TasasManager {
                 xanchor: 'center',
                 y: 0.95
             },
-            yaxis: { 
+            yaxis: {
                 title: 'Guaraníes (₲)',
                 titlefont: { size: 14, color: '#4b5563' },
                 gridcolor: '#e5e7eb',
@@ -877,7 +877,7 @@ class TasasManager {
             plot_bgcolor: '#ffffff',
             paper_bgcolor: '#ffffff',
             margin: { l: 80, r: 40, t: 80, b: 100 },
-            legend: { 
+            legend: {
                 orientation: 'h',
                 x: 0.5,
                 xanchor: 'center',
@@ -927,10 +927,10 @@ class TasasManager {
 
     /**
      * Renderiza un gráfico vacío con mensaje informativo
-     * 
+     *
      * Se muestra cuando no hay una divisa seleccionada o cuando no hay
      * datos disponibles para el período solicitado.
-     * 
+     *
      * @method renderEmptyChart
      * @returns {void}
      */
@@ -939,8 +939,8 @@ class TasasManager {
         this.hideLoadingHistorial();
 
         const layout = {
-            title: { 
-                text: ' Selecciona una divisa para ver el historial', 
+            title: {
+                text: ' Selecciona una divisa para ver el historial',
                 font: { size: 18, color: '#6b7280' },
                 x: 0.5
             },

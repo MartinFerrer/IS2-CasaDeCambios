@@ -8,7 +8,6 @@ from django.contrib.auth.models import (
 )
 from django.core.exceptions import ValidationError
 from django.db import models
-
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -87,16 +86,12 @@ class Cliente(models.Model):
         """Validación personalizada del modelo."""
         super().clean()
 
-
         if self.ruc:
             # Limpiar el RUC (remover espacios, guiones, etc.)
             ruc_limpio = limpiar_ruc(self.ruc)
 
-
             # Validar dígito verificador
             if not validar_ruc_completo(ruc_limpio):
-                raise ValidationError({"ruc": "El dígito verificador del RUC no es válido."})
-            self.ruc = ruc_limpio[:-1] + "-" + ruc_limpio[-1]
                 raise ValidationError({"ruc": "El dígito verificador del RUC no es válido."})
             self.ruc = ruc_limpio[:-1] + "-" + ruc_limpio[-1]
 

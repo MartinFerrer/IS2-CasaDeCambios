@@ -269,6 +269,68 @@ class TasaCambio(models.Model):
             print(f"❌ ERROR CRÍTICO - Fallo al consultar transacciones pendientes: {e}")
             return []
 
+    # Notificación de cambios en la cotización
+    def _notificar_cambio_cotizacion(self, instancia_anterior):
+        """Notifica automáticamente a clientes con transacciones pendientes sobre cambios en cotización"""
+        variacion_porcentaje = 0
+        if instancia_anterior.precio_base and instancia_anterior.precio_base > 0:
+            variacion_porcentaje = (
+                (self.precio_base - instancia_anterior.precio_base) / instancia_anterior.precio_base
+            ) * 100
+            variacion_porcentaje = round(variacion_porcentaje, 2)
+
+        datos_cambio = {
+            "divisa_origen": self.divisa_origen.codigo,
+            "divisa_destino": self.divisa_destino.codigo,
+            "fecha_actualizacion": self.fecha_actualizacion,
+            "cotizacion_anterior": instancia_anterior.precio_base,
+            "cotizacion_nueva": self.precio_base,
+            "tasa_compra_anterior": instancia_anterior.tasa_compra,
+            "tasa_compra_nueva": self.tasa_compra,
+            "tasa_venta_anterior": instancia_anterior.tasa_venta,
+            "tasa_venta_nueva": self.tasa_venta,
+            "variacion_porcentaje": variacion_porcentaje,
+        }
+
+        clientes_ids = self._obtener_clientes_con_transacciones_pendientes()
+
+        if not clientes_ids:
+            return
+
+        for cliente_id in clientes_ids:
+            try:
+                from django_q.tasks import async_task
+
+                async_task("apps.usuarios.tasks.enviar_notificacion_cambio_cotizacion", cliente_id, datos_cambio)
+            except Exception as e:
+                print(f"❌ ERROR CRÍTICO - Fallo al encolar notificación para cliente {cliente_id}: {e}")
+
+    def _obtener_clientes_con_transacciones_pendientes(self):
+        """Obtiene IDs de clientes que tienen transacciones pendientes con esta tasa de cambio"""
+        try:
+            Transaccion = apps.get_model("transacciones", "Transaccion")
+        except LookupError:
+            print("❌ ERROR CRÍTICO - Modelo Transaccion no encontrado")
+            return []
+
+        try:
+            # Buscar transacciones pendientes que usen esta tasa de cambio
+            transacciones_pendientes = (
+                Transaccion.objects.filter(estado="pendiente")
+                .filter(
+                    models.Q(divisa_origen=self.divisa_origen, divisa_destino=self.divisa_destino)
+                    | models.Q(divisa_origen=self.divisa_destino, divisa_destino=self.divisa_origen)
+                )
+                .select_related("cliente")
+            )
+
+            cliente_ids = list(set(transaccion.cliente_id for transaccion in transacciones_pendientes))
+            return cliente_ids
+
+        except Exception as e:
+            print(f"❌ ERROR CRÍTICO - Fallo al consultar transacciones pendientes: {e}")
+            return []
+
     class Meta:
         """Meta información para el modelo TasaCambio.
 
