@@ -103,21 +103,61 @@
                 </button>
             {% elif transaccion.estado == 'pendiente' %}
                 <!-- Transacción pendiente de pago -->
-                <button id="btnPagarTransaccion"
-                        onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
-                        class="btn btn-success btn-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                         class="h-6 w-6"
-                         fill="none"
-                         viewBox="0 0 24 24"
-                         stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <div class="text-left">
-                        <div class="font-semibold">Pagar Transacción</div>
-                        <div class="text-xs opacity-60">Procesar pago</div>
-                    </div>
-                </button>
+                {% if transaccion.tipo_operacion == 'venta' %}
+                    <!-- Es una venta - mostrar botón para generar código TAUSER -->
+                    {% if transaccion.codigo_verificacion %}
+                        <!-- Código TAUSER ya generado - botón deshabilitado -->
+                        <button id="btnPagarTransaccion"
+                                class="btn btn-neutral btn-lg opacity-50 cursor-not-allowed"
+                                disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Código TAUSER Generado</div>
+                                <div class="text-xs opacity-60">Ya completado</div>
+                            </div>
+                        </button>
+                    {% else %}
+                        <!-- Código TAUSER pendiente de generar -->
+                        <button id="btnPagarTransaccion"
+                                onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
+                                class="btn btn-warning btn-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="h-6 w-6"
+                                 fill="none"
+                                 viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <div class="text-left">
+                                <div class="font-semibold">Generar Código TAUSER</div>
+                                <div class="text-xs opacity-60">Para retiro en efectivo</div>
+                            </div>
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <!-- Es una compra - mostrar botón normal de pagar -->
+                    <button id="btnPagarTransaccion"
+                            onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
+                            class="btn btn-success btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Pagar Transacción</div>
+                            <div class="text-xs opacity-60">Procesar pago</div>
+                        </div>
+                    </button>
+                {% endif %}
             {% else %}
                 <!-- Transacción en otro estado (cancelada, vencida, etc) -->
                 <button id="btnPagarTransaccion"
@@ -653,7 +693,6 @@
                 })
                 .catch(error => {
                     document.getElementById('cancelModal').close();
-                    console.error('Error al cancelar transacción:', error);
                     showToast(`Error de conexión: ${error.message}`, 'error');
 
                     // Restaurar botón
@@ -715,33 +754,23 @@
                     }
                 } else {
                     // Error en verificación, mostrar advertencia pero permitir continuar
-                    console.warn('Error al verificar cotización:', data.message);
                     showToast('No se pudo verificar la cotización actual. Continuando con precaución.', 'warning');
                     continuarConPago(transaccionId);
                 }
             })
             .catch(error => {
-                console.error('Error al verificar cotización pre-pago:', error);
                 showToast('Error de conexión al verificar cotización. Continuando con precaución.', 'warning');
                 continuarConPago(transaccionId);
             });
         }
 
         function verificarDisponibilidadTauser(transaccionId, mfaYaVerificado = false) {
-            console.log('=== VERIFICAR DISPONIBILIDAD TAUSER ===');
-            console.log('Transacción ID:', transaccionId);
-            console.log('MFA ya verificado:', mfaYaVerificado);
-
             // Verificar si MFA está habilitado ANTES de reservar stock o continuar
             const mfaHabilitado = {{ mfa_habilitado|yesno:"true,false" }};
             const tipoOperacion = '{{ transaccion.tipo_operacion }}';
 
-            console.log('MFA Habilitado:', mfaHabilitado);
-            console.log('Tipo Operación:', tipoOperacion);
-
             // Si MFA está habilitado Y NO ha sido verificado aún, abrir modal
             if (mfaHabilitado && !mfaYaVerificado) {
-                console.log('🔐 MFA habilitado y NO verificado - Abriendo modal MFA');
                 const btnPagar = document.getElementById('btnPagarTransaccion');
                 btnPagar.innerHTML = `
                     <span class="loading loading-spinner loading-sm"></span>
@@ -758,11 +787,7 @@
 
             // Si llegamos aquí, MFA ya fue verificado o no está habilitado
             // Proceder con la reserva de stock (solo para compras)
-            console.log('✅ Procediendo a verificar stock en TAUSER');
-
             if (tipoOperacion === 'compra') {
-                console.log('� Es COMPRA - Haciendo petición al backend');
-
                 fetch(`/transacciones/api/verificar-disponibilidad-tauser/${transaccionId}/`, {
                     method: 'GET',
                     headers: {
@@ -770,33 +795,24 @@
                     }
                 })
                 .then(response => {
-                    console.log('Respuesta del servidor (status):', response.status);
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Respuesta del servidor (data):', data);
-
                     if (!data.success) {
-                        console.warn('❌ Error al verificar stock:', data.message);
                         showToast(`Error: ${data.message || 'No hay stock suficiente en el Tauser para completar la transacción.'} Intente nuevamente más tarde.`, 'error');
                         restaurarBotonPagar();
                     }
                     else {
-                        console.log('✅ Stock verificado y reservado exitosamente!');
-                        console.log('Denominaciones:', data.denominaciones);
-
                         // Proceder con el pago
                         continuarConPago(transaccionId);
                     }
                 })
                 .catch(error => {
-                    console.error('❌ Error al verificar disponibilidad del Tauser:', error);
                     showToast('Error al verificar disponibilidad. Intente nuevamente.', 'error');
                     restaurarBotonPagar();
                 });
             } else {
                 // Para ventas, continuar directamente al pago sin verificar stock
-                console.log('💰 Es VENTA - Continuando directamente al pago');
                 continuarConPago(transaccionId);
             }
         }
@@ -861,7 +877,6 @@
                 const verificarVentana = setInterval(() => {
                     if (ventanaBanco.closed) {
                         clearInterval(verificarVentana);
-                        console.log('Ventana del banco cerrada por el usuario');
                         desbloquearPaginaPadre();
                         restaurarBotonPagar();
                     }
@@ -934,7 +949,6 @@
                 const verificarVentana = setInterval(() => {
                     if (ventanaBanco.closed) {
                         clearInterval(verificarVentana);
-                        console.log('Ventana de TAUSER cerrada');
                         desbloquearPaginaPadre();
 
                         // Recargar la página para actualizar el estado del botón
@@ -996,8 +1010,6 @@
         });
 
         function handlePagoCompletado(data) {
-            console.log('Pago completado exitosamente:', data);
-
             // Cerrar la ventana si no se cerró automáticamente
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
@@ -1012,8 +1024,6 @@
         }
 
         function handleAbrirTauserRetiro(data) {
-            console.log('Abriendo popup TAUSER:', data);
-
             // Cerrar la ventana del banco si aún está abierta
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
@@ -1038,7 +1048,6 @@
         }
 
         function handleErrorBanco(data) {
-            console.log('Error en el banco:', data);
             showToast(`Error del banco: ${data.mensaje}`, 'error');
 
             // Cerrar la ventana si no se cerró automáticamente
@@ -1052,8 +1061,6 @@
         }
 
         function handleReintentarPago() {
-            console.log('Usuario quiere reintentar el pago');
-
             // Cerrar ventana actual
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
@@ -1069,7 +1076,6 @@
         }
 
         function handleVentanaCerrada(data) {
-            console.log('Ventana cerrada después de completar:', data);
             // No hacer nada especial, el proceso ya se completó
         }
 
@@ -1088,18 +1094,15 @@
                 return response.json();
             })
             .then(data => {
-                if (data.success) {
-                    console.log('Reserva cancelada exitosamente');
-                } else {
-                    console.warn('No se pudo cancelar la reserva:', data.message);
+                if (!data.success) {
+                    showToast('No se pudo cancelar la reserva', 'warning');
                 }
             })
             .catch(error => {
-                console.error('Error al cancelar la reserva:', error);
+                showToast('Error al cancelar la reserva', 'error');
             });
         }
         function handleVentanaCerradaSinCompletar(data) {
-            console.log('Ventana cerrada sin completar el proceso:', data);
             showToast('Proceso bancario cancelado por el usuario', 'warning');
             if ('{{ transaccion.tipo_operacion }}' === 'compra') {
                 cancelarReserva(data.transaccionId);
@@ -1109,8 +1112,6 @@
         }
 
         function handleTransaccionCompletada(data) {
-            console.log('Transacción completada exitosamente:', data);
-
             // Cerrar la ventana si no se cerró automáticamente
             if (ventanaBanco && !ventanaBanco.closed) {
                 ventanaBanco.close();
@@ -1252,7 +1253,6 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Error al verificar cotización:', error);
                     mostrarErrorVerificacion('Error de conexión al verificar cotización');
                 });
         }
