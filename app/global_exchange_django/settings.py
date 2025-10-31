@@ -268,10 +268,10 @@ STRIPE_CURRENCY_DEFAULT = "USD"  # Moneda por defecto para pagos internacionales
 # =============================================================================
 
 # Credenciales y URLs (sin defaults por seguridad - deben estar en .env)
-FACTURACION_EMAIL = env.str("FACTURACION_EMAIL_USER")
-FACTURACION_PASSWORD = env.str("FACTURACION_PASSWORD")
-FACTURACION_LOGIN_URL = env.str("FACTURACION_LOGIN_URL")
-FACTURACION_API_URL = env.str("FACTURACION_API_URL")
+FACTURACION_EMAIL = env.str("FACTURACION_EMAIL_USER", default="invalid@example.com")
+FACTURACION_PASSWORD = env.str("FACTURACION_PASSWORD", default="invalid_password")
+FACTURACION_LOGIN_URL = env.str("FACTURACION_LOGIN_URL", default="https://invalid-login-url.com")
+FACTURACION_API_URL = env.str("FACTURACION_API_URL", default="https://invalid-api-url.com")
 
 # Token precargado (opcional, fallback para pruebas rápidas)
 try:
