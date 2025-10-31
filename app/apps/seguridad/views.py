@@ -7,8 +7,6 @@ en el sistema de casa de cambios.
 
 import json
 
-from apps.usuarios.forms import CustomUserCreationForm
-from apps.usuarios.models import Usuario
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -20,6 +18,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+
+from apps.usuarios.forms import CustomUserCreationForm
+from apps.usuarios.models import Usuario
 
 from .forms import CodigoMFAForm, ConfiguracionMFAForm
 from .models import PerfilMFA
@@ -64,7 +65,7 @@ def registro_view(request):
                 reverse("seguridad:verificar_cuenta", kwargs={"uid": uid, "token": token}),
             )
             send_mail(
-                "Verifica tu cuenta"
+                "Verifica tu cuenta",
                 f"Hola {user.nombre}, confirma tu correo haciendo clic en este enlace:\n{verification_link}",
                 settings.DEFAULT_FROM_EMAIL,
                 [user.email],
@@ -403,8 +404,9 @@ def verificar_mfa_transaccion(request):
                     import json
                     import time
 
-                    from apps.transacciones.views import api_crear_transaccion
                     from django.http import QueryDict
+
+                    from apps.transacciones.views import api_crear_transaccion
 
                     # Agregar un token MFA válido para bypasear la verificación en api_crear_transaccion
                     mfa_token = str(int(time.time()))
