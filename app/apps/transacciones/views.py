@@ -10,6 +10,15 @@ from decimal import Decimal
 from typing import Dict
 
 import stripe
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_POST
+
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
 from apps.seguridad.decorators import client_required
@@ -17,15 +26,6 @@ from apps.stock.models import MovimientoStock, StockDivisaTauser
 from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
 from apps.tauser.models import Tauser
 from apps.usuarios.models import Cliente
-from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
-from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 from .utils import calculos_tasas_comisiones
@@ -1350,35 +1350,6 @@ def api_crear_transaccion(request: HttpRequest) -> JsonResponse:
                 },
                 status=400,
             )
-
-        # Verificar si el usuario requiere MFA para transacciones ANTES de crear
-        from apps.seguridad.models import PerfilMFA
-
-        mfa_requerido = False
-        try:
-            perfil_mfa = PerfilMFA.objects.get(usuario=request.user)
-            mfa_requerido = perfil_mfa.mfa_habilitado_transacciones
-        except PerfilMFA.DoesNotExist:
-            pass
-
-        # Si se requiere MFA, verificar si ya fue validado para esta sesión
-        if mfa_requerido:
-            mfa_token = request.GET.get("mfa_token")
-            if not mfa_token or not request.session.get(f"mfa_token_valido_{mfa_token}"):
-                # Guardar los datos de la transacción en la sesión y requerir MFA
-                request.session["datos_transaccion_mfa"] = params
-                return JsonResponse(
-                    {
-                        "error": "MFA_REQUIRED",
-                        "mensaje": "Se requiere verificación MFA para crear transacciones",
-                        "redirect_url": reverse("seguridad:verificar_mfa_transaccion"),
-                    },
-                    status=400,
-                )
-        # Limpiar token MFA si se usó
-        mfa_token = request.GET.get("mfa_token")
-        if mfa_token and f"mfa_token_valido_{mfa_token}" in request.session:
-            del request.session[f"mfa_token_valido_{mfa_token}"]
 
         # Obtener la tasa de cambio actual para almacenar como tasa original
         tasa_actual = Decimal(str(simulation_data["tasa_cambio"]))
