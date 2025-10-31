@@ -794,14 +794,16 @@
                         comisionMedioPagoDisplay.classList.add('hidden');
                         stripeFeesDisplay.classList.remove('hidden');
 
-                        // Comisión variable (2.9%)
-                        stripeVariableFeeDisplay.textContent = formatNumberWithCurrency(data.comision_medio_pago_monto, "PYG");
+                        // Comisión variable (2.9% sobre el equivalente en USD)
+                        const stripeVariableFee = data.stripe_variable_fee || 0;
+                        stripeVariableFeeDisplay.textContent = formatNumberWithCurrency(stripeVariableFee, "PYG");
 
                         // Comisión fija (0.30 USD en PYG)
-                        stripeFixedFeeDisplay.textContent = formatNumberWithCurrency(data.stripe_fixed_fee, "PYG");
+                        const stripeFixedFee = data.stripe_fixed_fee || 0;
+                        stripeFixedFeeDisplay.textContent = formatNumberWithCurrency(stripeFixedFee, "PYG");
 
-                        // Total Stripe
-                        const totalStripeFee = data.comision_medio_pago_monto + data.stripe_fixed_fee;
+                        // Total Stripe (fija + variable)
+                        const totalStripeFee = stripeFixedFee + stripeVariableFee;
                         stripeTotalFeeDisplay.textContent = formatNumberWithCurrency(totalStripeFee, "PYG");
 
                     } else if (data.comision_medio_pago_monto > 0) {
@@ -1060,10 +1062,10 @@
 
                 // Actualizar información del modal con datos de la simulación
                 const montoTransaccion = lastSimulationData.total_antes_comision_medio;
-                const comisionVariable = lastSimulationData.comision_medio_pago_monto;
-                const comisionFija = lastSimulationData.stripe_fixed_fee;
+                const comisionVariable = lastSimulationData.stripe_variable_fee || 0;
+                const comisionFija = lastSimulationData.stripe_fixed_fee || 0;
                 const totalComisiones = comisionVariable + comisionFija;
-                const granTotal = lastSimulationData.total;
+                const granTotal = montoTransaccion + totalComisiones;
 
                 // Actualizar elementos del modal
                 stripeAmountDisplay.textContent = `${formatNumberWithCurrency(montoTransaccion, "PYG")} PYG`;
