@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -648,6 +649,18 @@ class Transaccion(models.Model):
         blank=True,
         related_name="transacciones",
         help_text="Pago con Stripe asociado a esta transacción",
+    )
+    cdc_factura = models.CharField(
+        max_length=44,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text="Código de Control (CDC) de la factura electrónica generada",
+    )
+    fecha_facturacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha y hora de generación de la factura electrónica",
     )
 
     class Meta:
