@@ -10,13 +10,6 @@ from decimal import Decimal
 from typing import Dict
 
 import stripe
-from apps.operaciones.models import Divisa, TasaCambio
-from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
-from apps.seguridad.decorators import client_required
-from apps.stock.models import MovimientoStock, StockDivisaTauser
-from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
-from apps.tauser.models import Tauser
-from apps.usuarios.models import Cliente
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -24,10 +17,26 @@ from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 from .utils import calculos_tasas_comisiones
+
+# Import facturación (lazy import to avoid circular dependencies)
+try:
+    from . import facturacion
+
+    FACTURACION_DISPONIBLE = True
+except ImportError:
+    FACTURACION_DISPONIBLE = False
 
 
 def obtener_medio_financiero_por_identificador(identificador, cliente):
@@ -1484,7 +1493,11 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
             try:
                 # Actualizar estado de la transacción
                 transaccion.estado = "completada"
+                transaccion.fecha_completada = timezone.now()
                 transaccion.save()
+
+                # Generar factura electrónica automáticamente
+                _generar_factura_electronica(transaccion)
 
                 messages.success(request, "¡Transacción procesada exitosamente!")
                 return redirect("transacciones:vista_transacciones")
@@ -2512,6 +2525,10 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
         stripe_payment.save()
         transaccion.save()
 
+        # Generar factura electrónica si la transacción está completada
+        if transaccion.estado == "completada":
+            _generar_factura_electronica(transaccion)
+
         return JsonResponse(
             {
                 "success": True,
@@ -2625,8 +2642,13 @@ def _handle_payment_intent_succeeded(payment_intent):
         else:
             # Otros casos: completar la transacción
             transaccion.estado = "completada"
+            transaccion.fecha_completada = timezone.now()
 
         transaccion.save()
+
+        # Generar factura electrónica si la transacción está completada
+        if transaccion.estado == "completada":
+            _generar_factura_electronica(transaccion)
 
     except StripePayment.DoesNotExist:
         print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")
@@ -2672,3 +2694,182 @@ def _handle_payment_intent_canceled(payment_intent):
         pass  # StripePayment no encontrado
     except Exception as e:
         print(f"Error manejando payment_intent.canceled: {e}")
+
+
+def _generar_factura_electronica(transaccion):
+    """Helper para generar factura electrónica automáticamente post-pago.
+
+    Args:
+        transaccion: Objeto Transaccion ya completada
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        print("Módulo de facturación no disponible")
+        return
+
+    try:
+        # Verificar que no exista ya una factura
+        if transaccion.cdc_factura:
+            print(f"Transacción {transaccion.id_transaccion} ya tiene factura: {transaccion.cdc_factura}")
+            return
+
+        # Importar y ejecutar proceso de facturación
+        from . import facturacion as fac
+
+        exito, resultado = fac.procesar_facturacion_post_pago(transaccion)
+
+        if exito:
+            print(f"Factura generada exitosamente para transacción {transaccion.id_transaccion}: {resultado}")
+        else:
+            print(f"Error al generar factura para transacción {transaccion.id_transaccion}: {resultado}")
+
+    except Exception as e:
+        # No fallar la transacción si falla la facturación
+        print(f"Excepción al generar factura para transacción {transaccion.id_transaccion}: {e}")
+
+
+@login_required
+def visualizar_factura_pdf(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para visualizar la factura KuDE en PDF.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        HttpResponse con el PDF para visualizar en navegador
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        messages.error(request, "Módulo de facturación no disponible")
+        return redirect("transacciones:lista")
+
+    try:
+        from . import facturacion as fac
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        if not transaccion.cdc_factura:
+            messages.error(request, "Esta transacción no tiene factura electrónica generada")
+            return redirect("transacciones:lista")
+
+        return fac.visualizar_kude_pdf(transaccion.cdc_factura)
+
+    except Exception as e:
+        messages.error(request, f"Error al visualizar factura: {e!s}")
+        return redirect("transacciones:lista")
+
+
+@login_required
+def descargar_factura_pdf(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para descargar la factura KuDE en PDF.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        HttpResponse con el PDF para descargar
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        messages.error(request, "Módulo de facturación no disponible")
+        return redirect("transacciones:lista")
+
+    try:
+        from . import facturacion as fac
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        if not transaccion.cdc_factura:
+            messages.error(request, "Esta transacción no tiene factura electrónica generada")
+            return redirect("transacciones:lista")
+
+        return fac.descargar_kude_pdf(transaccion.cdc_factura)
+
+    except Exception as e:
+        messages.error(request, f"Error al descargar factura: {e!s}")
+        return redirect("transacciones:lista")
+
+
+@login_required
+def descargar_factura_xml(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para descargar la factura en formato XML firmado.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        HttpResponse con el XML para descargar
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        messages.error(request, "Módulo de facturación no disponible")
+        return redirect("transacciones:lista")
+
+    try:
+        from . import facturacion as fac
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        if not transaccion.cdc_factura:
+            messages.error(request, "Esta transacción no tiene factura electrónica generada")
+            return redirect("transacciones:lista")
+
+        return fac.descargar_xml_firmado(transaccion.cdc_factura)
+
+    except Exception as e:
+        messages.error(request, f"Error al descargar XML: {e!s}")
+        return redirect("transacciones:lista")
+
+
+@login_required
+@require_http_methods(["POST"])
+def regenerar_factura(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """Vista para regenerar la factura electrónica (solo para testing).
+
+    Elimina la factura anterior y genera una nueva.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        JsonResponse con el resultado de la operación
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        return JsonResponse({"success": False, "message": "Módulo de facturación no disponible"}, status=400)
+
+    try:
+        from . import facturacion as fac
+
+        # Obtener la transacción
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        # Verificar que esté completada
+        if transaccion.estado != "completada":
+            return JsonResponse(
+                {"success": False, "message": "Solo se pueden regenerar facturas de transacciones completadas"},
+                status=400,
+            )
+
+        # Limpiar factura anterior
+        print(f"[REGENERAR FACTURA] Limpiando factura anterior de transacción {transaccion_id}")
+        transaccion.cdc_factura = None
+        transaccion.fecha_facturacion = None
+        transaccion.save()
+
+        # Regenerar factura
+        print(f"[REGENERAR FACTURA] Regenerando factura para transacción {transaccion_id}")
+        exito, resultado = fac.procesar_facturacion_post_pago(transaccion)
+
+        if exito:
+            return JsonResponse({"success": True, "message": "Factura regenerada exitosamente", "cdc": resultado})
+        else:
+            return JsonResponse({"success": False, "message": f"Error al regenerar factura: {resultado}"}, status=500)
+
+    except Exception as e:
+        print(f"[REGENERAR FACTURA] Excepción: {e}")
+        return JsonResponse({"success": False, "message": f"Error inesperado: {e!s}"}, status=500)

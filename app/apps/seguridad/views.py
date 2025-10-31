@@ -64,7 +64,7 @@ def registro_view(request):
                 reverse("seguridad:verificar_cuenta", kwargs={"uid": uid, "token": token}),
             )
             send_mail(
-                "Verifica tu cuenta",
+                "Verifica tu cuenta"
                 f"Hola {user.nombre}, confirma tu correo haciendo clic en este enlace:\n{verification_link}",
                 settings.DEFAULT_FROM_EMAIL,
                 [user.email],

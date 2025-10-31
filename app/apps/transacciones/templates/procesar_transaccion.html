@@ -47,6 +47,88 @@
                     <div class="text-xs opacity-60">Realizar otra</div>
                 </div>
             </a>
+            {% if transaccion.cdc_factura %}
+                <!-- Botones de Factura Electrónica -->
+                <div class="dropdown dropdown-hover">
+                    <label tabindex="0" class="btn btn-success btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V17a2 2 0 01-2 2z" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Factura Electrónica</div>
+                            <div class="text-xs opacity-60 font-mono">{{ transaccion.cdc_factura|slice:":10" }}...</div>
+                        </div>
+                    </label>
+                    <ul tabindex="0"
+                        class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-64 mt-1 z-50">
+                        <li>
+                            <a href="{% url 'transacciones:factura_ver' transaccion.id_transaccion %}"
+                               target="_blank"
+                               class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                Visualizar KuDE (PDF)
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'transacciones:factura_pdf' transaccion.id_transaccion %}"
+                               class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                </svg>
+                                Descargar PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'transacciones:factura_xml' transaccion.id_transaccion %}"
+                               class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Descargar XML Firmado
+                            </a>
+                        </li>
+                        <li class="menu-title mt-2">
+                            <span class="text-xs font-mono">CDC: {{ transaccion.cdc_factura }}</span>
+                        </li>
+                    </ul>
+                </div>
+            {% endif %}
+            {% if transaccion.estado == 'completada' %}
+                <!-- Botón de Regenerar Factura (solo para testing) -->
+                <button onclick="regenerarFactura('{{ transaccion.id_transaccion }}')"
+                        class="btn btn-warning btn-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-semibold">Regenerar Factura</div>
+                        <div class="text-xs opacity-60">Solo testing</div>
+                    </div>
+                </button>
+            {% endif %}
             {% if transaccion.fecha_pago and transaccion.medio_pago|slice:":7" == "stripe_" %}
                 <!-- Transacción pagada con Stripe - Mostrar botón para generar código TAUSER -->
                 {% if transaccion.codigo_verificacion %}
@@ -1600,5 +1682,52 @@
                 document.getElementById('cotizacion-check').style.display = 'none';
             {% endif %}
         });
+
+        // Función para regenerar factura (solo para testing)
+        function regenerarFactura(transaccionId) {
+            if (!confirm('¿Está seguro que desea regenerar la factura? Esto eliminará la factura anterior y generará una nueva.')) {
+                return;
+            }
+
+            // Deshabilitar el botón
+            const btn = event.target.closest('button');
+            const originalContent = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `
+                <span class="loading loading-spinner loading-md"></span>
+                <div class="text-left">
+                    <div class="font-semibold">Regenerando...</div>
+                    <div class="text-xs opacity-60">Espere</div>
+                </div>
+            `;
+
+            // Hacer la petición
+            fetch(`/transacciones/api/regenerar-factura/${transaccionId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Factura regenerada exitosamente', 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showToast(`Error: ${data.message || 'No se pudo regenerar la factura'}`, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al regenerar la factura', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            });
+        }
     </script>
 {% endblock content %}

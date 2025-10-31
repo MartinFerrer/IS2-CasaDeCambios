@@ -107,10 +107,10 @@ services:
         # Rebuild cuando cambian dependencias
         - action: rebuild
           path: ./api_externo_simulador/requirements.txt
-  
+
   django-q:
     build: ./app
-    command: uv run manage.py qcluster  
+    command: uv run manage.py qcluster
     working_dir: /app
     environment:
       - DJANGO_SETTINGS_MODULE=global_exchange_django.settings
@@ -118,7 +118,7 @@ services:
       - ./.env
     volumes:
       - ./app:/app:cached
-      - /app/.venv  
+      - /app/.venv
     depends_on:
       - db
 
