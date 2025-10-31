@@ -237,25 +237,67 @@ def obtener_comision_fija_stripe_pyg() -> int:
         raise
 
 
+def calcular_comision_variable_stripe(monto_pyg: int) -> int:
+    """Calcula la comisión variable de Stripe (2.9% sobre el equivalente en USD).
+
+    Args:
+        monto_pyg: Monto en PYG sobre el cual calcular comisión
+
+    Returns:
+        Comisión variable en PYG redondeada a entero
+
+    Raises:
+        ValueError: Si no se encuentra la tasa USD o hay error en la configuración
+
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        from apps.operaciones.models import TasaCambio
+
+        # Obtener tasa USD actual
+        tasa_usd = TasaCambio.objects.filter(
+            divisa_origen__codigo="PYG", divisa_destino__codigo="USD", activo=True
+        ).first()
+
+        if not tasa_usd:
+            logger.error("No se encontró tasa de cambio activa para USD")
+            raise ValueError("No existe tasa de cambio activa para USD")
+
+        # Calcular comisión: (monto_pyg / precio_base_usd) * 0.029
+        monto_usd_equivalente = Decimal(str(monto_pyg)) / tasa_usd.precio_base
+        comision_variable_usd = monto_usd_equivalente * Decimal("0.029")
+        comision_variable_pyg = comision_variable_usd * tasa_usd.precio_base
+
+        return round(comision_variable_pyg)
+
+    except Exception as e:
+        logger.error(f"Error al calcular comisión variable de Stripe: {e!s}")
+        raise
+
+
 def calcular_comision_medio_pago(monto_pyg: int, porcentaje_comision: Decimal, es_stripe: bool = False) -> int:
     """Calcula la comisión total del medio de pago.
 
     Args:
         monto_pyg: Monto en PYG sobre el cual calcular comisión
         porcentaje_comision: Porcentaje de comisión del medio
-        es_stripe: Si True, agrega comisión fija de Stripe
+        es_stripe: Si True, calcula comisión fija + variable de Stripe
 
     Returns:
         Comisión total en PYG redondeada a entero
 
     """
-    comision_porcentual = calcular_comision_porcentual(Decimal(str(monto_pyg)), porcentaje_comision)
-
     if es_stripe:
+        # Para Stripe: comisión fija + comisión variable (2.9% sobre equivalente USD)
         comision_fija = obtener_comision_fija_stripe_pyg()
-        return comision_porcentual + comision_fija
+        comision_variable = calcular_comision_variable_stripe(monto_pyg)
+        return comision_fija + comision_variable
 
-    return comision_porcentual
+    # Para otros medios: comisión porcentual normal
+    return calcular_comision_porcentual(Decimal(str(monto_pyg)), porcentaje_comision)
 
 
 def calcular_comision_medio_cobro(monto_pyg: int, porcentaje_comision: Decimal) -> int:
@@ -551,9 +593,15 @@ def calcular_simulacion_completa(
         es_stripe = False
         comision_base_usada = comision_compra
 
-    # Obtener comisión fija Stripe si aplica
-    stripe_fixed_fee = obtener_comision_fija_stripe_pyg() if es_stripe else 0
-    stripe_fixed_fee_usd = float(settings.STRIPE_FIXED_FEE_USD) if es_stripe else 0.0
+    # Calcular comisiones de Stripe por separado si aplica
+    stripe_fixed_fee = 0
+    stripe_variable_fee = 0
+    stripe_fixed_fee_usd = 0.0
+
+    if es_stripe:
+        stripe_fixed_fee = obtener_comision_fija_stripe_pyg()
+        stripe_variable_fee = calcular_comision_variable_stripe(monto_convertido)
+        stripe_fixed_fee_usd = float(settings.STRIPE_FIXED_FEE_USD)
 
     # Obtener nombre del tipo de cliente
     tipo_cliente_nombre = ""
@@ -581,6 +629,7 @@ def calcular_simulacion_completa(
         "metodo_pago": medio_pago,
         "metodo_cobro": medio_cobro,
         "stripe_fixed_fee": stripe_fixed_fee,
+        "stripe_variable_fee": stripe_variable_fee,
         "stripe_fixed_fee_usd": stripe_fixed_fee_usd,
         "tipo_cliente": tipo_cliente_nombre,
     }
