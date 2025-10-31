@@ -4,12 +4,11 @@ Este módulo contiene las vistas relacionadas con la gestión de usuarios,
 configuración de perfiles y gestión de información personal.
 """
 
+from apps.seguridad.models import PerfilMFA
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
-
-from apps.seguridad.models import PerfilMFA
 
 
 def ejemplo(request: HttpRequest) -> HttpResponse:

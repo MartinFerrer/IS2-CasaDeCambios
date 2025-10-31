@@ -49,7 +49,29 @@ INSTALLED_APPS = [
     "apps.tauser",
     "apps.transacciones",
     "apps.usuarios",
+    "django_q",
 ]
+###########################################
+## Django Q2 Configuration
+###########################################
+
+Q_CLUSTER = {
+    "name": "GlobalExchange",
+    "workers": 2,  # Número de procesos worker
+    "timeout": 60,  # Timeout por tarea (segundos)
+    "retry": 120,  # Reintentar después de (segundos)
+    "queue_limit": 100,  # Límite de tareas en cola
+    "bulk": 10,  # Procesar tareas en lotes
+    "orm": "default",  # Usar base de datos Django
+    "sync": False,  # Modo asíncrono
+    "catch_up": False,  # No ejecutar tareas perdidas
+    "poll": 1,  # Intervalo de verificación (segundos)
+    "max_attempts": 3,  # Máximo de intentos por tarea
+    "attempt_count": 1,  # Contador de intentos inicial
+    "save_limit": 100,  # Guardar últimas 100 tareas completadas
+    "success_ttl": 3600,  # Tiempo de vida registros exitosos (segundos)
+    "recycle": 500,  # Reciclar workers después de N tareas
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -140,7 +162,7 @@ USE_L10N = True  # Habilitar localización de formatos de número, fecha, etc.
 USE_TZ = True  # Habilitar soporte de zonas horarias
 
 # Configurar zona horaria por defecto para templates
-os.environ.setdefault('TZ', 'America/Asuncion')
+os.environ.setdefault("TZ", "America/Asuncion")
 
 USE_THOUSAND_SEPARATOR = True
 

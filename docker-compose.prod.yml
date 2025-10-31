@@ -61,6 +61,20 @@ services:
       retries: 3
       start_period: 60s
     restart: unless-stopped
+  
+  django-q:
+    build: ./app
+    command: python manage.py qcluster
+    working_dir: /app
+    environment:
+      - DJANGO_SETTINGS_MODULE=global_exchange_django.settings
+    env_file:
+      - ./.env.prod
+    volumes:
+      - static_volume:/app/staticfiles
+    depends_on:
+      - db
+    restart: unless-stopped
 
 volumes:
   postgres_data_prod:
