@@ -1,17 +1,20 @@
 from decimal import Decimal
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.core.exceptions import ValidationError
 from django.db import models
-
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
 # TODO [SCRUM-110]: Documentar modelos usuarios
 class UsuarioManager(BaseUserManager):
     def create_user(self, email, nombre, password=None, **extra_fields):
-        """Crea y guarda un usuario normal"""
+        """Crea y guarda un usuario normal."""
         if not email:
             raise ValueError("El usuario debe tener un correo electrónico")
         email = self.normalize_email(email)
@@ -21,7 +24,7 @@ class UsuarioManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, nombre, password=None, **extra_fields):
-        """Crea y guarda un superusuario"""
+        """Crea y guarda un superusuario."""
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(email, nombre, password, **extra_fields)
@@ -99,25 +102,3 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nombre
-
-
-# Modelo relacionado a Notificaciones-tasas
-class PreferenciaNotificacion(models.Model):
-    FRECUENCIA_CHOICES = [
-        ("diario", "Diario"),
-        ("semanal", "Semanal"),
-        ("mensual", "Mensual"),
-    ]
-
-    cliente = models.OneToOneField(
-        # si el cliente se borra, borrar sus prefs
-        "Cliente",
-        on_delete=models.CASCADE,
-        related_name="notification_pref",
-    )
-    habilitado = models.BooleanField(default=False)
-    frecuencia = models.CharField(max_length=10, choices=FRECUENCIA_CHOICES, default="diario")
-    ultimo_envio = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self) -> str:
-        return f"Preferencia {self.cliente} ({self.frecuencia})"

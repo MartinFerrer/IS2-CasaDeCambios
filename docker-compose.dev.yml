@@ -9,8 +9,8 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
+      interval: 60s
+      timeout: 10s
       retries: 5
     ports:
       - 7432:5432
@@ -78,52 +78,6 @@ services:
       db:
         condition: service_healthy
 
-  # Servicio Redis para desarrollo local
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-  # celery worker y beat
-  celery_worker:
-    build:
-      context: ./app
-      cache_from:
-        - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
-    command: uv run celery -A global_exchange_django worker --loglevel=info
-    working_dir: /app
-    volumes:
-      - ./app:/app:cached
-      - /app/.venv
-    env_file:
-      - ./.env
-    depends_on:
-      redis:
-        condition: service_healthy
-      db:
-          condition: service_healthy
-
-  celery_beat:
-    build:
-      context: ./app
-      cache_from:
-        - ghcr.io/astral-sh/uv:python3.13-bookworm-slim
-    command: uv run celery -A global_exchange_django beat --loglevel=info
-    working_dir: /app
-    volumes:
-      - ./app:/app:cached
-      - /app/.venv
-    env_file:
-      - ./.env
-    depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_healthy
   simulador-api:
     build:
       context: ./api_externo_simulador
@@ -139,10 +93,10 @@ services:
       - TIEMPO_PROCESAMIENTO_MAX=5
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"]
-      interval: 10s
-      timeout: 5s
+      interval: 60s
+      timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 60s
     restart: unless-stopped
     develop:
       watch:
@@ -153,6 +107,20 @@ services:
         # Rebuild cuando cambian dependencias
         - action: rebuild
           path: ./api_externo_simulador/requirements.txt
+
+  django-q:
+    build: ./app
+    command: uv run manage.py qcluster
+    working_dir: /app
+    environment:
+      - DJANGO_SETTINGS_MODULE=global_exchange_django.settings
+    env_file:
+      - ./.env
+    volumes:
+      - ./app:/app:cached
+      - /app/.venv
+    depends_on:
+      - db
 
 volumes:
   postgres_data_dev:

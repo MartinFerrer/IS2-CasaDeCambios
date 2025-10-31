@@ -16,12 +16,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
-from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import dj_database_url
-from celery.schedules import crontab
 from environ import Env
 
 env = Env()
@@ -51,7 +49,29 @@ INSTALLED_APPS = [
     "apps.tauser",
     "apps.transacciones",
     "apps.usuarios",
+    "django_q",
 ]
+###########################################
+## Django Q2 Configuration
+###########################################
+
+Q_CLUSTER = {
+    "name": "GlobalExchange",
+    "workers": 2,  # Número de procesos worker
+    "timeout": 60,  # Timeout por tarea (segundos)
+    "retry": 120,  # Reintentar después de (segundos)
+    "queue_limit": 100,  # Límite de tareas en cola
+    "bulk": 10,  # Procesar tareas en lotes
+    "orm": "default",  # Usar base de datos Django
+    "sync": False,  # Modo asíncrono
+    "catch_up": False,  # No ejecutar tareas perdidas
+    "poll": 1,  # Intervalo de verificación (segundos)
+    "max_attempts": 3,  # Máximo de intentos por tarea
+    "attempt_count": 1,  # Contador de intentos inicial
+    "save_limit": 100,  # Guardar últimas 100 tareas completadas
+    "success_ttl": 3600,  # Tiempo de vida registros exitosos (segundos)
+    "recycle": 500,  # Reciclar workers después de N tareas
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -135,7 +155,14 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "es-PY"  # Español de Paraguay
 
+TIME_ZONE = "America/Asuncion"  # Zona horaria de Paraguay
+
+USE_I18N = True
 USE_L10N = True  # Habilitar localización de formatos de número, fecha, etc.
+USE_TZ = True  # Habilitar soporte de zonas horarias
+
+# Configurar zona horaria por defecto para templates
+os.environ.setdefault("TZ", "America/Asuncion")
 
 USE_THOUSAND_SEPARATOR = True
 
@@ -218,42 +245,6 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
 
-# Celery
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-TIME_ZONE = env.str("TIME_ZONE", default="America/Argentina/Buenos_Aires")
-CELERY_TIMEZONE = TIME_ZONE
-
-CELERY_BEAT_SCHEDULE = {
-    # ------------------------------------------------------------------
-    # --- TAREA DIARIA ORIGINAL ---
-    # "notifs-diarias-prod": {
-    #     "task": "apps.usuarios.tasks.send_grouped_notifications",
-    #     "schedule": crontab(hour=8, minute=0),
-    #     "args": ("diario",),
-    # },
-    # ------------------------------------------------------------------
-    # --- TAREA DIARIA DE PRUEBA: SE EJECUTA CADA 2 MINUTOS ---
-    "notifs-diarias-test": {
-        "task": "apps.usuarios.tasks.send_grouped_notifications",
-        # Cambiamos crontab por timedelta para que se ejecute a menudo.
-        "schedule": timedelta(seconds=5),  # ¡Se disparará cada 5 segundos!
-        "args": ("diario",),
-    },
-    "notifs-semanales": {
-        "task": "apps.usuarios.tasks.send_grouped_notifications",
-        "schedule": crontab(hour=8, minute=0, day_of_week=0),
-        "args": ("semanal",),
-    },
-    "notifs-mensuales": {
-        "task": "apps.usuarios.tasks.send_grouped_notifications",
-        "schedule": crontab(hour=8, minute=0, day_of_month=1),
-        "args": ("mensual",),
-    },
-}
 
 # =============================================================================
 # STRIPE CONFIGURATION
@@ -270,3 +261,53 @@ STRIPE_FIXED_FEE_USD = Decimal("0.30")  # 0.30 USD comisión fija por transacci�
 
 # Configuración adicional de Stripe
 STRIPE_CURRENCY_DEFAULT = "USD"  # Moneda por defecto para pagos internacionales
+
+
+# =============================================================================
+# FACTURACIÓN ELECTRÓNICA - FACTURA SEGURA
+# =============================================================================
+
+# Credenciales y URLs (sin defaults por seguridad - deben estar en .env)
+FACTURACION_EMAIL = env.str("FACTURACION_EMAIL_USER", default="invalid@example.com")
+FACTURACION_PASSWORD = env.str("FACTURACION_PASSWORD", default="invalid_password")
+FACTURACION_LOGIN_URL = env.str("FACTURACION_LOGIN_URL", default="https://invalid-login-url.com")
+FACTURACION_API_URL = env.str("FACTURACION_API_URL", default="https://invalid-api-url.com")
+
+# Token precargado (opcional, fallback para pruebas rápidas)
+try:
+    FACTURACION_PRELOADED_TOKEN = env.str("FACTURACION_PRELOADED_TOKEN")
+except Exception:
+    FACTURACION_PRELOADED_TOKEN = ""
+
+# Rangos de numeración de documentos válidos
+# Formato: lista de tuplas (inicio, fin) con números de documento disponibles
+# Ejemplo: [(101, 150), (200, 250)] = documentos 0000101-0000150 y 0000200-0000250
+FACTURACION_RANGOS_NUMERACION = [
+    (102, 150),  # Rango actual (el 101 ya fue usado)
+    # Agregar más rangos según se obtengan nuevos timbrados
+]
+
+# Datos del emisor (Casa de Cambios)
+FACTURACION_EMISOR = {
+    "ruc": "2595733",  # Sin dígito verificador
+    "dv": "3",
+    "razon_social": "Casa de Cambios Global Exchange",
+    "nombre_fantasia": "Global Exchange",
+    "direccion": "Av. Mariscal López 1234",
+    "numero_casa": "1234",
+    "departamento": "11",  # Central
+    "departamento_desc": "CENTRAL",
+    "ciudad": "1",  # Asunción
+    "ciudad_desc": "ASUNCION (DISTRITO)",
+    "telefono": "(021)123456",
+    "email": "grupo4.is2.ge@gmail.com",
+    "actividades_economicas": [{"codigo": "46699", "descripcion": "Otras actividades de servicios financieros n.c.p."}],
+}
+
+# Configuración de timbrado
+FACTURACION_TIMBRADO = {
+    "numero": "80002247",
+    "fecha_inicio": "2023-12-27",
+    "establecimiento": "001",
+    "punto_expedicion": "003",
+}
