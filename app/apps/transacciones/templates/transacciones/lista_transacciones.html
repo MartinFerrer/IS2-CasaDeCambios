@@ -222,7 +222,7 @@
                                         <td>
                                             <div class="flex gap-1">
                                                 <button class="btn btn-ghost btn-xs"
-                                                        onclick="verHistorial('{{ transaccion.id_transaccion }}')"
+                                                        onclick="event.stopPropagation(); verHistorial('{{ transaccion.id_transaccion }}')"
                                                         title="Ver historial de la transacción">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                          class="h-4 w-4"
@@ -235,7 +235,8 @@
                                                 </button>
                                                 {% if transaccion.estado == 'pendiente' and not transaccion.fecha_pago %}
                                                     <a href="{% url 'transacciones:procesar_transaccion' transaccion.id_transaccion %}"
-                                                       class="btn btn-primary btn-xs">Procesar</a>
+                                                       class="btn btn-primary btn-xs"
+                                                       onclick="event.stopPropagation()">Procesar</a>
                                                 {% endif %}
                                             </div>
                                         </td>
@@ -352,11 +353,11 @@
                                     </thead>
                                     <tbody>
                         `;
-                        
+
                         data.historial.forEach(evento => {
                             // Usar la función global para formatear fechas
                             const fechaFormateada = formatearFecha(evento.fecha);
-                            
+
                             historialHtml += `
                                 <tr>
                                     <td>${evento.accion}</td>
@@ -365,13 +366,13 @@
                                 </tr>
                             `;
                         });
-                        
+
                         historialHtml += `
                                     </tbody>
                                 </table>
                             </div>
                         `;
-                        
+
                         document.getElementById('historial-content').innerHTML = historialHtml;
                         document.getElementById('historial-modal').classList.add('modal-open');
                     } else {

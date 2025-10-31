@@ -47,9 +47,47 @@
                     <div class="text-xs opacity-60">Realizar otra</div>
                 </div>
             </a>
-            {% if transaccion.estado != 'pendiente' %}
+            {% if transaccion.fecha_pago and transaccion.medio_pago|slice:":7" == "stripe_" %}
+                <!-- Transacción pagada con Stripe - Mostrar botón para generar código TAUSER -->
+                {% if transaccion.codigo_verificacion %}
+                    <!-- Código TAUSER ya generado - botón deshabilitado -->
+                    <button id="btnPagarTransaccion"
+                            class="btn btn-neutral btn-lg opacity-50 cursor-not-allowed"
+                            disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Código TAUSER Generado</div>
+                            <div class="text-xs opacity-60">Ya completado</div>
+                        </div>
+                    </button>
+                {% else %}
+                    <!-- Código TAUSER pendiente de generar -->
+                    <button id="btnPagarTransaccion"
+                            onclick="abrirVentanaTauserRetiro('{{ transaccion.id_transaccion }}')"
+                            class="btn btn-warning btn-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-6 w-6"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <div class="text-left">
+                            <div class="font-semibold">Generar Código TAUSER</div>
+                            <div class="text-xs opacity-60">Para retiro en efectivo</div>
+                        </div>
+                    </button>
+                {% endif %}
+            {% elif transaccion.fecha_pago or transaccion.estado == 'completada' %}
+                <!-- Transacción ya pagada o completada con otro medio -->
                 <button id="btnPagarTransaccion"
-                        class="btn btn-success btn-lg btn-disabled"
+                        class="btn btn-neutral btn-lg opacity-50 cursor-not-allowed"
                         disabled>
                     <svg xmlns="http://www.w3.org/2000/svg"
                          class="h-6 w-6"
@@ -59,16 +97,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                     <div class="text-left">
-                        {% if transaccion.estado == 'completada' %}
-                            <div class="font-semibold">Pago Completado</div>
-                            <div class="text-xs opacity-60">Transacción pagada</div>
-                        {% else %}
-                            <div class="font-semibold">Transacción {{ transaccion.get_estado_display }}</div>
-                            <div class="text-xs opacity-60">No disponible</div>
-                        {% endif %}
+                        <div class="font-semibold">Pago Completado</div>
+                        <div class="text-xs opacity-60">Transacción pagada</div>
                     </div>
                 </button>
-            {% else %}
+            {% elif transaccion.estado == 'pendiente' %}
+                <!-- Transacción pendiente de pago -->
                 <button id="btnPagarTransaccion"
                         onclick="iniciarProcesoBancario('{{ transaccion.id_transaccion }}')"
                         class="btn btn-success btn-lg">
@@ -84,9 +118,28 @@
                         <div class="text-xs opacity-60">Procesar pago</div>
                     </div>
                 </button>
+            {% else %}
+                <!-- Transacción en otro estado (cancelada, vencida, etc) -->
+                <button id="btnPagarTransaccion"
+                        class="btn btn-neutral btn-lg opacity-50 cursor-not-allowed"
+                        disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-semibold">Transacción {{ transaccion.get_estado_display }}</div>
+                        <div class="text-xs opacity-60">No disponible</div>
+                    </div>
+                </button>
             {% endif %}
-            {% if transaccion.estado != 'pendiente' %}
-                <button class="btn btn-error btn-outline btn-lg btn-disabled" disabled>
+            {% if transaccion.fecha_pago or transaccion.estado == 'completada' %}
+                <!-- Transacción pagada o completada - No se puede cancelar -->
+                <button class="btn btn-error btn-outline btn-lg opacity-50 cursor-not-allowed"
+                        disabled>
                     <svg xmlns="http://www.w3.org/2000/svg"
                          class="h-6 w-6"
                          fill="none"
@@ -95,16 +148,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     <div class="text-left">
-                        {% if transaccion.estado == 'completada' %}
-                            <div class="font-semibold">Transacción Completada</div>
-                            <div class="text-xs opacity-60">No se puede cancelar</div>
-                        {% else %}
-                            <div class="font-semibold">{{ transaccion.get_estado_display }}</div>
-                            <div class="text-xs opacity-60">No disponible</div>
-                        {% endif %}
+                        <div class="font-semibold">Transacción Pagada</div>
+                        <div class="text-xs opacity-60">No se puede cancelar</div>
                     </div>
                 </button>
-            {% else %}
+            {% elif transaccion.estado == 'pendiente' %}
+                <!-- Transacción pendiente sin pagar - Se puede cancelar -->
                 <button onclick="cancelarTransaccion('{{ transaccion.id_transaccion }}')"
                         class="btn btn-error btn-outline btn-lg">
                     <svg xmlns="http://www.w3.org/2000/svg"
@@ -117,6 +166,22 @@
                     <div class="text-left">
                         <div class="font-semibold">Cancelar</div>
                         <div class="text-xs opacity-60">Esta transacción</div>
+                    </div>
+                </button>
+            {% else %}
+                <!-- Transacción en otro estado (cancelada, vencida, anulada) -->
+                <button class="btn btn-error btn-outline btn-lg opacity-50 cursor-not-allowed"
+                        disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <div class="text-left">
+                        <div class="font-semibold">{{ transaccion.get_estado_display }}</div>
+                        <div class="text-xs opacity-60">No se puede cancelar</div>
                     </div>
                 </button>
             {% endif %}
@@ -134,33 +199,39 @@
                     </svg>
                     Detalles de la Transacción
                 </h3>
-                <!-- ID de transacción destacado -->
+                <!-- Código Tauser destacado -->
                 <div class="bg-gradient-to-r from-success/20 to-success/10 border border-success/30 rounded-lg p-4 mb-4">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <div class="text-sm font-medium text-success mb-2">🔢 Código de Transacción</div>
+                            <div class="text-sm font-medium text-success mb-2">🔢 Código Tauser</div>
                             <div class="font-mono text-lg font-bold bg-white/60 px-4 py-2 rounded border-2 border-dashed border-success/40 text-gray-800">
-                                {{ transaccion.id_transaccion }}
+                                {% if transaccion.codigo_verificacion %}
+                                    {{ transaccion.codigo_verificacion }}
+                                {% else %}
+                                    <span class="text-gray-400 text-sm">Pendiente de generación</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <div class="flex-none ml-4">
-                            <button class="btn btn-lg btn-success btn-outline"
-                                    onclick="copyToClipboard('{{ transaccion.id_transaccion }}')">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                     class="h-4 w-4"
-                                     fill="none"
-                                     viewBox="0 0 24 24"
-                                     stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                                Copiar
-                            </button>
-                        </div>
+                        {% if transaccion.codigo_verificacion %}
+                            <div class="flex-none ml-4">
+                                <button class="btn btn-lg btn-success btn-outline"
+                                        onclick="copyToClipboard('{{ transaccion.codigo_verificacion }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                         class="h-4 w-4"
+                                         fill="none"
+                                         viewBox="0 0 24 24"
+                                         stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Copiar
+                                </button>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 <!-- Resumen de la transacción -->
                 <div class="bg-base-200 p-6 rounded-lg">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-4">
                         <div class="space-y-3">
                             <div>
                                 <span class="font-semibold">Cliente:</span>
@@ -196,23 +267,15 @@
                                 <span class="font-semibold">Fecha de Creación:</span>
                                 <span class="ml-2">{{ transaccion.fecha_creacion|date:"d/m/Y H:i" }}</span>
                             </div>
-                        </div>
-                        <div class="space-y-3">
                             <div>
-                                <span class="font-semibold">Divisa Origen:</span>
-                                <span class="ml-2">{{ transaccion.divisa_origen.codigo }}</span>
-                            </div>
-                            <div>
-                                <span class="font-semibold">Divisa Destino:</span>
-                                <span class="ml-2">{{ transaccion.divisa_destino.codigo }}</span>
-                            </div>
-                            <div>
-                                <span class="font-semibold">Tasa Aplicada:</span>
-                                <span class="ml-2">{{ transaccion.tasa_aplicada|strip_trailing_zeros }}</span>
-                            </div>
-                            <div>
-                                <span class="font-semibold">Monto:</span>
-                                <span class="ml-2">{{ transaccion.monto_origen|strip_trailing_zeros }} {{ transaccion.divisa_origen.codigo }}</span>
+                                <span class="font-semibold">Tauser:</span>
+                                <span class="ml-2">
+                                    {% if transaccion.tauser %}
+                                        {{ transaccion.tauser.nombre }}
+                                    {% else %}
+                                        <span class="text-gray-400">No asignado</span>
+                                    {% endif %}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -793,6 +856,65 @@
                 }
 
                 restaurarBotonPagar();
+            }
+        }
+
+        function abrirVentanaTauserRetiro(transaccionId) {
+            // Cerrar ventana anterior si existe
+            if (ventanaBanco && !ventanaBanco.closed) {
+                ventanaBanco.close();
+            }
+
+            // Configurar la ventana emergente modal
+            const ancho = 700;
+            const alto = 600;
+            const izquierda = (screen.width - ancho) / 2;
+            const arriba = (screen.height - alto) / 2;
+
+            const opciones = `
+                width=${ancho},
+                height=${alto},
+                left=${izquierda},
+                top=${arriba},
+                scrollbars=no,
+                resizable=no,
+                toolbar=no,
+                menubar=no,
+                location=no,
+                directories=no,
+                status=no,
+                modal=yes,
+                alwaysRaised=yes,
+                dependent=yes
+            `;
+
+            // Abrir ventana de generación de código TAUSER
+            const url = `/transacciones/popup-tauser-retiro/${transaccionId}/`;
+            ventanaBanco = window.open(url, 'TauserRetiro', opciones);
+
+            if (ventanaBanco) {
+                // Focalizar la ventana
+                ventanaBanco.focus();
+
+                // Bloquear interacción con la página padre
+                bloquearPaginaPadre();
+
+                // Verificar si la ventana se cerró manualmente
+                const verificarVentana = setInterval(() => {
+                    if (ventanaBanco.closed) {
+                        clearInterval(verificarVentana);
+                        console.log('Ventana de TAUSER cerrada');
+                        desbloquearPaginaPadre();
+
+                        // Recargar la página para actualizar el estado del botón
+                        location.reload();
+                    }
+                }, 1000);
+
+                showToast('Generando código TAUSER para retiro...', 'info');
+            } else {
+                // Error al abrir ventana (bloqueador de popups)
+                showToast('Error: No se pudo abrir la ventana. Revisa el bloqueador de ventanas emergentes.', 'error');
             }
         }
 

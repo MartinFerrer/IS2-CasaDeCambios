@@ -932,13 +932,44 @@
         // Mostrar modal de pago Stripe
         async function showStripePaymentModal() {
             try {
-                // Crear transacción primero
+                // Validar que hay Tauser seleccionado
+                if (!tauserSelect || !tauserSelect.value) {
+                    showError('Debe seleccionar un Tauser antes de proceder con el pago');
+                    return;
+                }
+
+                // Para compras, verificar stock del Tauser ANTES de mostrar el modal de pago
+                const tipo = getTipoOperacion();
+                if (tipo === 'compra') {
+                    const monto = parseInputNumber(montoInput.value);
+                    const divisa = divisaSelect.value;
+                    const tauserId = tauserSelect.value;
+
+                    // Verificar disponibilidad de stock
+                    const stockResponse = await fetch(`/transacciones/api/verificar-disponibilidad-tauser-previo/${tauserId}/?divisa=${divisa}&monto=${monto}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    });
+
+                    const stockData = await stockResponse.json();
+
+                    if (!stockData.disponible) {
+                        showError('Stock insuficiente en el Tauser seleccionado para completar esta transacción. ' +
+                                (stockData.mensaje || 'Por favor, seleccione otro Tauser.'));
+                        return;
+                    }
+                }
+
+                // Crear transacción primero (ahora con tauser incluido)
                 const params = new URLSearchParams({
-                    tipo_operacion: getTipoOperacion(),
+                    tipo_operacion: tipo,
                     divisa_seleccionada: divisaSelect.value,
                     monto: parseInputNumber(montoInput.value),
                     metodo_pago: metodoPagoSelect.value,
-                    metodo_cobro: metodoCobroSelect.value
+                    metodo_cobro: metodoCobroSelect.value,
+                    tauser: tauserSelect.value
                 });
 
                 const response = await fetch(`{% url "transacciones:api_crear_transaccion" %}?${params.toString()}`, {
