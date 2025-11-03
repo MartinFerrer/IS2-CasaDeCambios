@@ -5,6 +5,17 @@
     Mis Transacciones
 {% endblock title %}
 {% block content %}
+    <style>
+        /* Estilo para filas clicables */
+        .table tbody tr.cursor-pointer:hover {
+            transform: scale(1.01);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .table tbody tr.cursor-pointer:active {
+            transform: scale(0.99);
+        }
+    </style>
     <div class="container mx-auto p-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-bold">Mis Transacciones</h2>
@@ -30,7 +41,7 @@
                     </svg>
                     Simulador
                 </a>
-                <a href="/" class="btn btn-outline">
+                <a href="{% url 'presentacion:home' %}" class="btn btn-outline">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          class="h-5 w-5"
                          fill="none"
@@ -104,7 +115,6 @@
                         <table class="table table-zebra w-full">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
                                     <th>Fecha</th>
                                     <th>Tipo</th>
                                     <th>Divisas</th>
@@ -119,10 +129,9 @@
                             </thead>
                             <tbody>
                                 {% for transaccion in transacciones %}
-                                    <tr>
-                                        <td>
-                                            <div class="font-mono text-xs">{{ transaccion.id_transaccion|slice:":8" }}...</div>
-                                        </td>
+                                    <tr class="cursor-pointer hover:bg-base-200 transition-colors"
+                                        onclick="irADetalle('{{ transaccion.id_transaccion }}')"
+                                        title="Click para ver detalles">
                                         <td>
                                             <div class="flex flex-col">
                                                 <div class="font-semibold">{{ transaccion.fecha_creacion|date:"d/m/Y" }}</div>
@@ -212,8 +221,10 @@
                                         </td>
                                         <td>
                                             <div class="flex gap-1">
+                                                <!-- Botón Historial -->
                                                 <button class="btn btn-ghost btn-xs"
-                                                        onclick="verDetalle('{{ transaccion.id_transaccion }}')">
+                                                        onclick="event.stopPropagation(); verHistorial('{{ transaccion.id_transaccion }}')"
+                                                        title="Ver historial de la transacción">
                                                     <svg xmlns="http://www.w3.org/2000/svg"
                                                          class="h-4 w-4"
                                                          fill="none"
@@ -223,10 +234,69 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                                 </button>
-                                                {% if transaccion.estado == 'pendiente' %}
-                                                    <a href="{% url 'transacciones:procesar_transaccion' transaccion.id_transaccion %}"
-                                                       class="btn btn-primary btn-xs">Procesar</a>
-                                                {% endif %}
+                                                <!-- Dropdown de Factura Electrónica (siempre visible) -->
+                                                <div class="dropdown dropdown-end" onclick="event.stopPropagation()">
+                                                    <label tabindex="0"
+                                                           class="btn btn-xs {% if transaccion.cdc_factura %}btn-success{% else %}btn-disabled{% endif %}"
+                                                           title="{% if transaccion.cdc_factura %}Factura Electrónica - CDC: {{ transaccion.cdc_factura }}{% else %}Factura no disponible{% endif %}">
+                                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                                             class="h-4 w-4"
+                                                             fill="none"
+                                                             viewBox="0 0 24 24"
+                                                             stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V17a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                    </label>
+                                                    {% if transaccion.cdc_factura %}
+                                                        <ul tabindex="0"
+                                                            class="dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-60 mt-1 z-50">
+                                                            <li class="menu-title">
+                                                                <span class="text-xs font-mono">CDC: {{ transaccion.cdc_factura|slice:":12" }}...</span>
+                                                            </li>
+                                                            <li>
+                                                                <a href="{% url 'transacciones:factura_ver' transaccion.id_transaccion %}"
+                                                                   target="_blank"
+                                                                   class="flex items-center gap-2">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         class="h-4 w-4"
+                                                                         fill="none"
+                                                                         viewBox="0 0 24 24"
+                                                                         stroke="currentColor">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                    Ver KuDE (PDF)
+                                                                </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="{% url 'transacciones:factura_pdf' transaccion.id_transaccion %}"
+                                                                   class="flex items-center gap-2">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         class="h-4 w-4"
+                                                                         fill="none"
+                                                                         viewBox="0 0 24 24"
+                                                                         stroke="currentColor">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                                                    </svg>
+                                                                    Descargar PDF
+                                                                </a>
+                                                            </li>
+                                                            <li>
+                                                                <a href="{% url 'transacciones:factura_xml' transaccion.id_transaccion %}"
+                                                                   class="flex items-center gap-2">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         class="h-4 w-4"
+                                                                         fill="none"
+                                                                         viewBox="0 0 24 24"
+                                                                         stroke="currentColor">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                    </svg>
+                                                                    Descargar XML
+                                                                </a>
+                                                            </li>
+                                                        </ul>
+                                                    {% endif %}
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -276,27 +346,32 @@
                 </div>
             </div>
         {% endif %}
-        <!-- Modal de detalle -->
-        <div id="detail-modal" class="modal">
+        <!-- Modal para historial -->
+        <div id="historial-modal" class="modal">
             <div class="modal-box max-w-2xl">
-                <h3 class="font-bold text-lg mb-4">Detalle de Transacción</h3>
-                <div id="detail-content">
+                <h3 class="font-bold text-lg mb-4">Historial de Transacción</h3>
+                <div id="historial-content">
                     <!-- Se llenará dinámicamente -->
                 </div>
                 <div class="modal-action">
-                    <button class="btn" onclick="cerrarDetalle()">Cerrar</button>
+                    <button class="btn" onclick="cerrarHistorial()">Cerrar</button>
                 </div>
             </div>
         </div>
     </div>
     <script>
+        // Función para ir a la vista de detalle/procesamiento
+        function irADetalle(transaccionId) {
+            window.location.href = "{% url 'transacciones:procesar_transaccion' 'PLACEHOLDER' %}".replace('PLACEHOLDER', transaccionId);
+        }
+
         // Función para contar transacciones por estado
         function actualizarEstadisticas() {
             const badges = document.querySelectorAll('.table tbody tr .badge');
             let pendientes = 0;
             let completadas = 0;
             let canceladas = 0;
-            
+
             badges.forEach(badge => {
                 const texto = badge.textContent.trim().toLowerCase();
                 if (texto === 'pendiente') {
@@ -307,42 +382,76 @@
                     canceladas++;
                 }
             });
-            
+
             // Actualizar los contadores en el DOM
             const pendientesElement = document.getElementById('pendientes-count');
             const completadasElement = document.getElementById('completadas-count');
             const canceladasElement = document.getElementById('canceladas-count');
-            
+
             if (pendientesElement) pendientesElement.textContent = pendientes;
             if (completadasElement) completadasElement.textContent = completadas;
             if (canceladasElement) canceladasElement.textContent = canceladas;
         }
 
-        function verDetalle(transaccionId) {
-            // Por ahora, mostrar un placeholder
-            // En el futuro, hacer una llamada AJAX para obtener detalles
-            document.getElementById('detail-content').innerHTML = `
-                <div class="space-y-3">
-                    <div><strong>ID:</strong> ${transaccionId}</div>
-                    <div class="alert alert-info">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span>Funcionalidad de detalle en desarrollo. Por ahora puede procesar la transacción directamente.</span>
-                    </div>
-                </div>
-            `;
-            document.getElementById('detail-modal').classList.add('modal-open');
+        // Función para mostrar historial de transacción en modal
+        function verHistorial(transaccionId) {
+            // Hacer llamada AJAX simple para obtener solo el historial
+            fetch(`/transacciones/api/historial/${transaccionId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let historialHtml = `
+                            <div class="overflow-x-auto">
+                                <table class="table table-zebra w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Acción</th>
+                                            <th>Fecha y Hora</th>
+                                            <th>Detalle</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+
+                        data.historial.forEach(evento => {
+                            // Usar la función global para formatear fechas
+                            const fechaFormateada = formatearFecha(evento.fecha);
+
+                            historialHtml += `
+                                <tr>
+                                    <td>${evento.accion}</td>
+                                    <td>${fechaFormateada}</td>
+                                    <td>${evento.detalle}</td>
+                                </tr>
+                            `;
+                        });
+
+                        historialHtml += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+
+                        document.getElementById('historial-content').innerHTML = historialHtml;
+                        document.getElementById('historial-modal').classList.add('modal-open');
+                    } else {
+                        alert('Error al cargar el historial: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al cargar el historial de la transacción');
+                });
         }
 
-        function cerrarDetalle() {
-            document.getElementById('detail-modal').classList.remove('modal-open');
+        function cerrarHistorial() {
+            document.getElementById('historial-modal').classList.remove('modal-open');
         }
 
         // Cerrar modal al hacer click fuera
-        document.getElementById('detail-modal').addEventListener('click', function(e) {
+        document.getElementById('historial-modal').addEventListener('click', function(e) {
             if (e.target === this) {
-                cerrarDetalle();
+                cerrarHistorial();
             }
         });
 

@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -526,6 +527,7 @@ class Transaccion(models.Model):
         tasaAplicada (DecimalField): Tasa de cambio aplicada en la transacción.
         montoOrigen (DecimalField): Monto en la divisa de origen.
         montoDestino (DecimalField): Monto en la divisa de destino.
+        codigo_verificacion (CharField): Código único de verificación para el tauser.
 
     """
 
@@ -566,6 +568,12 @@ class Transaccion(models.Model):
     )
     fecha_creacion = models.DateTimeField(auto_now_add=True, help_text="Fecha y hora de creación de la transacción")
     fecha_pago = models.DateTimeField(null=True, blank=True, help_text="Fecha y hora del pago (opcional)")
+    fecha_procesamiento = models.DateTimeField(
+        null=True, blank=True, help_text="Fecha y hora de generación del código de verificación"
+    )
+    fecha_completada = models.DateTimeField(
+        null=True, blank=True, help_text="Fecha y hora de finalización de la transacción"
+    )
     fecha_actualizacion = models.DateTimeField(auto_now=True, help_text="Fecha y hora de última actualización")
     divisa_origen = models.ForeignKey(
         "operaciones.Divisa",
@@ -619,6 +627,21 @@ class Transaccion(models.Model):
     motivo_cancelacion = models.TextField(
         blank=True, null=True, help_text="Motivo detallado de la cancelación de la transacción"
     )
+    codigo_verificacion = models.CharField(
+        max_length=10,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Código único de verificación generado para el tauser",
+    )
+    tauser = models.ForeignKey(
+        "tauser.Tauser",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transacciones",
+        help_text="Terminal de autoservicio donde se procesa la transacción",
+    )
     stripe_payment = models.ForeignKey(
         "StripePayment",
         on_delete=models.SET_NULL,
@@ -626,6 +649,18 @@ class Transaccion(models.Model):
         blank=True,
         related_name="transacciones",
         help_text="Pago con Stripe asociado a esta transacción",
+    )
+    cdc_factura = models.CharField(
+        max_length=44,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text="Código de Control (CDC) de la factura electrónica generada",
+    )
+    fecha_facturacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha y hora de generación de la factura electrónica",
     )
 
     class Meta:
@@ -717,23 +752,23 @@ class Transaccion(models.Model):
                 }
 
             # Calcular la tasa efectiva incluyendo comisiones según el tipo de operación
+            from .utils import calculos_tasas_comisiones
+
             precio_base = tasa_cambio_actual.precio_base
 
             # Obtener descuento del cliente si existe
-            porcentaje_descuento = Decimal("0.0")
-            if self.cliente and self.cliente.tipo_cliente:
-                porcentaje_descuento = self.cliente.tipo_cliente.descuento_sobre_comision
+            porcentaje_descuento = calculos_tasas_comisiones.obtener_descuento_cliente(self.cliente)
 
             if self.tipo_operacion == "compra":
-                # Para compra: precio_base + comisión_compra (menos descuento)
-                comision_compra = tasa_cambio_actual.comision_compra
-                comision_efectiva = comision_compra - (comision_compra * porcentaje_descuento / Decimal("100"))
-                tasa_actual = precio_base + comision_efectiva
+                # Para compra: cliente COMPRA divisa (nosotros VENDEMOS)
+                tasa_actual = calculos_tasas_comisiones.calcular_tasa_venta_efectiva(
+                    precio_base, tasa_cambio_actual.comision_venta, porcentaje_descuento
+                )
             else:  # venta
-                # Para venta: precio_base - comisión_venta (menos descuento)
-                comision_venta = tasa_cambio_actual.comision_venta
-                comision_efectiva = comision_venta - (comision_venta * porcentaje_descuento / Decimal("100"))
-                tasa_actual = precio_base - comision_efectiva
+                # Para venta: cliente VENDE divisa (nosotros COMPRAMOS)
+                tasa_actual = calculos_tasas_comisiones.calcular_tasa_compra_efectiva(
+                    precio_base, tasa_cambio_actual.comision_compra, porcentaje_descuento
+                )
 
             tasa_original = self.tasa_original or self.tasa_aplicada
 
@@ -759,7 +794,7 @@ class Transaccion(models.Model):
                 umbral_porcentual = Decimal("1.0")  # 1% de cambio porcentual
 
                 cambio_significativo = (cambio_absoluto >= umbral_absoluto) or (porcentaje_cambio >= umbral_porcentual)
-
+                self.save(update_fields=["tasa_actual"])
                 return {
                     "cambio_detectado": cambio_significativo,
                     "tasa_original": tasa_original_redondeada,
@@ -794,18 +829,67 @@ class Transaccion(models.Model):
     def aceptar_nueva_cotizacion(self):
         """Acepta la nueva cotización y actualiza la transacción.
 
-        Nota: Los montos originales se mantienen ya que fueron calculados
-        con todos los factores (comisiones de medios, descuentos, etc.).
-        Solo se actualiza la tasa aplicada para reflejar el cambio aceptado.
-        La nueva tasa también se establece como tasa original para futuras comparaciones.
+        Recalcula los montos usando la nueva tasa y las comisiones de los medios
+        de pago/cobro configurados en la transacción.
         """
         if self.tasa_actual:
-            self.tasa_aplicada = self.tasa_actual
             self.tasa_original = self.tasa_actual  # Nueva tasa como base para futuras comparaciones
+            self.tasa_aplicada = self.tasa_actual
             self.cambio_cotizacion_notificado = False  # Reset notification flag
-            # Los montos se mantienen como fueron calculados originalmente
-            # ya que incluyen comisiones de medios de pago/cobro y otros factores
+
+            # Recalcular montos con la nueva tasa aplicando las comisiones correspondientes
+            self._recalcular_montos_con_nueva_tasa()
+
+            self.tasa_actual = None
             self.save()
+
+    def _recalcular_montos_con_nueva_tasa(self):
+        """Recalcula los montos de la transacción con la nueva tasa aplicada.
+
+        Aplica las comisiones de medios de pago/cobro usando el módulo centralizado.
+        """
+        from .utils import calculos_tasas_comisiones
+
+        # Obtener comisiones de los medios configurados usando módulo centralizado
+        comision_medio_pago = calculos_tasas_comisiones.obtener_comision_medio_completa(
+            self.medio_pago or "efectivo", self.cliente, self.tipo_operacion, es_pago=True
+        )
+        comision_medio_cobro = calculos_tasas_comisiones.obtener_comision_medio_completa(
+            self.medio_cobro or "efectivo", self.cliente, self.tipo_operacion, es_pago=False
+        )
+
+        if self.tipo_operacion == "compra":
+            # Para compra: recalcular monto_origen (PYG a pagar) basado en monto_destino (divisa a recibir)
+            # monto_base en PYG = monto_divisa * tasa
+            monto_base_pyg = calculos_tasas_comisiones.convertir_a_pyg(
+                Decimal(str(self.monto_destino)), self.tasa_aplicada
+            )
+
+            # Determinar si es Stripe
+            es_stripe = (self.medio_pago or "").startswith("stripe")
+
+            # Calcular comisión del medio
+            comision_medio = calculos_tasas_comisiones.calcular_comision_medio_pago(
+                monto_base_pyg, comision_medio_pago, es_stripe
+            )
+
+            # Total = monto_base + comisión
+            self.monto_origen = monto_base_pyg + comision_medio
+
+        else:  # venta
+            # Para venta: recalcular monto_destino (PYG a recibir) basado en monto_origen (divisa a entregar)
+            # monto_base en PYG = monto_divisa * tasa
+            monto_base_pyg = calculos_tasas_comisiones.convertir_a_pyg(
+                Decimal(str(self.monto_origen)), self.tasa_aplicada
+            )
+
+            # Calcular comisión del medio de cobro
+            comision_medio = calculos_tasas_comisiones.calcular_comision_medio_cobro(
+                monto_base_pyg, comision_medio_cobro
+            )
+
+            # Total = monto_base - comisión
+            self.monto_destino = monto_base_pyg - comision_medio
 
     def save(self, *args, **kwargs):
         """Guarda la instancia realizando validaciones completas.

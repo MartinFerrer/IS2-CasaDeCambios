@@ -60,6 +60,11 @@ urlpatterns = [
         views.api_cancelar_transaccion,
         name="api_cancelar_transaccion",
     ),
+    path(
+        "api/verificar-mfa-pago/<str:transaccion_id>/",
+        views.verificar_mfa_pago,
+        name="verificar_mfa_pago",
+    ),
     path("api/procesar-pago-bancario/", views.api_procesar_pago_bancario, name="api_procesar_pago_bancario"),
     path("popup-banco/<str:transaccion_id>/", views.popup_banco_simulado, name="popup_banco_simulado"),
     path(
@@ -73,6 +78,16 @@ urlpatterns = [
         name="api_verificar_cotizacion",
     ),
     path(
+        "api/verificar-disponibilidad-tauser/<str:transaccion_id>/",
+        views.api_verificar_stock_tauser,
+        name="api_verificar_stock_tauser",
+    ),
+    path(
+        "api/verificar-disponibilidad-tauser-previo/<int:tauser_id>/",
+        views.api_verificar_disponibilidad_tauser_previo,
+        name="api_verificar_disponibilidad_tauser_previo",
+    ),
+    path(
         "api/cancelar-por-cotizacion/<str:transaccion_id>/",
         views.api_cancelar_por_cotizacion,
         name="api_cancelar_por_cotizacion",
@@ -82,9 +97,15 @@ urlpatterns = [
         views.api_aceptar_nueva_cotizacion,
         name="api_aceptar_nueva_cotizacion",
     ),
+    path("api/historial/<str:transaccion_id>/", views.api_historial_transaccion, name="api_historial_transaccion"),
     # URLs para Stripe
     path("api/stripe/create-payment-intent/", views.create_stripe_payment_intent, name="stripe_create_payment_intent"),
     path("api/stripe/confirm-payment/", views.confirm_stripe_payment, name="stripe_confirm_payment"),
     path("stripe/webhook/", views.stripe_webhook_handler, name="stripe_webhook"),
+    # URLs para facturas electrónicas
+    path("factura/<str:transaccion_id>/ver/", views.visualizar_factura_pdf, name="factura_ver"),
+    path("factura/<str:transaccion_id>/pdf/", views.descargar_factura_pdf, name="factura_pdf"),
+    path("factura/<str:transaccion_id>/xml/", views.descargar_factura_xml, name="factura_xml"),
+    path("api/regenerar-factura/<str:transaccion_id>/", views.regenerar_factura, name="regenerar_factura"),
     path("", views.vista_transacciones, name="lista"),
 ]

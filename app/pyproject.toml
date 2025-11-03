@@ -28,6 +28,8 @@ dependencies = [
     "qrcode[pil]>=7.4.2",
     "stripe>=8.0.0",
     "sqlparse>=0.4.4",
+    # Django Q2 para tareas asíncronas
+    "django-q2>=1.8.0",
     # Simulador externo/API externa
     "flask>=2.3.3",
     "flask-cors>=4.0.0",

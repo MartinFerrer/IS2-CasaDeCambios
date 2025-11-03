@@ -227,3 +227,7 @@ ssl/
 *.key
 *.crt
 *.csr
+
+# Local storage for factura segura test data (contains auth tokens)
+scripts/.factura_data/
+scripts-local/.factura_data/

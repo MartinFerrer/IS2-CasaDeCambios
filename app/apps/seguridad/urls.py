@@ -29,4 +29,7 @@ urlpatterns = [
     path("mfa/configurar/", configurar_mfa, name="configurar_mfa"),
     path("mfa/qr/<int:perfil_id>/", generar_qr_mfa, name="generar_qr_mfa"),
     path("api/verificar-mfa-transaccion/", views.verificar_mfa_transaccion, name="verificar_mfa_transaccion"),
+    # API MFA para flujo sin redirecciones
+    path("api/check-mfa-required/", views.check_mfa_required, name="check_mfa_required"),
+    path("api/verify-mfa-code/", views.verify_mfa_code, name="verify_mfa_code"),
 ]

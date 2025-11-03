@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="es">
     <head>
@@ -136,7 +137,7 @@
                                 <span class="font-medium">Tipo:</span> {{ transaccion.tipo_operacion|capfirst }}
                             </div>
                             <div>
-                                <span class="font-medium">Monto:</span> {{ transaccion.monto_destino|floatformat:0 }} {{ transaccion.divisa_destino.codigo }}
+                                <span class="font-medium">Monto:</span> {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}
                             </div>
                         </div>
                     </div>
@@ -217,7 +218,7 @@
                     <div style="text-align: left; margin: 20px 0;">
                         <p><strong>Transacción:</strong> {{ transaccion.id_transaccion }}</p>
                         <p><strong>Cliente:</strong> {{ transaccion.cliente.nombre }}</p>
-                        <p><strong>Monto:</strong> {{ transaccion.monto_destino|floatformat:0 }} {{ transaccion.divisa_destino.codigo }}</p>
+                        <p><strong>Monto:</strong> {{ transaccion.monto_destino|strip_trailing_zeros }} {{ transaccion.divisa_destino.codigo }}</p>
                         <p><strong>Fecha:</strong> ${new Date().toLocaleString('es-ES')}</p>
                     </div>
                     <div style="font-size: 12px; color: #666; margin-top: 20px;">
