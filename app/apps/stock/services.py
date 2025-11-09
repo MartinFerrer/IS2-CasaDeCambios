@@ -304,11 +304,11 @@ def extraer_divisas(tauser_id, divisa_id, denominaciones_cantidades, transaccion
             divisa=divisa,
             denominacion=denominacion
         )
-
-        # Actualizar stock
-        stock_obj.stock -= cantidad
-        # Si es una transacción, aumentar stock reservado
-        if transaccion is not None:
+        if panel_admin:
+            # Actualizar stock directamente
+            stock_obj.stock -= cantidad
+        elif transaccion is not None:
+            # Si es una transacción, aumentar stock reservado en vez de restar directamente el stock total
             stock_obj.stock_reservado += cantidad
         stock_obj.save()
 
@@ -334,6 +334,7 @@ def cancelar_movimiento(movimiento_id):
     """
     movimiento = MovimientoStock.objects.select_for_update().get(id=movimiento_id)
 
+    # Solo puede haber movimientos pendientes si es parte de una transacción
     if movimiento.estado != 'pendiente':
         raise ValidationError("Solo se pueden cancelar movimientos pendientes.")
 
@@ -344,14 +345,8 @@ def cancelar_movimiento(movimiento_id):
             denominacion=detalle.denominacion
         )
 
-        if movimiento.tipo_movimiento == 'entrada':
-            # Revertir depósito
-            if stock_obj.stock_reservado < detalle.cantidad:
-                raise ValidationError(f"No hay suficiente stock reservado para revertir la denominación {detalle.denominacion}.")
-            stock_obj.stock_reservado -= detalle.cantidad
-        elif movimiento.tipo_movimiento == 'salida':
-            # Revertir extracción
-            stock_obj.stock += detalle.cantidad
+        # Solamente se revierten los movimientos de salida con transacción, los de entrada no reservan stock
+        if movimiento.tipo_movimiento == 'salida':
             if movimiento.transaccion is not None:
                 # Si fue parte de una transacción, liberar stock reservado
                 if stock_obj.stock_reservado < detalle.cantidad:
@@ -385,18 +380,13 @@ def confirmar_movimiento(movimiento_id):
             divisa=movimiento.divisa,
             denominacion=detalle.denominacion
         )
-
-        if movimiento.tipo_movimiento == 'entrada':
-            # Reducir stock reservado al confirmar depósito
+        # Solamente se confirman los movimientos de salida pendientes, nunca se crean movimientos de entrada pendiente
+        if movimiento.tipo_movimiento == 'salida':
+            # Reducir stock reservado y total al confirmar extracción
             if stock_obj.stock_reservado < detalle.cantidad:
                 raise ValidationError(f"No hay suficiente stock reservado para confirmar la denominación {detalle.denominacion}.")
             stock_obj.stock_reservado -= detalle.cantidad
-            stock_obj.stock += detalle.cantidad
-        elif movimiento.tipo_movimiento == 'salida':
-            # Reducir stock reservado al confirmar extracción
-            if stock_obj.stock_reservado < detalle.cantidad:
-                raise ValidationError(f"No hay suficiente stock reservado para confirmar la denominación {detalle.denominacion}.")
-            stock_obj.stock_reservado -= detalle.cantidad
+            stock_obj.stock -= detalle.cantidad
         stock_obj.save()
 
     movimiento.estado = 'confirmado'
