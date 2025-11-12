@@ -1,0 +1,668 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Dashboard de Ganancias{% endblock %}
+
+{% block extra_css %}
+<style>
+    .fade-in {
+        animation: fadeIn 0.5s;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .hover-scale {
+        transition: transform 0.2s;
+    }
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Dashboard de Ganancias</h1>
+            <p class="mt-1 text-sm text-gray-600">Monitoreo de métricas financieras en tiempo real</p>
+        </div>
+
+        <!-- Filtros -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8 fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700" for="start_date">Fecha Inicio</label>
+                    <input type="date" id="start_date" name="start_date" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                           value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700" for="end_date">Fecha Fin</label>
+                    <input type="date" id="end_date" name="end_date" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                           value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-gray-700" for="currency">Divisa</label>
+                    <select id="currency" name="currency" 
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="all">Todas las divisas</option>
+                        {% for divisa in divisas %}
+                            <option value="{{ divisa.codigo }}" {% if divisa.codigo == selected_currency %}selected{% endif %}>
+                                {{ divisa.nombre }} ({{ divisa.codigo }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Ganancias Totales -->
+            <div class="bg-white overflow-hidden shadow rounded-lg hover-scale">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Ganancias Totales</dt>
+                                <dd class="flex items-baseline">
+                                    <div class="text-2xl font-semibold text-gray-900" id="total-profits">₲ {{ total_profits|floatformat:0 }}</div>
+                                    <div class="ml-2 flex items-baseline text-sm font-semibold {% if growth_rate >= 0 %}text-green-600{% else %}text-red-600{% endif %}" id="growth-rate">
+                                        {% if growth_rate >= 0 %}↑{% else %}↓{% endif %}
+                                        {{ growth_rate|floatformat:1 }}%
+                                    </div>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Transacciones -->
+            <div class="bg-white overflow-hidden shadow rounded-lg hover-scale">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Total Transacciones</dt>
+                                <dd class="text-2xl font-semibold text-gray-900" id="total-transactions">{{ total_transactions }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ganancia Promedio -->
+            <div class="bg-white overflow-hidden shadow rounded-lg hover-scale">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Ganancia Promedio</dt>
+                                <dd class="text-2xl font-semibold text-gray-900" id="avg-profit">₲ {{ avg_profit|floatformat:0 }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Gráfico de Ganancias por Tiempo -->
+            <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <svg class="inline-block w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                        </svg>
+                        Ganancias a lo largo del tiempo
+                    </h3>
+                    <div class="flex items-center gap-4 text-sm">
+                        <button id="toggleProfitsCompra" class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-pointer" data-active="true">
+                            <div class="w-4 h-4 rounded" style="background-color: rgb(16, 185, 129);"></div>
+                            <span class="text-gray-700">Compra</span>
+                        </button>
+                        <button id="toggleProfitsVenta" class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-pointer" data-active="true">
+                            <div class="w-4 h-4 rounded" style="background-color: rgb(79, 70, 229);"></div>
+                            <span class="text-gray-700">Venta</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="profitsChart" style="height: 400px;"></div>
+            </div>
+
+            <!-- Gráfico de Distribución por Divisa -->
+            <div class="bg-white rounded-lg shadow p-6 fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <svg class="inline-block w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Ganancias por Divisa
+                    </h3>
+                    <div class="flex items-center gap-4 text-sm">
+                        <button id="toggleCurrencyCompra" class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-pointer" data-active="true">
+                            <div class="w-4 h-4 rounded" style="background-color: rgb(16, 185, 129);"></div>
+                            <span class="text-gray-700">Compra</span>
+                        </button>
+                        <button id="toggleCurrencyVenta" class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-pointer" data-active="true">
+                            <div class="w-4 h-4 rounded" style="background-color: rgb(79, 70, 229);"></div>
+                            <span class="text-gray-700">Venta</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="currencyChart" style="height: 400px;"></div>
+            </div>
+        </div>
+
+        <!-- Tabla de Transacciones Recientes -->
+        <div class="bg-white shadow rounded-lg overflow-hidden fade-in">
+            <div class="px-6 py-5 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <svg class="inline-block w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Últimas 5 Transacciones Completadas
+                    </h3>
+                    <a href="{% url 'transacciones:lista' %}" class="inline-flex items-center px-4 py-2 border-2 border-indigo-600 text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 shadow-sm">
+                        Ver más
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisa</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transacción</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ganancia (PYG)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for transaction in recent_transactions %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ transaction.fecha_creacion|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if transaction.tipo_operacion == 'compra' %}bg-green-100 text-green-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    {{ transaction.tipo_operacion|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    {% if transaction.divisa_origen.codigo == 'PYG' %}
+                                        {{ transaction.divisa_destino.codigo }}
+                                    {% else %}
+                                        {{ transaction.divisa_origen.codigo }}
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium">{{ transaction.divisa_origen.codigo }}</span>
+                                    <span class="text-gray-500">{{ transaction.monto_origen|floatformat:2 }}</span>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                    </svg>
+                                    <span class="font-medium">{{ transaction.divisa_destino.codigo }}</span>
+                                    <span class="text-gray-500">{{ transaction.monto_destino|floatformat:2 }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <span class="text-sm font-semibold {% if transaction.ganancia > 0 %}text-green-600{% elif transaction.ganancia < 0 %}text-red-600{% else %}text-gray-500{% endif %}">
+                                    {% if transaction.ganancia > 0 %}+{% endif %}₲ {{ transaction.ganancia|floatformat:0|intcomma }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+console.log('=== SCRIPT CARGADO ===');
+
+// Verificar que Plotly se haya cargado
+if (typeof Plotly === 'undefined') {
+    console.error('Plotly no se cargó correctamente!');
+} else {
+    console.log('Plotly cargado correctamente, versión:', Plotly.version);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== Dashboard Inicializando ===');
+    
+    // Datos de los gráficos
+    const datesLabels = {{ dates_labels }};
+    const profitsCompraData = {{ profits_compra_data }};
+    const profitsVentaData = {{ profits_venta_data }};
+    const currencyLabels = {{ currency_labels }};
+    const currencyCompraData = {{ currency_compra_data }};
+    const currencyVentaData = {{ currency_venta_data }};
+
+    // Debug: Verificar que los datos lleguen correctamente
+    console.log('Dates Labels:', datesLabels);
+    console.log('Profits Compra Data:', profitsCompraData);
+    console.log('Profits Venta Data:', profitsVentaData);
+    console.log('Currency Labels:', currencyLabels);
+    console.log('Currency Compra Data:', currencyCompraData);
+    console.log('Currency Venta Data:', currencyVentaData);
+
+    // Verificar que los elementos existan
+    const profitsChartElement = document.getElementById('profitsChart');
+    const currencyChartElement = document.getElementById('currencyChart');
+    
+    if (!profitsChartElement) {
+        console.error('Element profitsChart not found!');
+        return;
+    } else {
+        console.log('Element profitsChart found');
+    }
+    
+    if (!currencyChartElement) {
+        console.error('Element currencyChart not found!');
+        return;
+    } else {
+        console.log('Element currencyChart found');
+    }
+
+    // Configuración de colores
+    const colors = {
+        primary: '#4F46E5',
+        secondary: '#10B981',
+        accent: '#8B5CF6',
+        success: '#34D399',
+        warning: '#FBBF24',
+        danger: '#EF4444',
+        gray: '#9CA3AF'
+    };
+
+    const colorPalette = [
+        colors.primary,
+        colors.secondary,
+        colors.accent,
+        colors.success,
+        colors.warning,
+        colors.danger,
+        colors.gray
+    ];
+
+    // Gráfico de líneas - Ganancias por tiempo (separado por compra y venta)
+    const profitsCompraTrace = {
+        x: datesLabels,
+        y: profitsCompraData,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Ganancias Compra',
+        line: {
+            color: 'rgb(16, 185, 129)',
+            width: 3,
+            shape: 'spline'
+        },
+        marker: {
+            size: 6,
+            color: 'rgb(16, 185, 129)'
+        },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(16, 185, 129, 0.2)',
+        hovertemplate: '<b>%{x}</b><br>Compra: ₲ %{y:,.0f}<extra></extra>'
+    };
+
+    const profitsVentaTrace = {
+        x: datesLabels,
+        y: profitsVentaData,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Ganancias Venta',
+        line: {
+            color: 'rgb(79, 70, 229)',
+            width: 3,
+            shape: 'spline'
+        },
+        marker: {
+            size: 6,
+            color: 'rgb(79, 70, 229)'
+        },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(79, 70, 229, 0.2)',
+        hovertemplate: '<b>%{x}</b><br>Venta: ₲ %{y:,.0f}<extra></extra>'
+    };
+
+    const profitsLayout = {
+        font: {
+            family: 'system-ui, -apple-system, sans-serif'
+        },
+        margin: { t: 20, r: 20, b: 50, l: 80 },
+        showlegend: false,
+        xaxis: {
+            title: {
+                text: 'Fecha',
+                font: { size: 12, color: '#6B7280' }
+            },
+            showgrid: true,
+            gridcolor: '#f3f4f6'
+        },
+        yaxis: {
+            title: {
+                text: 'Ganancias (₲)',
+                font: { size: 12, color: '#6B7280' }
+            },
+            showgrid: true,
+            gridcolor: '#f3f4f6',
+            tickformat: ',.0f'
+        },
+        hovermode: 'closest',
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff'
+    };
+
+    const profitsConfig = {
+        responsive: true,
+        displayModeBar: false,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+        toImageButtonOptions: {
+            format: 'png',
+            filename: 'ganancias_por_fecha',
+            height: 600,
+            width: 1000,
+            scale: 2
+        }
+    };
+
+    // Crear gráfico de líneas con manejo de errores (dos series)
+    try {
+        console.log('Creando gráfico de líneas con dos series...');
+        Plotly.newPlot('profitsChart', [profitsCompraTrace, profitsVentaTrace], profitsLayout, profitsConfig)
+            .then(() => console.log('Gráfico de líneas creado exitosamente'))
+            .catch(err => console.error('Error creando gráfico de líneas:', err));
+    } catch (error) {
+        console.error('Error crítico en gráfico de líneas:', error);
+    }
+
+    // Gráfico de barras agrupadas - Ganancias por divisa (Compra vs Venta)
+    const currencyCompraTrace = {
+        x: currencyLabels,
+        y: currencyCompraData,
+        type: 'bar',
+        name: 'Ganancias Compra',
+        marker: {
+            color: 'rgb(34, 197, 94)',  // Color verde más intenso
+            line: {
+                width: 2.5,  // Borde más grueso
+                color: 'rgb(21, 128, 61)'  // Borde verde oscuro
+            }
+        },
+        hovertemplate: '<b>%{x}</b><br>Compra: ₲ %{y:,.0f}<extra></extra>'
+    };
+
+    const currencyVentaTrace = {
+        x: currencyLabels,
+        y: currencyVentaData,
+        type: 'bar',
+        name: 'Ganancias Venta',
+        marker: {
+            color: 'rgb(99, 102, 241)',  // Color azul más intenso
+            line: {
+                width: 2.5,  // Borde más grueso
+                color: 'rgb(67, 56, 202)'  // Borde azul oscuro
+            }
+        },
+        hovertemplate: '<b>%{x}</b><br>Venta: ₲ %{y:,.0f}<extra></extra>'
+    };
+
+    const currencyLayout = {
+        font: {
+            family: 'system-ui, -apple-system, sans-serif'
+        },
+        margin: { t: 20, r: 20, b: 50, l: 80 },
+        barmode: 'group',
+        bargap: 0.2,
+        bargroupgap: 0.1,
+        showlegend: false,
+        xaxis: {
+            title: {
+                text: 'Divisa',
+                font: { size: 12, color: '#6B7280' }
+            },
+            showgrid: false
+        },
+        yaxis: {
+            title: {
+                text: 'Ganancias (₲)',
+                font: { size: 12, color: '#6B7280' }
+            },
+            showgrid: true,
+            gridcolor: '#f3f4f6',
+            tickformat: ',.0f',
+            type: 'log',  // Escala logarítmica para visualizar mejor valores pequeños
+            autorange: true,
+            rangemode: 'tozero'
+        },
+        hovermode: 'x unified',
+        plot_bgcolor: '#ffffff',
+        paper_bgcolor: '#ffffff'
+    };
+
+    const currencyConfig = {
+        responsive: true,
+        displayModeBar: false,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+        toImageButtonOptions: {
+            format: 'png',
+            filename: 'ganancias_por_divisa',
+            height: 600,
+            width: 1000,
+            scale: 2
+        }
+    };
+
+    // Crear gráfico de barras agrupadas con manejo de errores
+    try {
+        console.log('Creando gráfico de barras agrupadas...');
+        Plotly.newPlot('currencyChart', [currencyCompraTrace, currencyVentaTrace], currencyLayout, currencyConfig)
+            .then(() => console.log('Gráfico de barras creado exitosamente'))
+            .catch(err => console.error('Error creando gráfico de barras:', err));
+    } catch (error) {
+        console.error('Error crítico en gráfico de barras:', error);
+    }
+
+    // Event listeners para los filtros
+    const filters = ['start_date', 'end_date', 'currency'];
+    filters.forEach(filter => {
+        document.getElementById(filter).addEventListener('change', updateDashboard);
+    });
+
+    // Event listeners para toggle de series en gráfico de líneas
+    document.getElementById('toggleProfitsCompra').addEventListener('click', function() {
+        const isActive = this.getAttribute('data-active') === 'true';
+        this.setAttribute('data-active', !isActive);
+        this.style.opacity = isActive ? '0.4' : '1';
+        
+        const update = {
+            visible: !isActive ? true : 'legendonly'
+        };
+        Plotly.restyle('profitsChart', update, [0]);
+    });
+
+    document.getElementById('toggleProfitsVenta').addEventListener('click', function() {
+        const isActive = this.getAttribute('data-active') === 'true';
+        this.setAttribute('data-active', !isActive);
+        this.style.opacity = isActive ? '0.4' : '1';
+        
+        const update = {
+            visible: !isActive ? true : 'legendonly'
+        };
+        Plotly.restyle('profitsChart', update, [1]);
+    });
+
+    // Event listeners para toggle de series en gráfico de barras
+    document.getElementById('toggleCurrencyCompra').addEventListener('click', function() {
+        const isActive = this.getAttribute('data-active') === 'true';
+        this.setAttribute('data-active', !isActive);
+        this.style.opacity = isActive ? '0.4' : '1';
+        
+        const update = {
+            visible: !isActive ? true : 'legendonly'
+        };
+        Plotly.restyle('currencyChart', update, [0]);
+    });
+
+    document.getElementById('toggleCurrencyVenta').addEventListener('click', function() {
+        const isActive = this.getAttribute('data-active') === 'true';
+        this.setAttribute('data-active', !isActive);
+        this.style.opacity = isActive ? '0.4' : '1';
+        
+        const update = {
+            visible: !isActive ? true : 'legendonly'
+        };
+        Plotly.restyle('currencyChart', update, [1]);
+    });
+
+    function updateDashboard() {
+        const filterParams = {
+            start_date: document.getElementById('start_date').value,
+            end_date: document.getElementById('end_date').value,
+            currency: document.getElementById('currency').value
+        };
+
+        // Mostrar indicador de carga
+        document.body.style.cursor = 'wait';
+
+        fetch(`/reportes/dashboard/data/?${new URLSearchParams(filterParams)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Actualizar métricas
+                document.getElementById('total-profits').textContent = '₲ ' + new Intl.NumberFormat('es-PY').format(data.total_profits);
+                document.getElementById('total-transactions').textContent = data.total_transactions;
+                document.getElementById('avg-profit').textContent = '₲ ' + new Intl.NumberFormat('es-PY').format(data.avg_profit);
+                
+                const growthRateEl = document.getElementById('growth-rate');
+                const growthValue = data.growth_rate;
+                growthRateEl.textContent = (growthValue >= 0 ? '↑ ' : '↓ ') + Math.abs(growthValue).toFixed(1) + '%';
+                growthRateEl.className = 'ml-2 flex items-baseline text-sm font-semibold ' + 
+                    (growthValue >= 0 ? 'text-green-600' : 'text-red-600');
+                
+                // Actualizar gráfico de líneas con ambos traces (compra y venta)
+                const updatedProfitsCompraTrace = {
+                    x: data.dates_labels,
+                    y: data.profits_compra_data,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Ganancias Compra',
+                    line: {
+                        color: 'rgb(16, 185, 129)',
+                        width: 3,
+                        shape: 'spline'
+                    },
+                    marker: {
+                        size: 6,
+                        color: 'rgb(16, 185, 129)'
+                    },
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(16, 185, 129, 0.2)',
+                    hovertemplate: '<b>%{x}</b><br>Compra: ₲ %{y:,.0f}<extra></extra>'
+                };
+
+                const updatedProfitsVentaTrace = {
+                    x: data.dates_labels,
+                    y: data.profits_venta_data,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: 'Ganancias Venta',
+                    line: {
+                        color: 'rgb(79, 70, 229)',
+                        width: 3,
+                        shape: 'spline'
+                    },
+                    marker: {
+                        size: 6,
+                        color: 'rgb(79, 70, 229)'
+                    },
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(79, 70, 229, 0.2)',
+                    hovertemplate: '<b>%{x}</b><br>Venta: ₲ %{y:,.0f}<extra></extra>'
+                };
+
+                Plotly.react('profitsChart', [updatedProfitsCompraTrace, updatedProfitsVentaTrace], profitsLayout, profitsConfig);
+
+                // Actualizar gráfico de barras con ambos traces (compra y venta)
+                const updatedCurrencyCompraTrace = {
+                    x: data.currency_labels,
+                    y: data.currency_compra_data,
+                    type: 'bar',
+                    name: 'Ganancias Compra',
+                    marker: {
+                        color: 'rgb(16, 185, 129)',
+                        line: {
+                            width: 1,
+                            color: '#ffffff'
+                        }
+                    },
+                    hovertemplate: '<b>%{x}</b><br>Compra: ₲ %{y:,.0f}<extra></extra>'
+                };
+
+                const updatedCurrencyVentaTrace = {
+                    x: data.currency_labels,
+                    y: data.currency_venta_data,
+                    type: 'bar',
+                    name: 'Ganancias Venta',
+                    marker: {
+                        color: 'rgb(79, 70, 229)',
+                        line: {
+                            width: 1,
+                            color: '#ffffff'
+                        }
+                    },
+                    hovertemplate: '<b>%{x}</b><br>Venta: ₲ %{y:,.0f}<extra></extra>'
+                };
+
+                Plotly.react('currencyChart', [updatedCurrencyCompraTrace, updatedCurrencyVentaTrace], currencyLayout, currencyConfig);
+
+                document.body.style.cursor = 'default';
+            })
+            .catch(error => {
+                console.error('Error actualizando dashboard:', error);
+                document.body.style.cursor = 'default';
+                alert('Error al actualizar el dashboard. Por favor, intente nuevamente.');
+            });
+    }
+});
+</script>
+{% endblock %}
