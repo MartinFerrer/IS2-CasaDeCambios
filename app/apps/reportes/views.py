@@ -17,60 +17,43 @@ from apps.transacciones.models import Transaccion
 
 
 def calcular_ganancia_transaccion(transaccion):
-    """Calcula la ganancia aproximada de una transacción.
+    """Calcula la ganancia de una transacción basada en la comisión aplicada.
+
+    La ganancia es simplemente: comision * cantidad de divisa extranjera
 
     Args:
         transaccion: Objeto Transaccion
 
     Returns:
-        Decimal: Ganancia estimada en PYG
+        Decimal: Ganancia en PYG
 
     """
     try:
-        # Las tasas siempre están en formato PYG -> Divisa Extranjera
-        # precio_base = cuántos PYG por 1 unidad de divisa extranjera
-        # tasa_venta = precio_base + comision_venta (casa vende divisa)
-        # tasa_compra = precio_base - comision_compra (casa compra divisa)
-
+        # Identificar la divisa extranjera y su cantidad
         if transaccion.divisa_origen.codigo == "PYG":
-            # Cliente COMPRA divisa extranjera (paga PYG, recibe divisa)
-            # La casa VENDE divisa extranjera al cliente
+            # Cliente COMPRA divisa extranjera (casa VENDE)
             divisa_extranjera = transaccion.divisa_destino
             cantidad_extranjera = transaccion.monto_destino
-            monto_cobrado_pyg = transaccion.monto_origen
-
-            # Buscar tasa PYG -> Divisa Extranjera
-            tasa = TasaCambio.objects.filter(
-                divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
-            ).first()
-
-            if tasa:
-                # Usar tasa_venta porque la casa está vendiendo divisa
-                # Valor de mercado = cantidad_extranjera * tasa_venta
-                valor_mercado = cantidad_extranjera * tasa.tasa_venta
-                # Ganancia = lo que cobramos - valor de mercado
-                ganancia = monto_cobrado_pyg - valor_mercado
-                return ganancia if ganancia > 0 else Decimal("0")
-
+            tipo_comision = "venta"
         else:
-            # Cliente VENDE divisa extranjera (paga divisa, recibe PYG)
-            # La casa COMPRA divisa extranjera del cliente
+            # Cliente VENDE divisa extranjera (casa COMPRA)
             divisa_extranjera = transaccion.divisa_origen
             cantidad_extranjera = transaccion.monto_origen
-            monto_entregado_pyg = transaccion.monto_destino
+            tipo_comision = "compra"
 
-            # Buscar tasa PYG -> Divisa Extranjera
-            tasa = TasaCambio.objects.filter(
-                divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
-            ).first()
+        # Buscar la tasa activa para obtener la comisión
+        tasa = TasaCambio.objects.filter(
+            divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
+        ).first()
 
-            if tasa:
-                # Usar tasa_compra porque la casa está comprando divisa
-                # Valor de mercado = cantidad_extranjera * tasa_compra
-                valor_mercado = cantidad_extranjera * tasa.tasa_compra
-                # Ganancia = valor de mercado - lo que entregamos
-                ganancia = valor_mercado - monto_entregado_pyg
-                return ganancia if ganancia > 0 else Decimal("0")
+        if tasa:
+            # Ganancia = comision * cantidad de divisa extranjera
+            if tipo_comision == "venta":
+                ganancia = tasa.comision_venta * cantidad_extranjera
+            else:
+                ganancia = tasa.comision_compra * cantidad_extranjera
+
+            return ganancia if ganancia > 0 else Decimal("0")
 
         return Decimal("0")
     except Exception:
