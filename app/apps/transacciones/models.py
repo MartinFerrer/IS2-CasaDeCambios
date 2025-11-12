@@ -662,6 +662,27 @@ class Transaccion(models.Model):
         blank=True,
         help_text="Fecha y hora de generación de la factura electrónica",
     )
+    precio_base_aplicado = models.DecimalField(
+        max_digits=15,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Precio base de la divisa al momento de la transacción (histórico)",
+    )
+    comision_aplicada = models.DecimalField(
+        max_digits=15,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Comisión (compra o venta) aplicada al momento de la transacción",
+    )
+    ganancia_calculada = models.DecimalField(
+        max_digits=20,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Ganancia en PYG calculada al momento de completar la transacción",
+    )
 
     class Meta:
         """Configuración para el modelo Transaccion.

@@ -1,4 +1,24 @@
-"""Vistas para el módulo de reportes."""
+"""Vistas para el módulo de reportes de Casa de Cambios.
+
+Este módulo contiene las vistas y funciones para generar reportes y dashboards
+financieros del sistema de casa de cambios.
+
+Funcionalidades principales:
+    - Dashboard interactivo de ganancias con gráficos y KPIs
+    - Cálculo de ganancias por transacción basado en comisiones
+    - Visualización temporal de fluctuaciones de ganancias
+    - Comparación de ganancias por divisa y tipo de operación
+    - Endpoint AJAX para actualización dinámica de datos
+
+Dependencias:
+    - Django 5.x
+    - Plotly.js (para gráficos interactivos en frontend)
+    - Modelos: Transaccion, TasaCambio, Divisa
+
+Autor: Equipo IS2 - Casa de Cambios
+Version: 1.0.0
+
+"""
 
 import json
 from datetime import datetime, timedelta
@@ -12,23 +32,54 @@ from django.utils.safestring import mark_safe
 
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.seguridad.decorators import permission_required
-from apps.seguridad.permissions import PERM_VIEW_TRANSACCION
+from apps.seguridad.permissions import PERM_VIEW_REPORTES
 from apps.transacciones.models import Transaccion
 
 
 def calcular_ganancia_transaccion(transaccion):
     """Calcula la ganancia de una transacción basada en la comisión aplicada.
 
-    La ganancia es simplemente: comision * cantidad de divisa extranjera
+    La ganancia se calcula multiplicando la comisión correspondiente (compra o venta)
+    por la cantidad de divisa extranjera involucrada en la transacción.
+
+    **IMPORTANTE**: Si la transacción ya tiene `ganancia_calculada` almacenada
+    (histórico al momento de completar), usa ese valor. Esto evita recalcular
+    con tasas actuales que pueden haber cambiado.
+
+    Formula:
+        - Casa VENDE (cliente compra): ganancia = comision_venta * cantidad_extranjera
+        - Casa COMPRA (cliente vende): ganancia = comision_compra * cantidad_extranjera
 
     Args:
-        transaccion: Objeto Transaccion
+        transaccion (Transaccion): Objeto transacción con información completa de la operación.
+            Debe contener divisa_origen, divisa_destino, monto_origen y monto_destino.
 
     Returns:
-        Decimal: Ganancia en PYG
+        Decimal: Ganancia en Guaraníes (PYG). Retorna 0 si no se puede calcular o si
+            no existe una tasa de cambio activa.
+
+    Raises:
+        Exception: Captura cualquier excepción y retorna Decimal("0") para evitar fallos.
+
+    Note:
+        - **Prioridad 1**: Usa `ganancia_calculada` si existe (valor histórico guardado)
+        - **Prioridad 2**: Calcula con `comision_aplicada` histórica si está disponible
+        - **Prioridad 3**: Calcula con tasa activa actual (menos preciso para reportes históricos)
+        - Siempre se busca la tasa de cambio activa desde PYG hacia la divisa extranjera.
+        - Si no existe una tasa activa, retorna 0.
+
+    Example:
+        >>> transaccion = Transaccion.objects.get(pk="...")
+        >>> ganancia = calcular_ganancia_transaccion(transaccion)
+        >>> print(f"Ganancia: ₲{ganancia}")
+        Ganancia: ₲5000.00
 
     """
     try:
+        # PRIORIDAD 1: Si ya tiene ganancia calculada histórica, usarla
+        if transaccion.ganancia_calculada is not None:
+            return transaccion.ganancia_calculada
+
         # Identificar la divisa extranjera y su cantidad
         if transaccion.divisa_origen.codigo == "PYG":
             # Cliente COMPRA divisa extranjera (casa VENDE)
@@ -41,7 +92,12 @@ def calcular_ganancia_transaccion(transaccion):
             cantidad_extranjera = transaccion.monto_origen
             tipo_comision = "compra"
 
-        # Buscar la tasa activa para obtener la comisión
+        # PRIORIDAD 2: Si tiene comisión aplicada histórica, usarla
+        if transaccion.comision_aplicada is not None:
+            ganancia = transaccion.comision_aplicada * cantidad_extranjera
+            return ganancia if ganancia > 0 else Decimal("0")
+
+        # PRIORIDAD 3: Calcular con tasa activa actual (fallback)
         tasa = TasaCambio.objects.filter(
             divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
         ).first()
@@ -60,12 +116,37 @@ def calcular_ganancia_transaccion(transaccion):
         return Decimal("0")
 
 
-@permission_required(PERM_VIEW_TRANSACCION)
+@permission_required(PERM_VIEW_REPORTES)
 def dashboard(request: HttpRequest) -> HttpResponse:
-    """Vista principal del dashboard de ganancias.
+    """Vista principal del dashboard de ganancias y métricas financieras.
 
-    Muestra métricas, gráficos y transacciones recientes.
-    Permite filtrar por rango de fechas (máximo 1 año) y divisa.
+    Renderiza un dashboard interactivo con:
+    - KPIs: ganancias totales, total de transacciones, ganancia promedio, tasa de crecimiento
+    - Gráfico de líneas: evolución temporal de ganancias (separado por compra/venta)
+    - Gráfico de barras: comparación de ganancias por divisa (agrupado compra vs venta)
+    - Tabla: últimas 5 transacciones completadas con su ganancia calculada
+
+    Args:
+        request (HttpRequest): Objeto request de Django con parámetros GET opcionales:
+            - start_date (str): Fecha inicio en formato YYYY-MM-DD (default: hace 30 días)
+            - end_date (str): Fecha fin en formato YYYY-MM-DD (default: hoy)
+            - currency (str): Código de divisa para filtrar o "all" (default: "all")
+
+    Returns:
+        HttpResponse: Página HTML renderizada con el dashboard y todos sus datos.
+
+    Note:
+        - El rango de fechas se limita automáticamente a máximo 1 año (365 días)
+        - Solo se procesan transacciones con estado="completada"
+        - Requiere permiso PERM_VIEW_REPORTES para acceder
+        - Los datos se separan por tipo_operacion (compra/venta) para análisis comparativo
+
+    Raises:
+        PermissionDenied: Si el usuario no tiene el permiso PERM_VIEW_REPORTES
+
+    Example:
+        GET /reportes/dashboard/?start_date=2025-01-01&end_date=2025-12-31&currency=USD
+
     """
     # Obtener parámetros de filtro
     start_date = request.GET.get("start_date")
@@ -217,12 +298,57 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "reportes/dashboard.html", context)
 
 
-@permission_required(PERM_VIEW_TRANSACCION)
+@permission_required(PERM_VIEW_REPORTES)
 def dashboard_data(request: HttpRequest) -> JsonResponse:
-    """Endpoint para actualizar los datos del dashboard vía AJAX.
+    """Endpoint AJAX para actualizar dinámicamente los datos del dashboard.
 
-    Retorna las ganancias calculadas según comisiones para
-    actualizar dinámicamente los gráficos.
+    Retorna un JSON con todas las métricas y datos necesarios para actualizar
+    los gráficos y KPIs del dashboard sin recargar la página completa.
+
+    Args:
+        request (HttpRequest): Objeto request de Django con parámetros GET requeridos:
+            - start_date (str): Fecha inicio en formato YYYY-MM-DD (requerido)
+            - end_date (str): Fecha fin en formato YYYY-MM-DD (requerido)
+            - currency (str): Código de divisa para filtrar o "all" (opcional)
+
+    Returns:
+        JsonResponse: JSON con estructura:
+            {
+                "total_profits": float,
+                "total_transactions": int,
+                "avg_profit": float,
+                "growth_rate": float,
+                "dates_labels": list[str],
+                "profits_compra_data": list[float],
+                "profits_venta_data": list[float],
+                "currency_labels": list[str],
+                "currency_compra_data": list[float],
+                "currency_venta_data": list[float],
+                "recent_transactions": list[dict]
+            }
+
+        En caso de error:
+            {"error": str} con status HTTP 400
+
+    Raises:
+        PermissionDenied: Si el usuario no tiene el permiso PERM_VIEW_REPORTES
+
+    Note:
+        - Valida que el rango de fechas no exceda 1 año (365 días)
+        - Calcula tasa de crecimiento comparando con 30 días anteriores
+        - Separa datos por tipo de operación (compra/venta) para gráficos agrupados
+
+    Example:
+        GET /reportes/dashboard/data/?start_date=2025-01-01&end_date=2025-12-31&currency=USD
+
+        Response:
+        {
+            "total_profits": 1500000.50,
+            "total_transactions": 92,
+            "avg_profit": 16304.35,
+            ...
+        }
+
     """
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
@@ -373,13 +499,20 @@ def dashboard_data(request: HttpRequest) -> JsonResponse:
 
 
 def ejemplo(request: HttpRequest) -> HttpResponse:
-    """_summary_.
+    """Vista de ejemplo que renderiza la plantilla base.
+
+    Esta es una vista de prueba/ejemplo que simplemente renderiza la plantilla
+    base del sistema sin contenido adicional. Útil para testing o demostración.
 
     Args:
-        request (HttpRequest): _description_
+        request (HttpRequest): Objeto request de Django.
 
     Returns:
-        HttpResponse: _description_
+        HttpResponse: Página HTML renderizada desde la plantilla base.html
+
+    Note:
+        Esta vista probablemente será eliminada o reemplazada en producción.
+        Se mantiene como referencia o para propósitos de desarrollo.
 
     """
     return render(request, "base.html")
