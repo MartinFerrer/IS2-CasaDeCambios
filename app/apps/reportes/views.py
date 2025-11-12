@@ -170,6 +170,10 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         fecha_creacion__date__range=[start_datetime, end_datetime], estado="completada"
     ).select_related("divisa_origen", "divisa_destino")
 
+    # Filtrar por cliente si existe en la sesión
+    if hasattr(request, "cliente") and request.cliente:
+        transactions = transactions.filter(cliente=request.cliente)
+
     if currency != "all":
         transactions = transactions.filter(Q(divisa_origen__codigo=currency) | Q(divisa_destino__codigo=currency))
 
@@ -369,6 +373,10 @@ def dashboard_data(request: HttpRequest) -> JsonResponse:
     transactions = Transaccion.objects.filter(
         fecha_creacion__date__range=[start_datetime, end_datetime], estado="completada"
     ).select_related("divisa_origen", "divisa_destino")
+
+    # Filtrar por cliente si existe en la sesión
+    if hasattr(request, "cliente") and request.cliente:
+        transactions = transactions.filter(cliente=request.cliente)
 
     if currency and currency != "all":
         transactions = transactions.filter(Q(divisa_origen__codigo=currency) | Q(divisa_destino__codigo=currency))

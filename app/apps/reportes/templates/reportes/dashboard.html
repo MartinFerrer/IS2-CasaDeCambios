@@ -655,6 +655,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 Plotly.react('currencyChart', [updatedCurrencyCompraTrace, updatedCurrencyVentaTrace], currencyLayout, currencyConfig);
 
+                // Actualizar tabla de transacciones recientes
+                const tbody = document.querySelector('tbody.bg-white.divide-y.divide-gray-200');
+                if (tbody && data.recent_transactions) {
+                    if (data.recent_transactions.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No hay transacciones en este período</td></tr>';
+                    } else {
+                        tbody.innerHTML = data.recent_transactions.map(trans => {
+                            const tipoClass = trans.tipo === 'compra' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
+                            const gananciaClass = trans.ganancia > 0 ? 'text-green-600' : trans.ganancia < 0 ? 'text-red-600' : 'text-gray-500';
+                            const gananciaSign = trans.ganancia > 0 ? '+' : '';
+                            
+                            return `
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${trans.fecha}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${tipoClass}">
+                                            ${trans.tipo.charAt(0).toUpperCase() + trans.tipo.slice(1)}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                            ${trans.origen.split(' ')[0] === 'PYG' ? trans.destino.split(' ')[0] : trans.origen.split(' ')[0]}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium">${trans.origen.split(' ')[0]}</span>
+                                            <span class="text-gray-500">${parseFloat(trans.origen.split(' ')[1]).toFixed(2)}</span>
+                                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                            </svg>
+                                            <span class="font-medium">${trans.destino.split(' ')[0]}</span>
+                                            <span class="text-gray-500">${parseFloat(trans.destino.split(' ')[1]).toFixed(2)}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                                        <span class="text-sm font-semibold ${gananciaClass}">
+                                            ${gananciaSign}₲ ${new Intl.NumberFormat('es-PY').format(Math.round(trans.ganancia))}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                }
+
                 document.body.style.cursor = 'default';
             })
             .catch(error => {
