@@ -53,6 +53,7 @@ from apps.seguridad.permissions import (
     PERM_VIEW_CLIENTE,
     PERM_VIEW_DIVISA,
     PERM_VIEW_MOVIMIENTOSTOCK,
+    PERM_VIEW_REPORTES,
     PERM_VIEW_ROL,
     PERM_VIEW_TASACAMBIO,
     PERM_VIEW_TASACAMBIOHISTORIAL,
@@ -1470,9 +1471,9 @@ def calcular_ganancia_transaccion(transaccion):
         return Decimal("0")
 
 
-@admin_required
+@permission_required(PERM_VIEW_REPORTES)
 def dashboard(request: HttpRequest) -> HttpResponse:
-    """Vista principal del dashboard de ganancias (solo para administradores)."""
+    """Vista principal del dashboard de ganancias (requiere permiso view_reportes)."""
     # Obtener parámetros de filtro
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
@@ -1606,9 +1607,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     return render(request, "reportes/dashboard.html", context)
 
 
-@admin_required
+@permission_required(PERM_VIEW_REPORTES)
 def dashboard_data(request: HttpRequest) -> JsonResponse:
-    """Endpoint AJAX para actualizar datos del dashboard (solo administradores)."""
+    """Endpoint AJAX para actualizar datos del dashboard (requiere permiso view_reportes)."""
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
     currency = request.GET.get("currency")
