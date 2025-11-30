@@ -76,6 +76,79 @@ def obtener_medio_financiero_por_identificador(identificador, cliente):
     return None
 
 
+def _guardar_valores_historicos_transaccion(transaccion):
+    """Guarda los valores históricos de precio base, comisión y ganancia al momento de completar.
+
+    Esta función debe llamarse ANTES de cambiar el estado a "completada" para capturar
+    los valores que estaban vigentes al momento de la transacción, evitando que cambios
+    futuros en las tasas afecten los reportes históricos.
+
+    La ganancia se calcula como: comision_efectiva * cantidad_divisa_extranjera
+    donde comision_efectiva = tasa_aplicada - precio_base (ya incluye descuentos del cliente)
+
+    Args:
+        transaccion (Transaccion): Instancia de la transacción a completar
+
+    Note:
+        - Solo actualiza si los campos aún no tienen valor (no sobrescribe)
+        - La comisión aplicada incluye el descuento del cliente
+        - Calcula la ganancia: comision_efectiva * cantidad_divisa_extranjera
+
+    """
+    from decimal import Decimal
+
+    from apps.operaciones.models import TasaCambio
+
+    # Si ya tiene valores históricos guardados, no sobrescribir
+    if transaccion.ganancia_calculada is not None:
+        return
+
+    try:
+        # Identificar divisa extranjera y cantidad
+        if transaccion.divisa_origen.codigo == "PYG":
+            # Cliente COMPRA divisa (casa VENDE)
+            divisa_extranjera = transaccion.divisa_destino
+            cantidad_extranjera = transaccion.monto_destino
+            es_venta = True
+        else:
+            # Cliente VENDE divisa (casa COMPRA)
+            divisa_extranjera = transaccion.divisa_origen
+            cantidad_extranjera = transaccion.monto_origen
+            es_venta = False
+
+        # Obtener tasa activa actual
+        tasa = TasaCambio.objects.filter(
+            divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
+        ).first()
+
+        if tasa:
+            # Guardar precio base histórico
+            transaccion.precio_base_aplicado = tasa.precio_base
+
+            # Calcular comisión EFECTIVA (con descuento del cliente ya aplicado)
+            # La tasa_aplicada de la transacción ya incluye el descuento
+            # comision_efectiva = tasa_aplicada - precio_base
+            if es_venta:
+                # Casa VENDE: tasa_aplicada = precio_base + comision_efectiva
+                comision_efectiva = transaccion.tasa_aplicada - tasa.precio_base
+            else:
+                # Casa COMPRA: tasa_aplicada = precio_base - comision_efectiva
+                comision_efectiva = tasa.precio_base - transaccion.tasa_aplicada
+
+            # Guardar comisión efectiva (incluye descuento del cliente)
+            transaccion.comision_aplicada = comision_efectiva
+
+            # Calcular y guardar ganancia
+            # Ganancia = comision_efectiva * cantidad_divisa_extranjera
+            ganancia = comision_efectiva * cantidad_extranjera
+            transaccion.ganancia_calculada = ganancia if ganancia > 0 else Decimal("0")
+
+    except Exception as e:
+        # En caso de error, no bloquear la transacción
+        print(f"⚠️  Advertencia: No se pudieron guardar valores históricos: {e}")
+
+
+
 def obtener_nombre_medio(medio_id, cliente):
     """Obtiene el nombre legible de un medio de pago/cobro con su alias real.
 
@@ -1491,6 +1564,9 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
         # Si es POST, procesar la confirmación de la transacción
         if request.method == "POST":
             try:
+                # Guardar valores históricos antes de completar
+                _guardar_valores_historicos_transaccion(transaccion)
+
                 # Actualizar estado de la transacción
                 transaccion.estado = "completada"
                 transaccion.fecha_completada = timezone.now()
@@ -2515,6 +2591,7 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
                     )
             else:
                 # Otros casos: completar la transacción
+                _guardar_valores_historicos_transaccion(transaccion)
                 transaccion.estado = "completada"
                 transaccion.fecha_pago = timezone.now()
                 transaccion.fecha_completada = timezone.now()
@@ -2653,6 +2730,7 @@ def _handle_payment_intent_succeeded(payment_intent):
             transaccion.estado = "pendiente"
         else:
             # Otros casos: completar la transacción
+            _guardar_valores_historicos_transaccion(transaccion)
             transaccion.estado = "completada"
             transaccion.fecha_completada = timezone.now()
 
