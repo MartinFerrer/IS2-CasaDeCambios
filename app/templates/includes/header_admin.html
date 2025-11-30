@@ -65,6 +65,9 @@
                 <li>
                     <a href="{% url 'configuracion' %}" class="hover:bg-blue-700 rounded-md">Configuración</a>
                 </li>
+                <li>
+                    <a href="{% url 'dashboard_ganancias' %}" class="hover:bg-blue-700 rounded-md">Dashboard</a>
+                </li>
             </ul>
         </nav>
         {# Menú de usuario desplegable #}
@@ -136,6 +139,8 @@
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Historial de Tasas de Cambio</a>
             <a href="{% url 'configuracion' %}"
                class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Configuración</a>
+            <a href="{% url 'dashboard_ganancias' %}"
+               class="mb-3 block py-2 px-3 rounded hover:bg-neutral-200 transition">Dashboard</a>
             <div class="border-t border-neutral-content my-3"></div>
             <div class="mb-3 flex items-center space-x-2">
                 <div class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white">

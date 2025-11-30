@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mostrar indicador de carga
         document.body.style.cursor = 'wait';
 
-        fetch(`/reportes/dashboard/data/?${new URLSearchParams(filterParams)}`)
+        fetch(`/admin/dashboard/data/?${new URLSearchParams(filterParams)}`)
             .then(response => response.json())
             .then(data => {
                 // Actualizar métricas
