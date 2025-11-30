@@ -65,5 +65,4 @@ urlpatterns = [
     # URLs para el dashboard de ganancias (solo admin)
     path("dashboard/", views.dashboard, name="dashboard_ganancias"),
     path("dashboard/data/", views.dashboard_data, name="dashboard_data"),
-
 ]

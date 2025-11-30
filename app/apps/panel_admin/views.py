@@ -1167,6 +1167,7 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
 
     return render(request, "tasa_cambio_historial_list.html", context)
 
+
 # CRUD de Tausers
 @permission_required(PERM_VIEW_TAUSER)
 def tauser_list(request: HttpRequest) -> HttpResponse:
@@ -1268,49 +1269,47 @@ def tauser_depositar(request: HttpRequest) -> HttpResponse:
 
     try:
         # Leer datos del formulario POST (campo payload) o del body JSON
-        payload = request.POST.get('payload')
+        payload = request.POST.get("payload")
         if payload:
             data = json.loads(payload)
         else:
             data = json.loads(request.body)
 
         # Validar campos requeridos
-        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        required_fields = ["tauser_id", "divisa_id", "denominaciones"]
         for field in required_fields:
             if field not in data:
-                messages.error(request, f'Campo requerido: {field}')
-                return redirect('tauser_listar')
+                messages.error(request, f"Campo requerido: {field}")
+                return redirect("tauser_listar")
 
         # Validar denominaciones
-        denominaciones = data['denominaciones']
+        denominaciones = data["denominaciones"]
         if not isinstance(denominaciones, list) or not denominaciones:
-            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
-            return redirect('tauser_listar')
+            messages.error(request, "Las denominaciones deben ser una lista no vacía")
+            return redirect("tauser_listar")
 
         for item in denominaciones:
-            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
-                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
-                return redirect('tauser_listar')
+            if not isinstance(item, dict) or "denominacion" not in item or "cantidad" not in item:
+                messages.error(request, "Cada denominación debe tener denominacion y cantidad")
+                return redirect("tauser_listar")
         print(denominaciones)
         # Realizar el depósito
         movimiento = depositar_divisas(
-            tauser_id=data['tauser_id'],
-            divisa_id=data['divisa_id'],
-            denominaciones_cantidades=denominaciones
+            tauser_id=data["tauser_id"], divisa_id=data["divisa_id"], denominaciones_cantidades=denominaciones
         )
 
-        messages.success(request, '¡Depósito realizado exitosamente!')
-        return redirect('tauser_listar')
+        messages.success(request, "¡Depósito realizado exitosamente!")
+        return redirect("tauser_listar")
 
     except ValidationError as e:
         messages.error(request, str(e))
-        return redirect('tauser_listar')
+        return redirect("tauser_listar")
     except json.JSONDecodeError:
-        messages.error(request, 'JSON inválido')
-        return redirect('tauser_listar')
+        messages.error(request, "JSON inválido")
+        return redirect("tauser_listar")
     except Exception as e:
-        messages.error(request, f'Error interno: {e!s}')
-        return redirect('tauser_listar')
+        messages.error(request, f"Error interno: {e!s}")
+        return redirect("tauser_listar")
 
 
 @permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
@@ -1329,49 +1328,47 @@ def tauser_extraer(request: HttpRequest) -> HttpResponse:
 
     try:
         # Leer datos del formulario POST (campo payload) o del body JSON
-        payload = request.POST.get('payload')
+        payload = request.POST.get("payload")
         if payload:
             data = json.loads(payload)
         else:
             data = json.loads(request.body)
 
         # Validar campos requeridos
-        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        required_fields = ["tauser_id", "divisa_id", "denominaciones"]
         for field in required_fields:
             if field not in data:
-                messages.error(request, f'Campo requerido: {field}')
-                return redirect('tauser_listar')
+                messages.error(request, f"Campo requerido: {field}")
+                return redirect("tauser_listar")
 
         # Validar denominaciones
-        denominaciones = data['denominaciones']
+        denominaciones = data["denominaciones"]
         if not isinstance(denominaciones, list) or not denominaciones:
-            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
-            return redirect('tauser_listar')
+            messages.error(request, "Las denominaciones deben ser una lista no vacía")
+            return redirect("tauser_listar")
 
         for item in denominaciones:
-            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
-                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
-                return redirect('tauser_listar')
+            if not isinstance(item, dict) or "denominacion" not in item or "cantidad" not in item:
+                messages.error(request, "Cada denominación debe tener denominacion y cantidad")
+                return redirect("tauser_listar")
 
         # Realizar la extracción
         movimiento = extraer_divisas(
-            tauser_id=data['tauser_id'],
-            divisa_id=data['divisa_id'],
-            denominaciones_cantidades=denominaciones
+            tauser_id=data["tauser_id"], divisa_id=data["divisa_id"], denominaciones_cantidades=denominaciones
         )
 
-        messages.success(request, '¡Extracción realizada exitosamente!')
-        return redirect('tauser_listar')
+        messages.success(request, "¡Extracción realizada exitosamente!")
+        return redirect("tauser_listar")
 
     except ValidationError as e:
         messages.error(request, str(e))
-        return redirect('tauser_listar')
+        return redirect("tauser_listar")
     except json.JSONDecodeError:
-        messages.error(request, 'JSON inválido')
-        return redirect('tauser_listar')
+        messages.error(request, "JSON inválido")
+        return redirect("tauser_listar")
     except Exception as e:
-        messages.error(request, f'Error interno: {e!s}')
-        return redirect('tauser_listar')
+        messages.error(request, f"Error interno: {e!s}")
+        return redirect("tauser_listar")
 
 
 @permission_required(PERM_VIEW_MOVIMIENTOSTOCK)
@@ -1387,24 +1384,26 @@ def movimientos_stock_listar(request: HttpRequest) -> HttpResponse:
     """
     from datetime import datetime
 
-    movimientos = MovimientoStock.objects.select_related(
-        'tauser', 'divisa', 'transaccion'
-    ).prefetch_related('detalles').order_by('-fecha_creacion')
+    movimientos = (
+        MovimientoStock.objects.select_related("tauser", "divisa", "transaccion")
+        .prefetch_related("detalles")
+        .order_by("-fecha_creacion")
+    )
 
     # Filtros
-    fecha_inicio = request.GET.get('fecha_inicio')
-    fecha_fin = request.GET.get('fecha_fin')
-    tauser_id = request.GET.get('tauser')
-    divisa_codigo = request.GET.get('divisa')
-    tipo_movimiento = request.GET.get('tipo_movimiento')
-    estado = request.GET.get('estado')
+    fecha_inicio = request.GET.get("fecha_inicio")
+    fecha_fin = request.GET.get("fecha_fin")
+    tauser_id = request.GET.get("tauser")
+    divisa_codigo = request.GET.get("divisa")
+    tipo_movimiento = request.GET.get("tipo_movimiento")
+    estado = request.GET.get("estado")
 
     if fecha_inicio:
         movimientos = movimientos.filter(fecha_creacion__gte=fecha_inicio)
     if fecha_fin:
         # Hacer que la fecha de fin sea inclusiva hasta el final del día
         try:
-            fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d")
             fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
             movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin_dt)
         except Exception:
@@ -1419,17 +1418,18 @@ def movimientos_stock_listar(request: HttpRequest) -> HttpResponse:
         movimientos = movimientos.filter(estado=estado)
 
     context = {
-        'movimientos': movimientos,
-        'tausers': Tauser.objects.all().order_by('nombre'),
-        'divisas': Divisa.objects.all().order_by('codigo'),
-        'tipos_movimiento': MovimientoStock.TIPOS_MOVIMIENTO,
-        'estados_movimiento': MovimientoStock.ESTADOS_MOVIMIENTO,
+        "movimientos": movimientos,
+        "tausers": Tauser.objects.all().order_by("nombre"),
+        "divisas": Divisa.objects.all().order_by("codigo"),
+        "tipos_movimiento": MovimientoStock.TIPOS_MOVIMIENTO,
+        "estados_movimiento": MovimientoStock.ESTADOS_MOVIMIENTO,
     }
 
-    return render(request, 'movimientos_stock_list.html', context)
+    return render(request, "movimientos_stock_list.html", context)
 
 
 # ==================== DASHBOARD DE GANANCIAS ====================
+
 
 def calcular_ganancia_transaccion(transaccion):
     """Calcula la ganancia de una transacción basada en la comisión aplicada."""
@@ -1492,6 +1492,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
     # Base query
     from apps.transacciones.models import Transaccion
+
     transactions = Transaccion.objects.filter(
         fecha_creacion__date__range=[start_datetime, end_datetime], estado="completada"
     ).select_related("divisa_origen", "divisa_destino")
@@ -1522,7 +1523,8 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
     if currency != "all":
         previous_transactions = [
-            t for t in previous_transactions
+            t
+            for t in previous_transactions
             if t.divisa_origen.codigo == currency or t.divisa_destino.codigo == currency
         ]
 
@@ -1558,7 +1560,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     all_currencies = set()
 
     for trans in transactions_list:
-        divisa_codigo = trans.divisa_destino.codigo if trans.divisa_origen.codigo == "PYG" else trans.divisa_origen.codigo
+        divisa_codigo = (
+            trans.divisa_destino.codigo if trans.divisa_origen.codigo == "PYG" else trans.divisa_origen.codigo
+        )
         all_currencies.add(divisa_codigo)
         ganancia = calcular_ganancia_transaccion(trans)
 
@@ -1619,6 +1623,7 @@ def dashboard_data(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "El rango no puede exceder 1 año"}, status=400)
 
     from apps.transacciones.models import Transaccion
+
     transactions = Transaccion.objects.filter(
         fecha_creacion__date__range=[start_datetime, end_datetime], estado="completada"
     ).select_related("divisa_origen", "divisa_destino")
@@ -1643,7 +1648,8 @@ def dashboard_data(request: HttpRequest) -> JsonResponse:
     )
     if currency and currency != "all":
         previous_transactions = [
-            t for t in previous_transactions
+            t
+            for t in previous_transactions
             if t.divisa_origen.codigo == currency or t.divisa_destino.codigo == currency
         ]
     previous_profits = sum(calcular_ganancia_transaccion(t) for t in previous_transactions)
@@ -1673,7 +1679,9 @@ def dashboard_data(request: HttpRequest) -> JsonResponse:
     all_currencies = set()
 
     for trans in transactions_list:
-        divisa_codigo = trans.divisa_destino.codigo if trans.divisa_origen.codigo == "PYG" else trans.divisa_origen.codigo
+        divisa_codigo = (
+            trans.divisa_destino.codigo if trans.divisa_origen.codigo == "PYG" else trans.divisa_origen.codigo
+        )
         all_currencies.add(divisa_codigo)
         ganancia = calcular_ganancia_transaccion(trans)
         if trans.tipo_operacion == "compra":
@@ -1703,16 +1711,18 @@ def dashboard_data(request: HttpRequest) -> JsonResponse:
         for t in recent_transactions_list
     ]
 
-    return JsonResponse({
-        "total_profits": float(total_profits),
-        "total_transactions": total_transactions,
-        "avg_profit": avg_profit,
-        "growth_rate": round(float(growth_rate), 2),
-        "dates_labels": dates_labels,
-        "profits_compra_data": profits_compra_data,
-        "profits_venta_data": profits_venta_data,
-        "currency_labels": currency_labels,
-        "currency_compra_data": currency_compra_data,
-        "currency_venta_data": currency_venta_data,
-        "recent_transactions": recent_transactions,
-    })
+    return JsonResponse(
+        {
+            "total_profits": float(total_profits),
+            "total_transactions": total_transactions,
+            "avg_profit": avg_profit,
+            "growth_rate": round(float(growth_rate), 2),
+            "dates_labels": dates_labels,
+            "profits_compra_data": profits_compra_data,
+            "profits_venta_data": profits_venta_data,
+            "currency_labels": currency_labels,
+            "currency_compra_data": currency_compra_data,
+            "currency_venta_data": currency_venta_data,
+            "recent_transactions": recent_transactions,
+        }
+    )
