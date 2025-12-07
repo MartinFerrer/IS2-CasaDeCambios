@@ -62,5 +62,7 @@ urlpatterns = [
     path("tauser/extraer/", views.tauser_extraer, name="tauser_extraer"),
     # URLs para historial de movimientos de stock
     path("movimientos/", views.movimientos_stock_listar, name="movimientos_stock_listar"),
-
+    # URLs para el dashboard de ganancias (solo admin)
+    path("dashboard/", views.dashboard, name="dashboard_ganancias"),
+    path("dashboard/data/", views.dashboard_data, name="dashboard_data"),
 ]

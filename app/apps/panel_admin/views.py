@@ -4,6 +4,8 @@ Este módulo contiene operaciones CRUD para los modelos Usuario, Cliente y Rol,
 así como la lógica de asociación entre Cliente y Usuario.
 """
 
+import json
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 import pycountry
@@ -15,6 +17,7 @@ from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_POST
 from forex_python.converter import CurrencyCodes
 
@@ -50,6 +53,7 @@ from apps.seguridad.permissions import (
     PERM_VIEW_CLIENTE,
     PERM_VIEW_DIVISA,
     PERM_VIEW_MOVIMIENTOSTOCK,
+    PERM_VIEW_REPORTES,
     PERM_VIEW_ROL,
     PERM_VIEW_TASACAMBIO,
     PERM_VIEW_TASACAMBIOHISTORIAL,
@@ -1164,6 +1168,7 @@ def tasa_cambio_historial_listar(request: HttpRequest) -> object:
 
     return render(request, "tasa_cambio_historial_list.html", context)
 
+
 # CRUD de Tausers
 @permission_required(PERM_VIEW_TAUSER)
 def tauser_list(request: HttpRequest) -> HttpResponse:
@@ -1265,49 +1270,47 @@ def tauser_depositar(request: HttpRequest) -> HttpResponse:
 
     try:
         # Leer datos del formulario POST (campo payload) o del body JSON
-        payload = request.POST.get('payload')
+        payload = request.POST.get("payload")
         if payload:
             data = json.loads(payload)
         else:
             data = json.loads(request.body)
 
         # Validar campos requeridos
-        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        required_fields = ["tauser_id", "divisa_id", "denominaciones"]
         for field in required_fields:
             if field not in data:
-                messages.error(request, f'Campo requerido: {field}')
-                return redirect('tauser_listar')
+                messages.error(request, f"Campo requerido: {field}")
+                return redirect("tauser_listar")
 
         # Validar denominaciones
-        denominaciones = data['denominaciones']
+        denominaciones = data["denominaciones"]
         if not isinstance(denominaciones, list) or not denominaciones:
-            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
-            return redirect('tauser_listar')
+            messages.error(request, "Las denominaciones deben ser una lista no vacía")
+            return redirect("tauser_listar")
 
         for item in denominaciones:
-            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
-                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
-                return redirect('tauser_listar')
+            if not isinstance(item, dict) or "denominacion" not in item or "cantidad" not in item:
+                messages.error(request, "Cada denominación debe tener denominacion y cantidad")
+                return redirect("tauser_listar")
         print(denominaciones)
         # Realizar el depósito
         movimiento = depositar_divisas(
-            tauser_id=data['tauser_id'],
-            divisa_id=data['divisa_id'],
-            denominaciones_cantidades=denominaciones
+            tauser_id=data["tauser_id"], divisa_id=data["divisa_id"], denominaciones_cantidades=denominaciones
         )
 
-        messages.success(request, '¡Depósito realizado exitosamente!')
-        return redirect('tauser_listar')
+        messages.success(request, "¡Depósito realizado exitosamente!")
+        return redirect("tauser_listar")
 
     except ValidationError as e:
         messages.error(request, str(e))
-        return redirect('tauser_listar')
+        return redirect("tauser_listar")
     except json.JSONDecodeError:
-        messages.error(request, 'JSON inválido')
-        return redirect('tauser_listar')
+        messages.error(request, "JSON inválido")
+        return redirect("tauser_listar")
     except Exception as e:
-        messages.error(request, f'Error interno: {e!s}')
-        return redirect('tauser_listar')
+        messages.error(request, f"Error interno: {e!s}")
+        return redirect("tauser_listar")
 
 
 @permission_required(PERM_CHANGE_STOCKDIVISATAUSER)
@@ -1326,49 +1329,47 @@ def tauser_extraer(request: HttpRequest) -> HttpResponse:
 
     try:
         # Leer datos del formulario POST (campo payload) o del body JSON
-        payload = request.POST.get('payload')
+        payload = request.POST.get("payload")
         if payload:
             data = json.loads(payload)
         else:
             data = json.loads(request.body)
 
         # Validar campos requeridos
-        required_fields = ['tauser_id', 'divisa_id', 'denominaciones']
+        required_fields = ["tauser_id", "divisa_id", "denominaciones"]
         for field in required_fields:
             if field not in data:
-                messages.error(request, f'Campo requerido: {field}')
-                return redirect('tauser_listar')
+                messages.error(request, f"Campo requerido: {field}")
+                return redirect("tauser_listar")
 
         # Validar denominaciones
-        denominaciones = data['denominaciones']
+        denominaciones = data["denominaciones"]
         if not isinstance(denominaciones, list) or not denominaciones:
-            messages.error(request, 'Las denominaciones deben ser una lista no vacía')
-            return redirect('tauser_listar')
+            messages.error(request, "Las denominaciones deben ser una lista no vacía")
+            return redirect("tauser_listar")
 
         for item in denominaciones:
-            if not isinstance(item, dict) or 'denominacion' not in item or 'cantidad' not in item:
-                messages.error(request, 'Cada denominación debe tener denominacion y cantidad')
-                return redirect('tauser_listar')
+            if not isinstance(item, dict) or "denominacion" not in item or "cantidad" not in item:
+                messages.error(request, "Cada denominación debe tener denominacion y cantidad")
+                return redirect("tauser_listar")
 
         # Realizar la extracción
         movimiento = extraer_divisas(
-            tauser_id=data['tauser_id'],
-            divisa_id=data['divisa_id'],
-            denominaciones_cantidades=denominaciones
+            tauser_id=data["tauser_id"], divisa_id=data["divisa_id"], denominaciones_cantidades=denominaciones
         )
 
-        messages.success(request, '¡Extracción realizada exitosamente!')
-        return redirect('tauser_listar')
+        messages.success(request, "¡Extracción realizada exitosamente!")
+        return redirect("tauser_listar")
 
     except ValidationError as e:
         messages.error(request, str(e))
-        return redirect('tauser_listar')
+        return redirect("tauser_listar")
     except json.JSONDecodeError:
-        messages.error(request, 'JSON inválido')
-        return redirect('tauser_listar')
+        messages.error(request, "JSON inválido")
+        return redirect("tauser_listar")
     except Exception as e:
-        messages.error(request, f'Error interno: {e!s}')
-        return redirect('tauser_listar')
+        messages.error(request, f"Error interno: {e!s}")
+        return redirect("tauser_listar")
 
 
 @permission_required(PERM_VIEW_MOVIMIENTOSTOCK)
@@ -1384,24 +1385,26 @@ def movimientos_stock_listar(request: HttpRequest) -> HttpResponse:
     """
     from datetime import datetime
 
-    movimientos = MovimientoStock.objects.select_related(
-        'tauser', 'divisa', 'transaccion'
-    ).prefetch_related('detalles').order_by('-fecha_creacion')
+    movimientos = (
+        MovimientoStock.objects.select_related("tauser", "divisa", "transaccion")
+        .prefetch_related("detalles")
+        .order_by("-fecha_creacion")
+    )
 
     # Filtros
-    fecha_inicio = request.GET.get('fecha_inicio')
-    fecha_fin = request.GET.get('fecha_fin')
-    tauser_id = request.GET.get('tauser')
-    divisa_codigo = request.GET.get('divisa')
-    tipo_movimiento = request.GET.get('tipo_movimiento')
-    estado = request.GET.get('estado')
+    fecha_inicio = request.GET.get("fecha_inicio")
+    fecha_fin = request.GET.get("fecha_fin")
+    tauser_id = request.GET.get("tauser")
+    divisa_codigo = request.GET.get("divisa")
+    tipo_movimiento = request.GET.get("tipo_movimiento")
+    estado = request.GET.get("estado")
 
     if fecha_inicio:
         movimientos = movimientos.filter(fecha_creacion__gte=fecha_inicio)
     if fecha_fin:
         # Hacer que la fecha de fin sea inclusiva hasta el final del día
         try:
-            fecha_fin_dt = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d")
             fecha_fin_dt = fecha_fin_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
             movimientos = movimientos.filter(fecha_creacion__lte=fecha_fin_dt)
         except Exception:
@@ -1416,11 +1419,311 @@ def movimientos_stock_listar(request: HttpRequest) -> HttpResponse:
         movimientos = movimientos.filter(estado=estado)
 
     context = {
-        'movimientos': movimientos,
-        'tausers': Tauser.objects.all().order_by('nombre'),
-        'divisas': Divisa.objects.all().order_by('codigo'),
-        'tipos_movimiento': MovimientoStock.TIPOS_MOVIMIENTO,
-        'estados_movimiento': MovimientoStock.ESTADOS_MOVIMIENTO,
+        "movimientos": movimientos,
+        "tausers": Tauser.objects.all().order_by("nombre"),
+        "divisas": Divisa.objects.all().order_by("codigo"),
+        "tipos_movimiento": MovimientoStock.TIPOS_MOVIMIENTO,
+        "estados_movimiento": MovimientoStock.ESTADOS_MOVIMIENTO,
     }
 
-    return render(request, 'movimientos_stock_list.html', context)
+    return render(request, "movimientos_stock_list.html", context)
+
+
+# ==================== DASHBOARD DE GANANCIAS ====================
+
+
+def calcular_ganancia_transaccion(transaccion):
+    """Calcula la ganancia de una transacción basada en la comisión aplicada."""
+    try:
+        # PRIORIDAD 1: Si ya tiene ganancia calculada histórica, usarla
+        if transaccion.ganancia_calculada is not None:
+            return transaccion.ganancia_calculada
+
+        # Identificar la divisa extranjera y su cantidad
+        if transaccion.divisa_origen.codigo == "PYG":
+            divisa_extranjera = transaccion.divisa_destino
+            cantidad_extranjera = transaccion.monto_destino
+            tipo_comision = "venta"
+        else:
+            divisa_extranjera = transaccion.divisa_origen
+            cantidad_extranjera = transaccion.monto_origen
+            tipo_comision = "compra"
+
+        # PRIORIDAD 2: Si tiene comisión aplicada histórica, usarla
+        if transaccion.comision_aplicada is not None:
+            ganancia = transaccion.comision_aplicada * cantidad_extranjera
+            return ganancia if ganancia > 0 else Decimal("0")
+
+        # PRIORIDAD 3: Calcular con tasa activa actual (fallback)
+        tasa = TasaCambio.objects.filter(
+            divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
+        ).first()
+
+        if tasa:
+            if tipo_comision == "venta":
+                ganancia = tasa.comision_venta * cantidad_extranjera
+            else:
+                ganancia = tasa.comision_compra * cantidad_extranjera
+            return ganancia if ganancia > 0 else Decimal("0")
+
+        return Decimal("0")
+    except Exception:
+        return Decimal("0")
+
+
+@permission_required(PERM_VIEW_REPORTES)
+def dashboard(request: HttpRequest) -> HttpResponse:
+    """Vista principal del dashboard de ganancias (requiere permiso view_reportes)."""
+    # Obtener parámetros de filtro
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    currency = request.GET.get("currency", "all")
+
+    # Fechas por defecto: últimos 30 días
+    if not start_date or not end_date:
+        end_datetime = timezone.now()
+        start_datetime = end_datetime - timedelta(days=30)
+    else:
+        start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+        end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+
+    # Validar que el rango no exceda 1 año
+    if (end_datetime - start_datetime).days > 365:
+        end_datetime = start_datetime + timedelta(days=365)
+
+    # Base query
+    from apps.transacciones.models import Transaccion
+
+    transactions = Transaccion.objects.filter(
+        fecha_creacion__date__range=[start_datetime, end_datetime], estado="completada"
+    ).select_related("divisa_origen", "divisa_destino")
+
+    # Filtrar por cliente si existe en la sesión
+    if hasattr(request, "cliente") and request.cliente:
+        transactions = transactions.filter(cliente=request.cliente)
+
+    if currency != "all":
+        transactions = transactions.filter(Q(divisa_origen__codigo=currency) | Q(divisa_destino__codigo=currency))
+
+    # Calcular ganancias totales
+    transactions_list = list(transactions)
+    total_profits = Decimal("0")
+    for trans in transactions_list:
+        total_profits += calcular_ganancia_transaccion(trans)
+
+    total_transactions = len(transactions_list)
+    avg_profit = total_profits / total_transactions if total_transactions > 0 else Decimal("0")
+
+    # Tasa de crecimiento
+    previous_start = start_datetime - timedelta(days=30)
+    previous_transactions = list(
+        Transaccion.objects.filter(
+            fecha_creacion__date__range=[previous_start, start_datetime], estado="completada"
+        ).select_related("divisa_origen", "divisa_destino")
+    )
+
+    if currency != "all":
+        previous_transactions = [
+            t
+            for t in previous_transactions
+            if t.divisa_origen.codigo == currency or t.divisa_destino.codigo == currency
+        ]
+
+    previous_profits = Decimal("0")
+    for trans in previous_transactions:
+        previous_profits += calcular_ganancia_transaccion(trans)
+
+    growth_rate = ((total_profits - previous_profits) / previous_profits * 100) if previous_profits != 0 else 0
+
+    # Datos para gráfico de líneas - separado por tipo
+    daily_profits_compra = {}
+    daily_profits_venta = {}
+    all_dates = set()
+
+    for trans in transactions_list:
+        date = trans.fecha_creacion.date()
+        all_dates.add(date)
+        ganancia = calcular_ganancia_transaccion(trans)
+
+        if trans.tipo_operacion == "compra":
+            daily_profits_compra[date] = daily_profits_compra.get(date, Decimal("0")) + ganancia
+        else:
+            daily_profits_venta[date] = daily_profits_venta.get(date, Decimal("0")) + ganancia
+
+    sorted_dates = sorted(all_dates)
+    dates_labels = [date.strftime("%Y-%m-%d") for date in sorted_dates]
+    profits_compra_data = [float(daily_profits_compra.get(date, Decimal("0"))) for date in sorted_dates]
+    profits_venta_data = [float(daily_profits_venta.get(date, Decimal("0"))) for date in sorted_dates]
+
+    # Datos para gráfico de barras - por divisa
+    currency_profits_compra = {}
+    currency_profits_venta = {}
+    all_currencies = set()
+
+    for trans in transactions_list:
+        divisa_codigo = (
+            trans.divisa_destino.codigo if trans.divisa_origen.codigo == "PYG" else trans.divisa_origen.codigo
+        )
+        all_currencies.add(divisa_codigo)
+        ganancia = calcular_ganancia_transaccion(trans)
+
+        if trans.tipo_operacion == "compra":
+            currency_profits_compra[divisa_codigo] = currency_profits_compra.get(divisa_codigo, Decimal("0")) + ganancia
+        else:
+            currency_profits_venta[divisa_codigo] = currency_profits_venta.get(divisa_codigo, Decimal("0")) + ganancia
+
+    currency_totals = {
+        c: currency_profits_compra.get(c, Decimal("0")) + currency_profits_venta.get(c, Decimal("0"))
+        for c in all_currencies
+    }
+    sorted_currencies = sorted(currency_totals.items(), key=lambda x: x[1], reverse=True)
+    currency_labels = [codigo for codigo, _ in sorted_currencies]
+    currency_compra_data = [float(currency_profits_compra.get(codigo, Decimal("0"))) for codigo in currency_labels]
+    currency_venta_data = [float(currency_profits_venta.get(codigo, Decimal("0"))) for codigo in currency_labels]
+
+    # Transacciones recientes
+    recent_transactions = transactions_list[:5]
+    for trans in recent_transactions:
+        trans.ganancia = calcular_ganancia_transaccion(trans)
+
+    context = {
+        "start_date": start_datetime,
+        "end_date": end_datetime,
+        "selected_currency": currency,
+        "total_profits": total_profits,
+        "total_transactions": total_transactions,
+        "avg_profit": avg_profit,
+        "growth_rate": round(growth_rate, 2),
+        "dates_labels": mark_safe(json.dumps(dates_labels)),
+        "profits_compra_data": mark_safe(json.dumps(profits_compra_data)),
+        "profits_venta_data": mark_safe(json.dumps(profits_venta_data)),
+        "currency_labels": mark_safe(json.dumps(currency_labels)),
+        "currency_compra_data": mark_safe(json.dumps(currency_compra_data)),
+        "currency_venta_data": mark_safe(json.dumps(currency_venta_data)),
+        "recent_transactions": recent_transactions,
+        "divisas": Divisa.objects.all().order_by("codigo"),
+    }
+
+    return render(request, "reportes/dashboard.html", context)
+
+
+@permission_required(PERM_VIEW_REPORTES)
+def dashboard_data(request: HttpRequest) -> JsonResponse:
+    """Endpoint AJAX para actualizar datos del dashboard (requiere permiso view_reportes)."""
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    currency = request.GET.get("currency")
+
+    if not all([start_date, end_date]):
+        return JsonResponse({"error": "Fechas requeridas"}, status=400)
+
+    start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+    end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+
+    if (end_datetime - start_datetime).days > 365:
+        return JsonResponse({"error": "El rango no puede exceder 1 año"}, status=400)
+
+    from apps.transacciones.models import Transaccion
+
+    transactions = Transaccion.objects.filter(
+        fecha_creacion__date__range=[start_datetime, end_datetime], estado="completada"
+    ).select_related("divisa_origen", "divisa_destino")
+
+    if hasattr(request, "cliente") and request.cliente:
+        transactions = transactions.filter(cliente=request.cliente)
+
+    if currency and currency != "all":
+        transactions = transactions.filter(Q(divisa_origen__codigo=currency) | Q(divisa_destino__codigo=currency))
+
+    transactions_list = list(transactions)
+    total_profits = sum(calcular_ganancia_transaccion(t) for t in transactions_list)
+    total_transactions = len(transactions_list)
+    avg_profit = float(total_profits / total_transactions) if total_transactions > 0 else 0
+
+    # Crecimiento
+    previous_start = start_datetime - timedelta(days=30)
+    previous_transactions = list(
+        Transaccion.objects.filter(
+            fecha_creacion__date__range=[previous_start, start_datetime], estado="completada"
+        ).select_related("divisa_origen", "divisa_destino")
+    )
+    if currency and currency != "all":
+        previous_transactions = [
+            t
+            for t in previous_transactions
+            if t.divisa_origen.codigo == currency or t.divisa_destino.codigo == currency
+        ]
+    previous_profits = sum(calcular_ganancia_transaccion(t) for t in previous_transactions)
+    growth_rate = ((total_profits - previous_profits) / previous_profits * 100) if previous_profits != 0 else 0
+
+    # Gráficos
+    daily_profits_compra = {}
+    daily_profits_venta = {}
+    all_dates = set()
+
+    for trans in transactions_list:
+        date = trans.fecha_creacion.date()
+        all_dates.add(date)
+        ganancia = calcular_ganancia_transaccion(trans)
+        if trans.tipo_operacion == "compra":
+            daily_profits_compra[date] = daily_profits_compra.get(date, Decimal("0")) + ganancia
+        else:
+            daily_profits_venta[date] = daily_profits_venta.get(date, Decimal("0")) + ganancia
+
+    sorted_dates = sorted(all_dates)
+    dates_labels = [date.strftime("%Y-%m-%d") for date in sorted_dates]
+    profits_compra_data = [float(daily_profits_compra.get(date, Decimal("0"))) for date in sorted_dates]
+    profits_venta_data = [float(daily_profits_venta.get(date, Decimal("0"))) for date in sorted_dates]
+
+    currency_profits_compra = {}
+    currency_profits_venta = {}
+    all_currencies = set()
+
+    for trans in transactions_list:
+        divisa_codigo = (
+            trans.divisa_destino.codigo if trans.divisa_origen.codigo == "PYG" else trans.divisa_origen.codigo
+        )
+        all_currencies.add(divisa_codigo)
+        ganancia = calcular_ganancia_transaccion(trans)
+        if trans.tipo_operacion == "compra":
+            currency_profits_compra[divisa_codigo] = currency_profits_compra.get(divisa_codigo, Decimal("0")) + ganancia
+        else:
+            currency_profits_venta[divisa_codigo] = currency_profits_venta.get(divisa_codigo, Decimal("0")) + ganancia
+
+    currency_totals = {
+        c: currency_profits_compra.get(c, Decimal("0")) + currency_profits_venta.get(c, Decimal("0"))
+        for c in all_currencies
+    }
+    sorted_currencies = sorted(currency_totals.items(), key=lambda x: x[1], reverse=True)
+    currency_labels = [codigo for codigo, _ in sorted_currencies]
+    currency_compra_data = [float(currency_profits_compra.get(codigo, Decimal("0"))) for codigo in currency_labels]
+    currency_venta_data = [float(currency_profits_venta.get(codigo, Decimal("0"))) for codigo in currency_labels]
+
+    recent_transactions_list = transactions_list[:5]
+    recent_transactions = [
+        {
+            "fecha": t.fecha_creacion.strftime("%d/%m/%Y %H:%M"),
+            "tipo": t.tipo_operacion,
+            "origen": f"{t.divisa_origen.codigo} {float(t.monto_origen):.2f}",
+            "destino": f"{t.divisa_destino.codigo} {float(t.monto_destino):.2f}",
+            "monto": float(t.monto_origen),
+            "ganancia": float(calcular_ganancia_transaccion(t)),
+        }
+        for t in recent_transactions_list
+    ]
+
+    return JsonResponse(
+        {
+            "total_profits": float(total_profits),
+            "total_transactions": total_transactions,
+            "avg_profit": avg_profit,
+            "growth_rate": round(float(growth_rate), 2),
+            "dates_labels": dates_labels,
+            "profits_compra_data": profits_compra_data,
+            "profits_venta_data": profits_venta_data,
+            "currency_labels": currency_labels,
+            "currency_compra_data": currency_compra_data,
+            "currency_venta_data": currency_venta_data,
+            "recent_transactions": recent_transactions,
+        }
+    )

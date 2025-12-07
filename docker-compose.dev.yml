@@ -107,6 +107,5 @@ services:
         # Rebuild cuando cambian dependencias
         - action: rebuild
           path: ./api_externo_simulador/requirements.txt
-
 volumes:
   postgres_data_dev:

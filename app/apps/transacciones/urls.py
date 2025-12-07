@@ -102,5 +102,10 @@ urlpatterns = [
     path("api/stripe/create-payment-intent/", views.create_stripe_payment_intent, name="stripe_create_payment_intent"),
     path("api/stripe/confirm-payment/", views.confirm_stripe_payment, name="stripe_confirm_payment"),
     path("stripe/webhook/", views.stripe_webhook_handler, name="stripe_webhook"),
+    # URLs para facturas electrónicas
+    path("factura/<str:transaccion_id>/ver/", views.visualizar_factura_pdf, name="factura_ver"),
+    path("factura/<str:transaccion_id>/pdf/", views.descargar_factura_pdf, name="factura_pdf"),
+    path("factura/<str:transaccion_id>/xml/", views.descargar_factura_xml, name="factura_xml"),
+    path("api/regenerar-factura/<str:transaccion_id>/", views.regenerar_factura, name="regenerar_factura"),
     path("", views.vista_transacciones, name="lista"),
 ]
