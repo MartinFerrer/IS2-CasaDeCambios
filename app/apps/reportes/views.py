@@ -17,7 +17,6 @@ from .services import ExportadorReportes, ReporteTransaccionesService
 
 logger = logging.getLogger(__name__)
 
-# Importaciones para PDF
 try:
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, letter
@@ -117,10 +116,8 @@ def generar_reporte_unificado(request):
     """Vista que genera reportes según el rol del usuario"""
     try:
         if request.user.is_staff:
-            # Administrador → Reporte de ganancias con datos del dashboard
             return descargar_reporte_ganancias_pdf(request)
         else:
-            # Cliente → Reporte de transacciones (tu código existente)
             return descargar_reporte_pdf(request)
 
     except Exception as e:
@@ -175,12 +172,10 @@ def descargar_reporte_pdf(request):
             styles = getSampleStyleSheet()
             story = []
 
-            # Título
             title = Paragraph("<b>Reporte de Transacciones</b>", styles["Title"])
             story.append(title)
             story.append(Spacer(1, 12))
 
-            # Información del cliente
             client_info = f"""
             <b>Cliente:</b> {reporte_data["cliente"]["nombre"]}<br/>
             <b>RUC:</b> {reporte_data["cliente"]["ruc"]}<br/>
@@ -192,7 +187,6 @@ def descargar_reporte_pdf(request):
             story.append(client_para)
             story.append(Spacer(1, 20))
 
-            # Estadísticas
             stats_title = Paragraph("<b>Estadísticas Generales</b>", styles["Heading2"])
             story.append(stats_title)
 
@@ -351,19 +345,16 @@ def descargar_reporte_ganancias_pdf(request):
         return HttpResponse("Error: ReportLab no está instalado.", status=500)
 
     try:
-        # Obtener parámetros
         fecha_inicio_str = request.GET.get("fecha_inicio")
         fecha_fin_str = request.GET.get("fecha_fin")
         divisa_filtro = request.GET.get("divisa_filtro", "all")
 
-        # Si no se proporcionan fechas, usar últimos 30 días
         if not fecha_inicio_str or not fecha_fin_str:
             fecha_fin = datetime.now().date()
             fecha_inicio = fecha_fin - timedelta(days=30)
             fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
             fecha_fin_str = fecha_fin.strftime("%Y-%m-%d")
 
-        # Simular datos de ganancias (reemplaza con datos reales)
         ganancias_data = {
             "administrador": request.user.email,
             "fecha_generacion": datetime.now(),
@@ -398,12 +389,10 @@ def descargar_reporte_ganancias_pdf(request):
             styles = getSampleStyleSheet()
             story = []
 
-            # Título
             title = Paragraph("<b>Reporte de Ganancias - Casa de Cambios</b>", styles["Title"])
             story.append(title)
             story.append(Spacer(1, 12))
 
-            # Información del administrador y período
             admin_info = f"""
             <b>Administrador:</b> {ganancias_data["administrador"]}<br/>
             <b>Período:</b> {ganancias_data["periodo"]["fecha_inicio"]} - {ganancias_data["periodo"]["fecha_fin"]}<br/>
@@ -557,19 +546,16 @@ def descargar_reporte_ganancias_xml(request):
         return HttpResponse("No autorizado", status=403)
 
     try:
-        # Obtener parámetros
         fecha_inicio_str = request.GET.get("fecha_inicio")
         fecha_fin_str = request.GET.get("fecha_fin")
         divisa_filtro = request.GET.get("divisa_filtro", "all")
 
-        # Si no se proporcionan fechas, usar últimos 30 días
         if not fecha_inicio_str or not fecha_fin_str:
             fecha_fin = datetime.now().date()
             fecha_inicio = fecha_fin - timedelta(days=30)
             fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
             fecha_fin_str = fecha_fin.strftime("%Y-%m-%d")
 
-        # Simular datos de ganancias (reemplaza con datos reales)
         ganancias_data = {
             "administrador": request.user.email,
             "fecha_generacion": datetime.now(),
@@ -599,7 +585,6 @@ def descargar_reporte_ganancias_xml(request):
         }
 
         try:
-            # Generar XML
             xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <reporte_ganancias>
     <metadatos>
@@ -625,7 +610,6 @@ def descargar_reporte_ganancias_xml(request):
     <agrupacion_por_tipo>
 """
 
-            # Agregar datos por tipo
             for tipo, datos in ganancias_data["agrupacion_por_tipo"].items():
                 xml_content += f"""        <tipo_operacion nombre="{tipo}">
             <cantidad>{datos["cantidad"]}</cantidad>
@@ -639,7 +623,6 @@ def descargar_reporte_ganancias_xml(request):
     <agrupacion_por_divisa>
 """
 
-            # Agregar datos por divisa
             for divisa, datos in ganancias_data["agrupacion_por_divisa"].items():
                 xml_content += f"""        <divisa codigo="{divisa}">
             <cantidad_transacciones>{datos["cantidad"]}</cantidad_transacciones>
@@ -674,11 +657,9 @@ def dashboard(request):
         return redirect("presentacion:home")
 
     try:
-        # Fechas por defecto (últimos 30 días)
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=30)
 
-        # Obtener parámetros de filtros
         start_date_param = request.GET.get("start_date")
         end_date_param = request.GET.get("end_date")
         selected_currency = request.GET.get("currency", "all")
@@ -695,30 +676,25 @@ def dashboard(request):
             except ValueError:
                 pass
 
-        # Obtener divisas disponibles
         from apps.operaciones.models import Divisa
 
         divisas = Divisa.objects.filter(estado="activa").exclude(codigo="PYG")
 
-        # Datos simulados para el dashboard (reemplaza con datos reales)
         context = {
             "start_date": start_date,
             "end_date": end_date,
             "selected_currency": selected_currency,
             "divisas": divisas,
-            # Métricas principales (datos simulados)
-            "total_profits": 15750000,  # ₲ 15,750,000
+            "total_profits": 15750000,
             "total_transactions": 150,
-            "avg_profit": 105000,  # ₲ 105,000
-            "growth_rate": 12.5,  # 12.5%
-            # Datos para gráficos (datos simulados - reemplaza con datos reales)
+            "avg_profit": 105000,
+            "growth_rate": 12.5,
             "dates_labels": ["2024-11-01", "2024-11-02", "2024-11-03", "2024-11-04", "2024-11-05"],
             "profits_compra_data": [500000, 750000, 600000, 800000, 950000],
             "profits_venta_data": [300000, 450000, 400000, 600000, 700000],
             "currency_labels": ["USD", "EUR", "ARS", "BRL"],
             "currency_compra_data": [2500000, 1800000, 900000, 1200000],
             "currency_venta_data": [1800000, 1200000, 600000, 800000],
-            # Transacciones recientes (datos simulados)
             "recent_transactions": [
                 {
                     "fecha_creacion": datetime.now(),
@@ -738,7 +714,6 @@ def dashboard(request):
                     "monto_destino": 1000.00,
                     "ganancia": 85000,
                 },
-                # Agregar más transacciones simuladas...
             ],
         }
 

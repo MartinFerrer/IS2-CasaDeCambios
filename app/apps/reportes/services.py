@@ -14,7 +14,6 @@ class ReporteTransaccionesService:
     def __init__(self, cliente_id: int):
         self.cliente_id = cliente_id
 
-        # Importar modelos aquí para evitar import circular
         from apps.transacciones.models import Transaccion
         from apps.usuarios.models import Cliente
 
@@ -23,43 +22,26 @@ class ReporteTransaccionesService:
 
     def generar_reporte(self, fecha_inicio: date, fecha_fin: date, estados: list[str] = None) -> dict[str, Any]:
         """Genera un reporte completo de transacciones para un cliente"""
-        # Por defecto incluir todos los estados
         if estados is None or len(estados) == 0:
             estados = ["completada", "pendiente", "cancelada", "rechazada"]
-
-        print(f"🔍 DEBUG: Iniciando reporte para cliente {self.cliente_id}")
-        print(f"🔍 DEBUG: Fechas {fecha_inicio} a {fecha_fin}")
-        print(f"🔍 DEBUG: Estados {estados}")
-
-        # Obtener cliente
         try:
             cliente = self.Cliente.objects.get(id=self.cliente_id)
-            print(f"✅ DEBUG: Cliente encontrado: {cliente.nombre}")
         except self.Cliente.DoesNotExist:
-            print(f"❌ DEBUG: Cliente {self.cliente_id} no encontrado")
             raise ValueError(f"Cliente con ID {self.cliente_id} no encontrado")
 
-        # Filtrar transacciones
         transacciones_qs = self._filtrar_transacciones(fecha_inicio, fecha_fin, estados)
         total_transacciones = transacciones_qs.count()
         print(f"🔍 DEBUG: Transacciones encontradas: {total_transacciones}")
 
-        # Calcular estadísticas SIMPLIFICADAS (sin comisiones)
         estadisticas = self._calcular_estadisticas_simple(transacciones_qs)
-        print("✅ DEBUG: Estadísticas calculadas")
 
-        # Obtener detalles SIMPLIFICADOS (sin comisiones)
         transacciones_detalle = self._obtener_transacciones_simple(transacciones_qs)
-        print(f"✅ DEBUG: Detalles obtenidos: {len(transacciones_detalle)} transacciones")
 
-        # Agregar cálculo de comisiones para cada transacción
         transacciones_detalle_con_comisiones = []
         for transaccion in transacciones_detalle:
-            # Importar el módulo de cálculos
             from apps.transacciones.utils import calculos_tasas_comisiones
 
             try:
-                # Calcular comisiones para esta transacción específica
                 comision_pago = calculos_tasas_comisiones.obtener_comision_medio_completa(
                     medio=transaccion["metodo_pago"] or "efectivo",
                     cliente=cliente,
@@ -74,10 +56,8 @@ class ReporteTransaccionesService:
                     es_pago=False,
                 )
 
-                # Comisión total
                 comision_total = comision_pago + comision_cobro
 
-                # Si es Stripe, agregar comisión fija
                 if transaccion["metodo_pago"] == "stripe_new" or (
                     transaccion["metodo_pago"] and transaccion["metodo_pago"].startswith("stripe_")
                 ):
@@ -85,7 +65,6 @@ class ReporteTransaccionesService:
                     comision_total += comision_stripe
 
             except Exception:
-                # Si falla el cálculo, usar 0
                 comision_pago = Decimal("0")
                 comision_cobro = Decimal("0")
                 comision_total = Decimal("0")
