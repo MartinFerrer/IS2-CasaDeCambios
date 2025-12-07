@@ -27,6 +27,14 @@ from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_vali
 from apps.tauser.models import Tauser
 from apps.usuarios.models import Cliente
 
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente
+
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 from .utils import calculos_tasas_comisiones
 

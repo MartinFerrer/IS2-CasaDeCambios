@@ -64,7 +64,7 @@ Q_CLUSTER = {
     "queue_limit": 100,  # Límite de tareas en cola
     "bulk": 10,  # Procesar tareas en lotes
     "orm": "default",  # Usar base de datos Django
-    "sync": False,  # Modo asíncrono
+    "sync": True,  # Modo síncrono
     "catch_up": False,  # No ejecutar tareas perdidas
     "poll": 1,  # Intervalo de verificación (segundos)
     "max_attempts": 3,  # Máximo de intentos por tarea
