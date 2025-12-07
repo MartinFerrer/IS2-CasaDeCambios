@@ -17,7 +17,15 @@ from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
+
+from apps.operaciones.models import Divisa, TasaCambio
+from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
+from apps.seguridad.decorators import client_required
+from apps.stock.models import MovimientoStock, StockDivisaTauser
+from apps.stock.services import cancelar_movimiento, extraer_divisas, monto_valido
+from apps.tauser.models import Tauser
+from apps.usuarios.models import Cliente
 
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.operaciones.templatetags.custom_filters import strip_trailing_zeros
@@ -29,6 +37,14 @@ from apps.usuarios.models import Cliente
 
 from .models import BilleteraElectronica, CuentaBancaria, EntidadFinanciera, TarjetaCredito, Transaccion
 from .utils import calculos_tasas_comisiones
+
+# Import facturación (lazy import to avoid circular dependencies)
+try:
+    from . import facturacion
+
+    FACTURACION_DISPONIBLE = True
+except ImportError:
+    FACTURACION_DISPONIBLE = False
 
 
 def obtener_medio_financiero_por_identificador(identificador, cliente):
@@ -66,6 +82,79 @@ def obtener_medio_financiero_por_identificador(identificador, cliente):
         pass
 
     return None
+
+
+def _guardar_valores_historicos_transaccion(transaccion):
+    """Guarda los valores históricos de precio base, comisión y ganancia al momento de completar.
+
+    Esta función debe llamarse ANTES de cambiar el estado a "completada" para capturar
+    los valores que estaban vigentes al momento de la transacción, evitando que cambios
+    futuros en las tasas afecten los reportes históricos.
+
+    La ganancia se calcula como: comision_efectiva * cantidad_divisa_extranjera
+    donde comision_efectiva = tasa_aplicada - precio_base (ya incluye descuentos del cliente)
+
+    Args:
+        transaccion (Transaccion): Instancia de la transacción a completar
+
+    Note:
+        - Solo actualiza si los campos aún no tienen valor (no sobrescribe)
+        - La comisión aplicada incluye el descuento del cliente
+        - Calcula la ganancia: comision_efectiva * cantidad_divisa_extranjera
+
+    """
+    from decimal import Decimal
+
+    from apps.operaciones.models import TasaCambio
+
+    # Si ya tiene valores históricos guardados, no sobrescribir
+    if transaccion.ganancia_calculada is not None:
+        return
+
+    try:
+        # Identificar divisa extranjera y cantidad
+        if transaccion.divisa_origen.codigo == "PYG":
+            # Cliente COMPRA divisa (casa VENDE)
+            divisa_extranjera = transaccion.divisa_destino
+            cantidad_extranjera = transaccion.monto_destino
+            es_venta = True
+        else:
+            # Cliente VENDE divisa (casa COMPRA)
+            divisa_extranjera = transaccion.divisa_origen
+            cantidad_extranjera = transaccion.monto_origen
+            es_venta = False
+
+        # Obtener tasa activa actual
+        tasa = TasaCambio.objects.filter(
+            divisa_origen__codigo="PYG", divisa_destino=divisa_extranjera, activo=True
+        ).first()
+
+        if tasa:
+            # Guardar precio base histórico
+            transaccion.precio_base_aplicado = tasa.precio_base
+
+            # Calcular comisión EFECTIVA (con descuento del cliente ya aplicado)
+            # La tasa_aplicada de la transacción ya incluye el descuento
+            # comision_efectiva = tasa_aplicada - precio_base
+            if es_venta:
+                # Casa VENDE: tasa_aplicada = precio_base + comision_efectiva
+                comision_efectiva = transaccion.tasa_aplicada - tasa.precio_base
+            else:
+                # Casa COMPRA: tasa_aplicada = precio_base - comision_efectiva
+                comision_efectiva = tasa.precio_base - transaccion.tasa_aplicada
+
+            # Guardar comisión efectiva (incluye descuento del cliente)
+            transaccion.comision_aplicada = comision_efectiva
+
+            # Calcular y guardar ganancia
+            # Ganancia = comision_efectiva * cantidad_divisa_extranjera
+            ganancia = comision_efectiva * cantidad_extranjera
+            transaccion.ganancia_calculada = ganancia if ganancia > 0 else Decimal("0")
+
+    except Exception as e:
+        # En caso de error, no bloquear la transacción
+        print(f"⚠️  Advertencia: No se pudieron guardar valores históricos: {e}")
+
 
 
 def obtener_nombre_medio(medio_id, cliente):
@@ -1483,9 +1572,16 @@ def procesar_transaccion_view(request: HttpRequest, transaccion_id: str) -> Http
         # Si es POST, procesar la confirmación de la transacción
         if request.method == "POST":
             try:
+                # Guardar valores históricos antes de completar
+                _guardar_valores_historicos_transaccion(transaccion)
+
                 # Actualizar estado de la transacción
                 transaccion.estado = "completada"
+                transaccion.fecha_completada = timezone.now()
                 transaccion.save()
+
+                # Generar factura electrónica automáticamente
+                _generar_factura_electronica(transaccion)
 
                 messages.success(request, "¡Transacción procesada exitosamente!")
                 return redirect("transacciones:vista_transacciones")
@@ -1754,6 +1850,10 @@ def api_procesar_pago_bancario(request: HttpRequest) -> JsonResponse:
 
         # Guardar cambios
         transaccion.save()
+
+        # Generar factura electrónica si el pago fue exitoso
+        if exito:
+            _generar_factura_electronica(transaccion)
 
         return JsonResponse(
             {
@@ -2468,6 +2568,11 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
                     # COMPRA: pago exitoso, stock reservado, pendiente de retiro en TAUSER
                     transaccion.estado = "pendiente"
                     transaccion.fecha_pago = timezone.now()
+                    transaccion.save()
+
+                    # Generar factura electrónica al momento del pago
+                    _generar_factura_electronica(transaccion)
+
                     mensaje = "Pago procesado exitosamente con Stripe. Pendiente de retiro en TAUSER"
 
                 except ValueError as ve:
@@ -2494,6 +2599,7 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
                     )
             else:
                 # Otros casos: completar la transacción
+                _guardar_valores_historicos_transaccion(transaccion)
                 transaccion.estado = "completada"
                 transaccion.fecha_pago = timezone.now()
                 transaccion.fecha_completada = timezone.now()
@@ -2512,6 +2618,10 @@ def confirm_stripe_payment(request: HttpRequest) -> JsonResponse:
         # Guardar cambios
         stripe_payment.save()
         transaccion.save()
+
+        # Generar factura electrónica si hay fecha de pago (pago exitoso)
+        if transaccion.fecha_pago:
+            _generar_factura_electronica(transaccion)
 
         return JsonResponse(
             {
@@ -2620,14 +2730,22 @@ def _handle_payment_intent_succeeded(payment_intent):
             and transaccion.medio_cobro.lower() == "efectivo"
         )
 
+        # Siempre setear fecha_pago cuando el pago es exitoso
+        transaccion.fecha_pago = timezone.now()
+
         if es_compra_con_tauser:
             # COMPRA: pago exitoso, pero pendiente de retiro en TAUSER
             transaccion.estado = "pendiente"
         else:
             # Otros casos: completar la transacción
+            _guardar_valores_historicos_transaccion(transaccion)
             transaccion.estado = "completada"
+            transaccion.fecha_completada = timezone.now()
 
         transaccion.save()
+
+        # Generar factura electrónica al momento del pago (independiente del estado)
+        _generar_factura_electronica(transaccion)
 
     except StripePayment.DoesNotExist:
         print(f"StripePayment no encontrado para Payment Intent: {payment_intent['id']}")
@@ -2673,3 +2791,182 @@ def _handle_payment_intent_canceled(payment_intent):
         pass  # StripePayment no encontrado
     except Exception as e:
         print(f"Error manejando payment_intent.canceled: {e}")
+
+
+def _generar_factura_electronica(transaccion):
+    """Helper para generar factura electrónica automáticamente post-pago.
+
+    Args:
+        transaccion: Objeto Transaccion ya completada
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        print("Módulo de facturación no disponible")
+        return
+
+    try:
+        # Verificar que no exista ya una factura
+        if transaccion.cdc_factura:
+            print(f"Transacción {transaccion.id_transaccion} ya tiene factura: {transaccion.cdc_factura}")
+            return
+
+        # Importar y ejecutar proceso de facturación
+        from . import facturacion as fac
+
+        exito, resultado = fac.procesar_facturacion_post_pago(transaccion)
+
+        if exito:
+            print(f"Factura generada exitosamente para transacción {transaccion.id_transaccion}: {resultado}")
+        else:
+            print(f"Error al generar factura para transacción {transaccion.id_transaccion}: {resultado}")
+
+    except Exception as e:
+        # No fallar la transacción si falla la facturación
+        print(f"Excepción al generar factura para transacción {transaccion.id_transaccion}: {e}")
+
+
+@login_required
+def visualizar_factura_pdf(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para visualizar la factura KuDE en PDF.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        HttpResponse con el PDF para visualizar en navegador
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        messages.error(request, "Módulo de facturación no disponible")
+        return redirect("transacciones:lista")
+
+    try:
+        from . import facturacion as fac
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        if not transaccion.cdc_factura:
+            messages.error(request, "Esta transacción no tiene factura electrónica generada")
+            return redirect("transacciones:lista")
+
+        return fac.visualizar_kude_pdf(transaccion.cdc_factura)
+
+    except Exception as e:
+        messages.error(request, f"Error al visualizar factura: {e!s}")
+        return redirect("transacciones:lista")
+
+
+@login_required
+def descargar_factura_pdf(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para descargar la factura KuDE en PDF.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        HttpResponse con el PDF para descargar
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        messages.error(request, "Módulo de facturación no disponible")
+        return redirect("transacciones:lista")
+
+    try:
+        from . import facturacion as fac
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        if not transaccion.cdc_factura:
+            messages.error(request, "Esta transacción no tiene factura electrónica generada")
+            return redirect("transacciones:lista")
+
+        return fac.descargar_kude_pdf(transaccion.cdc_factura)
+
+    except Exception as e:
+        messages.error(request, f"Error al descargar factura: {e!s}")
+        return redirect("transacciones:lista")
+
+
+@login_required
+def descargar_factura_xml(request: HttpRequest, transaccion_id: str) -> HttpResponse:
+    """Vista para descargar la factura en formato XML firmado.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        HttpResponse con el XML para descargar
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        messages.error(request, "Módulo de facturación no disponible")
+        return redirect("transacciones:lista")
+
+    try:
+        from . import facturacion as fac
+
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        if not transaccion.cdc_factura:
+            messages.error(request, "Esta transacción no tiene factura electrónica generada")
+            return redirect("transacciones:lista")
+
+        return fac.descargar_xml_firmado(transaccion.cdc_factura)
+
+    except Exception as e:
+        messages.error(request, f"Error al descargar XML: {e!s}")
+        return redirect("transacciones:lista")
+
+
+@login_required
+@require_http_methods(["POST"])
+def regenerar_factura(request: HttpRequest, transaccion_id: str) -> JsonResponse:
+    """Vista para regenerar la factura electrónica (solo para testing).
+
+    Elimina la factura anterior y genera una nueva.
+
+    Args:
+        request: HttpRequest del usuario
+        transaccion_id: UUID de la transacción
+
+    Returns:
+        JsonResponse con el resultado de la operación
+
+    """
+    if not FACTURACION_DISPONIBLE:
+        return JsonResponse({"success": False, "message": "Módulo de facturación no disponible"}, status=400)
+
+    try:
+        from . import facturacion as fac
+
+        # Obtener la transacción
+        transaccion = get_object_or_404(Transaccion, id_transaccion=transaccion_id, cliente__usuarios=request.user)
+
+        # Verificar que esté completada
+        if transaccion.estado != "completada":
+            return JsonResponse(
+                {"success": False, "message": "Solo se pueden regenerar facturas de transacciones completadas"},
+                status=400,
+            )
+
+        # Limpiar factura anterior
+        print(f"[REGENERAR FACTURA] Limpiando factura anterior de transacción {transaccion_id}")
+        transaccion.cdc_factura = None
+        transaccion.fecha_facturacion = None
+        transaccion.save()
+
+        # Regenerar factura
+        print(f"[REGENERAR FACTURA] Regenerando factura para transacción {transaccion_id}")
+        exito, resultado = fac.procesar_facturacion_post_pago(transaccion)
+
+        if exito:
+            return JsonResponse({"success": True, "message": "Factura regenerada exitosamente", "cdc": resultado})
+        else:
+            return JsonResponse({"success": False, "message": f"Error al regenerar factura: {resultado}"}, status=500)
+
+    except Exception as e:
+        print(f"[REGENERAR FACTURA] Excepción: {e}")
+        return JsonResponse({"success": False, "message": f"Error inesperado: {e!s}"}, status=500)

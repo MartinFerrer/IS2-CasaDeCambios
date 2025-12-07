@@ -110,6 +110,11 @@ import random
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.utils import timezone
+
 from apps.operaciones.models import Divisa, TasaCambio
 from apps.stock.models import StockDivisaTauser
 from apps.tauser.models import Tauser
@@ -121,10 +126,6 @@ from apps.transacciones.models import (
     TarjetaCredito,
 )
 from apps.usuarios.models import Cliente, TipoCliente
-from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
-from django.db import transaction
-from django.utils import timezone
 
 User = get_user_model()
 

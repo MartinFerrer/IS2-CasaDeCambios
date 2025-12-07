@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
+
 from utils.validators import limpiar_ruc, validar_ruc_completo
 
 
@@ -648,6 +649,39 @@ class Transaccion(models.Model):
         blank=True,
         related_name="transacciones",
         help_text="Pago con Stripe asociado a esta transacción",
+    )
+    cdc_factura = models.CharField(
+        max_length=44,
+        blank=True,
+        null=True,
+        unique=True,
+        help_text="Código de Control (CDC) de la factura electrónica generada",
+    )
+    fecha_facturacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Fecha y hora de generación de la factura electrónica",
+    )
+    precio_base_aplicado = models.DecimalField(
+        max_digits=15,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Precio base de la divisa al momento de la transacción (histórico)",
+    )
+    comision_aplicada = models.DecimalField(
+        max_digits=15,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Comisión (compra o venta) aplicada al momento de la transacción",
+    )
+    ganancia_calculada = models.DecimalField(
+        max_digits=20,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        help_text="Ganancia en PYG calculada al momento de completar la transacción",
     )
 
     class Meta:
