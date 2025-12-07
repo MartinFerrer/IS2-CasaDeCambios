@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Configuración de Usuario - Global Exchange{% endblock %}
 {% block content %}
+{% csrf_token %}
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-6xl mx-auto">
-            <!-- Header -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h1 class="text-3xl font-bold text-gray-800 mb-2">Configuración de Usuario</h1>
                 <p class="text-gray-600">Gestiona tu perfil y configuraciones de la cuenta.</p>
             </div>
-            <!-- Tarjetas de configuración -->
             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <!-- Perfil de Usuario -->
                 <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
@@ -124,6 +123,62 @@
                         </div>
                     </div>
                 </div>
+                {% if user_has_clients %}
+                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mr-4">
+                                <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="card-title text-lg">Reportes</h2>
+                                <p class="text-sm text-gray-600">Historial de transacciones</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3 mb-4">
+                            <label class="text-sm font-medium text-gray-700 block">Generar reporte para:</label>
+                            <select id="clienteReporte" class="select select-bordered w-full text-black text-sm">
+                                <option value="">Seleccionar cliente...</option>
+                                {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}">
+                                        {{ cliente.nombre }} ({{ cliente.ruc }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <!-- Información sobre reportes -->
+                            <div class="text-xs text-gray-500 mt-2">
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Incluye transacciones de todos los estados</span>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"></path>
+                                    </svg>
+                                    <span>Descarga disponible en PDF y XML</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-actions justify-end">
+                            <button onclick="abrirModalReporte()" 
+                                    class="btn btn-accent btn-sm"
+                                    id="btnGenerarReporte">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Generar Reporte
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 <!-- Medios de Pago -->
                 {% if user_has_clients %}
                     <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
@@ -225,7 +280,6 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <!-- Nota informativa -->
                             <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div class="flex items-start space-x-3">
                                     <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0"
@@ -246,7 +300,6 @@
                         </div>
                     </div>
                 {% endif %}
-                <!-- Notificaciones (futuro) -->
                 <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow opacity-60">
                     <div class="card-body">
                         <div class="flex items-center mb-4">
@@ -284,7 +337,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Botón de regreso -->
             <div class="mt-8 text-center">
                 <a href="{% url 'presentacion:home' %}"
                    class="inline-flex items-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
@@ -299,7 +351,6 @@
             </div>
         </div>
     </div>
-    <!-- Modal para editar perfil (placeholder) -->
     <div id="editProfileModal" class="modal">
         <div class="modal-box">
             <form method="dialog">
@@ -314,7 +365,165 @@
             </div>
         </div>
     </div>
+    <div id="reporteModal" class="modal">
+        <div class="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+            <form method="dialog">
+                <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="cerrarModalReporte()">✕</button>
+            </form>
+            
+            <h3 class="font-bold text-xl mb-6 text-gray-800">
+                <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Generar Reporte de Transacciones
+            </h3>
+            
+            <div id="configuracionReporte" class="space-y-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Cliente seleccionado:</span>
+                        </label>
+                        <input type="text" id="clienteSeleccionadoDisplay" class="input input-bordered w-full bg-gray-50" readonly>
+                        <input type="hidden" id="clienteSeleccionadoId">
+                    </div>
+                    
+                    <div>
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Período del reporte:</span>
+                        </label>
+                        <select id="periodoReporte" class="select select-bordered w-full">
+                            <option value="ultimos_30">Últimos 30 días</option>
+                            <option value="ultimo_mes">Último mes</option>
+                            <option value="ultimos_3_meses">Últimos 3 meses</option>
+                            <option value="este_año">Este año</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    
+                    <div id="fechasPersonalizadas" class="hidden md:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Fecha inicio:</span>
+                                </label>
+                                <input type="date" id="fechaInicio" class="input input-bordered w-full">
+                            </div>
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Fecha fin:</span>
+                                </label>
+                                <input type="date" id="fechaFin" class="input input-bordered w-full">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Estados a incluir en el reporte:</span>
+                        </label>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox" id="estadoCompletada" class="toggle toggle-success toggle-sm" checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Completadas</span>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox" id="estadoPendiente" class="toggle toggle-warning toggle-sm" checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Pendientes</span>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox" id="estadoCancelada" class="toggle toggle-error toggle-sm" checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Canceladas</span>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox" id="estadoRechazada" class="toggle toggle-neutral toggle-sm" checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Rechazadas</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                            <span class="text-blue-700">
+                                💡 <strong>Tip:</strong> Las transacciones completadas muestran datos finales. 
+                                Las pendientes pueden cambiar al procesarse completamente.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center space-x-3">
+                    <button onclick="generarReporte()" class="btn btn-primary" id="btnGenerar">
+                        <span class="loading loading-spinner loading-sm hidden" id="loadingReporte"></span>
+                        <svg class="w-4 h-4 mr-2" id="iconGenerar" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span id="textoGenerar">Generar Reporte</span>
+                    </button>
+                    <button onclick="cerrarModalReporte()" class="btn btn-outline">Cancelar</button>
+                </div>
+            </div>  
+            <div id="contenidoReporte" class="hidden">
+            </div>
+            
+            <div id="errorReporte" class="hidden alert alert-error mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="mensajeError"></span>
+            </div>
+        </div>
+    </div>
     <script>
+        let reporteGenerado = false;
+        let parametrosUltimoReporte = null;
+
+        function getCsrfToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            
+            if (!cookieValue) {
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfInput) {
+                    cookieValue = csrfInput.value;
+                }
+            }
+            
+            return cookieValue;
+        }
+
         function editProfile() {
             const modal = document.getElementById('editProfileModal');
             modal.classList.add('modal-open');
@@ -334,11 +543,285 @@
                 return;
             }
             
-            // Redirigir a la página de medios de pago del cliente seleccionado
             window.location.href = `/transacciones/configuracion/cliente/${clienteId}/`;
         }
 
-        // Actualizar estado del botón según la selección
+        function abrirModalReporte() {
+            const clienteSelect = document.getElementById('clienteReporte');
+            const clienteId = clienteSelect.value;
+            
+            if (!clienteId) {
+                alert('Por favor, selecciona un cliente primero.');
+                return;
+            }
+            
+            const clienteTexto = clienteSelect.options[clienteSelect.selectedIndex].text;
+            document.getElementById('clienteSeleccionadoDisplay').value = clienteTexto;
+            document.getElementById('clienteSeleccionadoId').value = clienteId;
+            
+            resetearModalReporte();
+            
+            document.getElementById('reporteModal').classList.add('modal-open');
+        }
+
+        function cerrarModalReporte() {
+            document.getElementById('reporteModal').classList.remove('modal-open');
+            resetearModalReporte();
+        }
+
+        function resetearModalReporte() {
+            document.getElementById('contenidoReporte').classList.add('hidden');
+            document.getElementById('errorReporte').classList.add('hidden');
+            document.getElementById('configuracionReporte').classList.remove('hidden');
+            
+            document.getElementById('btnGenerar').disabled = false;
+            document.getElementById('loadingReporte').classList.add('hidden');
+            document.getElementById('iconGenerar').classList.remove('hidden');
+            document.getElementById('textoGenerar').textContent = 'Generar Reporte';
+            
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            document.getElementById('fechasPersonalizadas').classList.add('hidden');
+            document.getElementById('periodoReporte').value = 'ultimos_30';
+            
+            document.getElementById('estadoCompletada').checked = true;
+            document.getElementById('estadoPendiente').checked = true;
+            document.getElementById('estadoCancelada').checked = true;
+            document.getElementById('estadoRechazada').checked = true;
+            
+            reporteGenerado = false;
+        }
+
+        function obtenerEstadosSeleccionados() {
+            const estados = [];
+            if (document.getElementById('estadoCompletada').checked) estados.push('completada');
+            if (document.getElementById('estadoPendiente').checked) estados.push('pendiente');
+            if (document.getElementById('estadoCancelada').checked) estados.push('cancelada');
+            if (document.getElementById('estadoRechazada').checked) estados.push('rechazada');
+            return estados;
+        }
+
+        function generarReporte() {
+            console.log('=== INICIANDO GENERACIÓN DE REPORTE ===');
+            
+            const clienteId = document.getElementById('clienteSeleccionadoId').value;
+            const periodo = document.getElementById('periodoReporte').value;
+            
+            console.log('Cliente ID:', clienteId);
+            console.log('Período:', periodo);
+            
+            const estadosSeleccionados = obtenerEstadosSeleccionados();
+            console.log('Estados seleccionados:', estadosSeleccionados);
+            
+            if (estadosSeleccionados.length === 0) {
+                mostrarErrorReporte('Por favor, selecciona al menos un estado para incluir en el reporte.');
+                return;
+            }
+            
+            let fechaInicio, fechaFin;
+            
+            const hoy = new Date();
+            const fechaFinDate = new Date(hoy);
+            let fechaInicioDate;
+            
+            switch (periodo) {
+                case 'ultimos_30':
+                    fechaInicioDate = new Date(hoy);
+                    fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+                    break;
+                case 'ultimo_mes':
+                    fechaInicioDate = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+                    fechaFinDate.setDate(0);
+                    break;
+                case 'ultimos_3_meses':
+                    fechaInicioDate = new Date(hoy);
+                    fechaInicioDate.setMonth(fechaInicioDate.getMonth() - 3);
+                    break;
+                case 'este_año':
+                    fechaInicioDate = new Date(hoy.getFullYear(), 0, 1);
+                    break;
+                case 'personalizado':
+                    const inputInicio = document.getElementById('fechaInicio').value;
+                    const inputFin = document.getElementById('fechaFin').value;
+                    
+                    if (!inputInicio || !inputFin) {
+                        mostrarErrorReporte('Por favor, selecciona las fechas de inicio y fin.');
+                        return;
+                    }
+                    
+                    fechaInicioDate = new Date(inputInicio);
+                    fechaFinDate = new Date(inputFin);
+                    break;
+                default:
+                    fechaInicioDate = new Date(hoy);
+                    fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+            }
+            
+            if (fechaInicioDate > fechaFinDate) {
+                mostrarErrorReporte('La fecha de inicio no puede ser mayor a la fecha de fin.');
+                return;
+            }
+
+            fechaInicio = fechaInicioDate.toISOString().split('T')[0];
+            fechaFin = fechaFinDate.toISOString().split('T')[0];
+            
+            const csrfToken = getCsrfToken();
+            console.log('CSRF Token encontrado:', csrfToken ? 'SÍ' : 'NO');
+            
+            if (!csrfToken) {
+                mostrarCargandoReporte(false);
+                mostrarErrorReporte('Error de seguridad: Token CSRF no encontrado. Recarga la página e inténtalo de nuevo.');
+                return;
+            }
+            
+            const requestData = {
+                cliente_id: clienteId,
+                fecha_inicio: fechaInicio,
+                fecha_fin: fechaFin,
+                estados: estadosSeleccionados
+            };
+            
+            console.log('Datos a enviar:', requestData);
+            
+            mostrarCargandoReporte(true);
+            ocultarErrorReporte();
+            
+            fetch('/reportes/transacciones/generar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                console.log('Respuesta recibida:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                mostrarCargandoReporte(false);
+                
+                if (data.success) {
+                    document.getElementById('contenidoReporte').innerHTML = data.html_content;
+                    document.getElementById('contenidoReporte').classList.remove('hidden');
+                    document.getElementById('configuracionReporte').classList.add('hidden');
+                    reporteGenerado = true;
+                    
+                    parametrosUltimoReporte = requestData;
+                    
+                    agregarBotonVolver();
+                } else {
+                    mostrarErrorReporte(data.error || 'Error al generar el reporte.');
+                }
+            })
+            .catch(error => {
+                console.error('Error completo:', error);
+                mostrarCargandoReporte(false);
+                
+                let mensajeError = 'Error de conexión. ';
+                if (error.message.includes('404')) {
+                    mensajeError += 'La URL del reporte no fue encontrada. Verifica que las URLs estén configuradas.';
+                } else if (error.message.includes('403')) {
+                    mensajeError += 'No tienes permisos para generar este reporte.';
+                } else if (error.message.includes('500')) {
+                    mensajeError += 'Error interno del servidor. Revisa los logs.';
+                } else {
+                    mensajeError += 'Por favor, revisa tu conexión e inténtalo de nuevo.';
+                }
+                
+                mostrarErrorReporte(mensajeError);
+            });
+        }
+
+        function mostrarCargandoReporte(mostrar) {
+            const btnGenerar = document.getElementById('btnGenerar');
+            const loadingIcon = document.getElementById('loadingReporte');
+            const normalIcon = document.getElementById('iconGenerar');
+            const texto = document.getElementById('textoGenerar');
+            
+            if (mostrar) {
+                btnGenerar.disabled = true;
+                loadingIcon.classList.remove('hidden');
+                normalIcon.classList.add('hidden');
+                texto.textContent = 'Generando...';
+            } else {
+                btnGenerar.disabled = false;
+                loadingIcon.classList.add('hidden');
+                normalIcon.classList.remove('hidden');
+                texto.textContent = 'Generar Reporte';
+            }
+        }
+
+        function mostrarErrorReporte(mensaje) {
+            document.getElementById('mensajeError').textContent = mensaje;
+            document.getElementById('errorReporte').classList.remove('hidden');
+        }
+
+        function ocultarErrorReporte() {
+            document.getElementById('errorReporte').classList.add('hidden');
+        }
+
+        function agregarBotonVolver() {
+            const contenido = document.getElementById('contenidoReporte');
+            const btnVolver = document.createElement('div');
+            btnVolver.className = 'text-center mt-6 pt-4 border-t border-gray-200';
+            btnVolver.innerHTML = `
+                <button onclick="volverAConfiguracion()" class="btn btn-outline btn-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Generar Otro Reporte
+                </button>
+            `;
+            contenido.appendChild(btnVolver);
+        }
+
+        function volverAConfiguracion() {
+            document.getElementById('contenidoReporte').classList.add('hidden');
+            document.getElementById('configuracionReporte').classList.remove('hidden');
+            ocultarErrorReporte();
+        }
+
+        function descargarPDF() {
+            if (!parametrosUltimoReporte) {
+                alert('No hay reporte generado para descargar.');
+                return;
+            }
+            
+            const params = new URLSearchParams();
+            params.append('cliente_id', parametrosUltimoReporte.cliente_id);
+            params.append('fecha_inicio', parametrosUltimoReporte.fecha_inicio);
+            params.append('fecha_fin', parametrosUltimoReporte.fecha_fin);
+            
+            parametrosUltimoReporte.estados.forEach(estado => {
+                params.append('estados[]', estado);
+            });
+            
+            window.open(`/reportes/transacciones/descargar/pdf/?${params}`, '_blank');
+        }
+
+        function descargarXML() {
+            if (!parametrosUltimoReporte) {
+                alert('No hay reporte generado para descargar.');
+                return;
+            }
+            
+            const params = new URLSearchParams();
+            params.append('cliente_id', parametrosUltimoReporte.cliente_id);
+            params.append('fecha_inicio', parametrosUltimoReporte.fecha_inicio);
+            params.append('fecha_fin', parametrosUltimoReporte.fecha_fin);
+            
+            parametrosUltimoReporte.estados.forEach(estado => {
+                params.append('estados[]', estado);
+            });
+            
+            window.open(`/reportes/transacciones/descargar/xml/?${params}`, '_blank');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const clienteSelect = document.getElementById('clienteMediosPago');
             const btnGestionar = document.getElementById('btnGestionarMedios');
@@ -355,14 +838,50 @@
                 }
                 
                 clienteSelect.addEventListener('change', updateButtonState);
-                updateButtonState(); // Inicializar estado
+                updateButtonState();
+            }
+
+            const clienteReporteSelect = document.getElementById('clienteReporte');
+            const btnGenerarReporte = document.getElementById('btnGenerarReporte');
+            
+            if (clienteReporteSelect && btnGenerarReporte) {
+                function updateReportButtonState() {
+                    if (clienteReporteSelect.value) {
+                        btnGenerarReporte.disabled = false;
+                        btnGenerarReporte.classList.remove('btn-disabled');
+                    } else {
+                        btnGenerarReporte.disabled = true;
+                        btnGenerarReporte.classList.add('btn-disabled');
+                    }
+                }
+                
+                clienteReporteSelect.addEventListener('change', updateReportButtonState);
+                updateReportButtonState();
+            }
+
+            const periodoSelect = document.getElementById('periodoReporte');
+            const fechasPersonalizadas = document.getElementById('fechasPersonalizadas');
+            
+            if (periodoSelect && fechasPersonalizadas) {
+                periodoSelect.addEventListener('change', function() {
+                    if (this.value === 'personalizado') {
+                        fechasPersonalizadas.classList.remove('hidden');
+                    } else {
+                        fechasPersonalizadas.classList.add('hidden');
+                    }
+                });
             }
         });
 
-        // Cerrar modal al hacer clic fuera de él
         document.getElementById('editProfileModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeEditProfileModal();
+            }
+        });
+
+        document.getElementById('reporteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModalReporte();
             }
         });
     </script>

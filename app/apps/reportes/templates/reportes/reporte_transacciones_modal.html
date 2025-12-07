@@ -1,0 +1,167 @@
+<div class="space-y-6">
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-lg">
+        <h2 class="text-2xl font-bold mb-2">Reporte de Transacciones</h2>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="opacity-80">Cliente:</span>
+                <span class="font-medium">{{ reporte.cliente.nombre }}</span>
+            </div>
+            <div>
+                <span class="opacity-80">RUC:</span>
+                <span class="font-medium">{{ reporte.cliente.ruc }}</span>
+            </div>
+            <div>
+                <span class="opacity-80">Período:</span>
+                <span class="font-medium">{{ reporte.periodo.fecha_inicio }} - {{ reporte.periodo.fecha_fin }}</span>
+            </div>
+            <div>
+                <span class="opacity-80">Generado:</span>
+                <span class="font-medium">{{ reporte.metadatos.fecha_generacion|date:"d/m/Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+            <div class="text-2xl font-bold text-blue-600">{{ reporte.estadisticas_generales.totales.transacciones }}</div>
+            <div class="text-sm text-gray-600">Total Transacciones</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+            <div class="text-2xl font-bold text-green-600">₲ {{ reporte.estadisticas_generales.totales.monto_destino|floatformat:0 }}</div>
+            <div class="text-sm text-gray-600">Monto Total Recibido</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+            <div class="text-2xl font-bold text-orange-600">₲ {{ reporte.estadisticas_generales.totales.comisiones|floatformat:0 }}</div>
+            <div class="text-sm text-gray-600">Comisiones Pagadas</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+            <div class="text-2xl font-bold text-purple-600">₲ {{ reporte.estadisticas_generales.promedios.monto_origen|floatformat:0 }}</div>
+            <div class="text-sm text-gray-600">Promedio por Transacción</div>
+        </div>
+    </div>
+
+    {% if reporte.agrupacion_por_tipo %}
+    <div class="bg-white p-6 rounded-lg border border-gray-200">
+        <h3 class="text-lg font-semibold mb-4">Por Tipo de Operación</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for tipo, datos in reporte.agrupacion_por_tipo.items %}
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <h4 class="font-medium text-gray-800 mb-2 capitalize">{{ tipo }}</h4>
+                <div class="space-y-1 text-sm">
+                    <div class="flex justify-between">
+                        <span>Cantidad:</span>
+                        <span class="font-medium">{{ datos.cantidad }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Monto Total:</span>
+                        <span class="font-medium">₲ {{ datos.monto_destino_total|floatformat:0 }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Comisiones:</span>
+                        <span class="font-medium">₲ {{ datos.comisiones_total|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if reporte.agrupacion_por_estado %}
+    <div class="bg-white p-6 rounded-lg border border-gray-200">
+        <h3 class="text-lg font-semibold mb-4">Por Estado de Transacción</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {% for estado, datos in reporte.agrupacion_por_estado.items %}
+            <div class="p-4 bg-gray-50 rounded-lg border-l-4 
+                        {% if estado == 'completada' %}border-green-500{% elif estado == 'pendiente' %}border-yellow-500{% elif estado == 'cancelada' %}border-red-500{% else %}border-gray-500{% endif %}">
+                <h4 class="font-medium text-gray-800 mb-2 capitalize flex items-center">
+                    <span class="w-3 h-3 rounded-full mr-2 
+                               {% if estado == 'completada' %}bg-green-500{% elif estado == 'pendiente' %}bg-yellow-500{% elif estado == 'cancelada' %}bg-red-500{% else %}bg-gray-500{% endif %}"></span>
+                    {{ estado }}
+                </h4>
+                <div class="space-y-1 text-sm">
+                    <div class="flex justify-between">
+                        <span>Cantidad:</span>
+                        <span class="font-medium">{{ datos.cantidad }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Porcentaje:</span>
+                        <span class="font-medium">{{ datos.porcentaje }}%</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Comisiones:</span>
+                        <span class="font-medium">₲ {{ datos.comisiones_total|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <-- Detalle de transacciones -->
+    <div class="bg-white p-6 rounded-lg border border-gray-200">
+        <h3 class="text-lg font-semibold mb-4">Detalle de Transacciones</h3>
+        {% if reporte.transacciones_detalle %}
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full text-sm">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Divisas</th>
+                        <th>Monto Origen</th>
+                        <th>Monto Recibido</th>
+                        <th>Comisión</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaccion in reporte.transacciones_detalle %}
+                    <tr>
+                        <td class="font-mono text-xs">{{ transaccion.id_transaccion }}</td>
+                        <td>{{ transaccion.fecha_creacion|date:"d/m/Y" }}</td>
+                        <td class="capitalize">{{ transaccion.tipo_operacion }}</td>
+                        <td>{{ transaccion.divisa_origen__codigo|default:"N/A" }} → {{ transaccion.divisa_destino__codigo|default:"N/A" }}</td>
+                        <td>{{ transaccion.monto_origen|floatformat:2 }}</td>
+                        <td>₲ {{ transaccion.monto_destino|floatformat:0 }}</td>
+                        <td>₲ {{ transaccion.comision_aplicada|floatformat:0 }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if transaccion.estado == 'completada' %}badge-success{% elif transaccion.estado == 'pendiente' %}badge-warning{% elif transaccion.estado == 'cancelada' %}badge-error{% else %}badge-neutral{% endif %} badge-sm">
+                                {{ transaccion.estado|title }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center text-gray-500 py-8">
+            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-lg font-medium text-gray-600">No hay transacciones</p>
+            <p class="text-sm text-gray-500">No se encontraron transacciones en el período seleccionado con los filtros aplicados.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="flex justify-center space-x-4 pt-4">
+        <button onclick="descargarPDF()" class="btn btn-primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            </svg>
+            Descargar PDF
+        </button>
+        <button onclick="descargarXML()" class="btn btn-outline">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Descargar XML
+        </button>
+    </div>
+</div>
+
