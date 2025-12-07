@@ -123,7 +123,60 @@
                         </div>
                     </div>
                 </div>
-                {% if user_has_clients %}
+                {% if es_administrador %}
+                <!-- Tarjeta de Reportes para ADMINISTRADORES -->
+                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+                    <div class="card-body">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="card-title text-lg">Reportes</h2>
+                                <p class="text-sm text-gray-600">Reportes de ganancias del sistema</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3 mb-4">
+                            <p class="text-sm text-gray-600">Genera reportes de ganancias del sistema con datos del dashboard administrativo.</p>
+                            
+                            <!-- Información sobre reportes de ganancias -->
+                            <div class="text-xs text-gray-500 mt-2">
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span>Incluye ganancias brutas y netas del sistema</span>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"></path>
+                                    </svg>
+                                    <span>Descarga disponible en PDF y XML</span>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                    <span>Filtros por período y divisa</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-actions justify-end">
+                            <button onclick="abrirModalReporteAdmin()" 
+                                    class="btn btn-accent btn-sm">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                Generar Reporte de Ganancias
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% elif user_has_clients %}
                 <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
                     <div class="card-body">
                         <div class="flex items-center mb-4">
@@ -180,7 +233,7 @@
                 </div>
                 {% endif %}
                 <!-- Medios de Pago -->
-                {% if user_has_clients %}
+                {% if user_has_clients and not es_administrador %}
                     <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
                         <div class="card-body">
                             <div class="flex items-center mb-4">
@@ -231,7 +284,7 @@
                     </div>
                 {% endif %}
                 <!-- Listado de Clientes -->
-                {% if user_has_clients %}
+                {% if user_has_clients and not es_administrador %}
                     <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow lg:col-span-3">
                         <div class="card-body">
                             <div class="flex items-center mb-4">
@@ -496,6 +549,90 @@
             </div>
         </div>
     </div>
+    <!-- Modal para reportes de ADMINISTRADORES -->
+    {% if es_administrador %}
+    <div id="reporteAdminModal" class="modal">
+        <div class="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+            <form method="dialog">
+                <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="cerrarModalReporteAdmin()">✕</button>
+            </form>
+            
+            <h3 class="font-bold text-xl mb-6 text-gray-800">
+                <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Generar Reporte de Ganancias
+            </h3>
+            
+            <div id="configuracionReporteAdmin" class="space-y-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Período del reporte:</span>
+                        </label>
+                        <select id="periodoReporteAdmin" class="select select-bordered w-full">
+                            <option value="ultimos_30">Últimos 30 días</option>
+                            <option value="ultimo_mes">Último mes</option>
+                            <option value="ultimos_3_meses">Últimos 3 meses</option>
+                            <option value="este_año">Este año</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Filtrar por divisa:</span>
+                        </label>
+                        <select id="divisaFiltro" class="select select-bordered w-full">
+                            <option value="all">Todas las divisas</option>
+                            {% for divisa in divisas %}
+                                <option value="{{ divisa.codigo }}">{{ divisa.nombre }} ({{ divisa.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div id="fechasPersonalizadasAdmin" class="hidden md:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Fecha inicio:</span>
+                                </label>
+                                <input type="date" id="fechaInicioAdmin" class="input input-bordered w-full">
+                            </div>
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Fecha fin:</span>
+                                </label>
+                                <input type="date" id="fechaFinAdmin" class="input input-bordered w-full">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center space-x-3">
+                    <button onclick="generarReporteAdmin()" class="btn btn-primary" id="btnGenerarAdmin">
+                        <span class="loading loading-spinner loading-sm hidden" id="loadingReporteAdmin"></span>
+                        <svg class="w-4 h-4 mr-2" id="iconGenerarAdmin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span id="textoGenerarAdmin">Generar Reporte</span>
+                    </button>
+                    <button onclick="cerrarModalReporteAdmin()" class="btn btn-outline">Cancelar</button>
+                </div>
+            </div>  
+            
+            <div id="contenidoReporteAdmin" class="hidden">
+            </div>
+            
+            <div id="errorReporteAdmin" class="hidden alert alert-error mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="mensajeErrorAdmin"></span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
     <script>
         let reporteGenerado = false;
         let parametrosUltimoReporte = null;
@@ -871,6 +1008,20 @@
                     }
                 });
             }
+
+            // Agregar para administradores
+            const periodoSelectAdmin = document.getElementById('periodoReporteAdmin');
+            const fechasPersonalizadasAdmin = document.getElementById('fechasPersonalizadasAdmin');
+            
+            if (periodoSelectAdmin && fechasPersonalizadasAdmin) {
+                periodoSelectAdmin.addEventListener('change', function() {
+                    if (this.value === 'personalizado') {
+                        fechasPersonalizadasAdmin.classList.remove('hidden');
+                    } else {
+                        fechasPersonalizadasAdmin.classList.add('hidden');
+                    }
+                });
+            }
         });
 
         document.getElementById('editProfileModal').addEventListener('click', function(e) {
@@ -884,5 +1035,247 @@
                 cerrarModalReporte();
             }
         });
+
+        document.getElementById('reporteAdminModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModalReporteAdmin();
+            }
+        });
+    </script>
+<script>
+// Variables para reporte de admin
+let reporteAdminGenerado = false;
+let parametrosUltimoReporteAdmin = null;
+
+// Funciones para modal de reportes de ADMINISTRADOR
+function abrirModalReporteAdmin() {
+    resetearModalReporteAdmin();
+    document.getElementById('reporteAdminModal').classList.add('modal-open');
+}
+
+function cerrarModalReporteAdmin() {
+    document.getElementById('reporteAdminModal').classList.remove('modal-open');
+    resetearModalReporteAdmin();
+}
+
+function resetearModalReporteAdmin() {
+    document.getElementById('contenidoReporteAdmin').classList.add('hidden');
+    document.getElementById('errorReporteAdmin').classList.add('hidden');
+    document.getElementById('configuracionReporteAdmin').classList.remove('hidden');
+    
+    document.getElementById('btnGenerarAdmin').disabled = false;
+    document.getElementById('loadingReporteAdmin').classList.add('hidden');
+    document.getElementById('iconGenerarAdmin').classList.remove('hidden');
+    document.getElementById('textoGenerarAdmin').textContent = 'Generar Reporte';
+    
+    document.getElementById('fechaInicioAdmin').value = '';
+    document.getElementById('fechaFinAdmin').value = '';
+    document.getElementById('fechasPersonalizadasAdmin').classList.add('hidden');
+    document.getElementById('periodoReporteAdmin').value = 'ultimos_30';
+    document.getElementById('divisaFiltro').value = 'all';
+    
+    reporteAdminGenerado = false;
+}
+
+function generarReporteAdmin() {
+    console.log('=== GENERANDO REPORTE DE GANANCIAS ===');
+    
+    const periodo = document.getElementById('periodoReporteAdmin').value;
+    const divisaFiltro = document.getElementById('divisaFiltro').value;
+    
+    let fechaInicio, fechaFin;
+    
+    const hoy = new Date();
+    const fechaFinDate = new Date(hoy);
+    let fechaInicioDate;
+    
+    switch (periodo) {
+        case 'ultimos_30':
+            fechaInicioDate = new Date(hoy);
+            fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+            break;
+        case 'ultimo_mes':
+            fechaInicioDate = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+            fechaFinDate.setDate(0);
+            break;
+        case 'ultimos_3_meses':
+            fechaInicioDate = new Date(hoy);
+            fechaInicioDate.setMonth(fechaInicioDate.getMonth() - 3);
+            break;
+        case 'este_año':
+            fechaInicioDate = new Date(hoy.getFullYear(), 0, 1);
+            break;
+        case 'personalizado':
+            const inputInicio = document.getElementById('fechaInicioAdmin').value;
+            const inputFin = document.getElementById('fechaFinAdmin').value;
+            
+            if (!inputInicio || !inputFin) {
+                mostrarErrorReporteAdmin('Por favor, selecciona las fechas de inicio y fin.');
+                return;
+            }
+            
+            fechaInicioDate = new Date(inputInicio);
+            fechaFinDate = new Date(inputFin);
+            break;
+        default:
+            fechaInicioDate = new Date(hoy);
+            fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+    }
+    
+    if (fechaInicioDate > fechaFinDate) {
+        mostrarErrorReporteAdmin('La fecha de inicio no puede ser mayor a la fecha de fin.');
+        return;
+    }
+
+    fechaInicio = fechaInicioDate.toISOString().split('T')[0];
+    fechaFin = fechaFinDate.toISOString().split('T')[0];
+    
+    const requestData = {
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin,
+        divisa_filtro: divisaFiltro
+    };
+    
+    console.log('Datos para reporte admin:', requestData);
+    
+    mostrarCargandoReporteAdmin(true);
+    ocultarErrorReporteAdmin();
+    
+    // Simular contenido del reporte (ya que no tienes endpoint específico todavía)
+    setTimeout(() => {
+        const contenidoSimulado = `
+            <div class="space-y-6">
+                <div class="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-2">Reporte de Ganancias del Sistema</h2>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div><span class="opacity-80">Período:</span> <span class="font-medium">${fechaInicio} - ${fechaFin}</span></div>
+                        <div><span class="opacity-80">Divisa:</span> <span class="font-medium">${divisaFiltro === 'all' ? 'Todas' : divisaFiltro}</span></div>
+                        <div><span class="opacity-80">Generado por:</span> <span class="font-medium">{{ user.email }}</span></div>
+                        <div><span class="opacity-80">Fecha:</span> <span class="font-medium">${new Date().toLocaleString('es-PY')}</span></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-green-600">150</div>
+                        <div class="text-sm text-gray-600">Total Transacciones</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-emerald-600">₲ 15,750,000</div>
+                        <div class="text-sm text-gray-600">Ganancias Brutas</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-orange-600">₲ 8,250,000</div>
+                        <div class="text-sm text-gray-600">Comisiones Totales</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-purple-600">₲ 7,500,000</div>
+                        <div class="text-sm text-gray-600">Ganancias Netas</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center space-x-4 pt-4">
+                    <button onclick="descargarPDFAdmin()" class="btn btn-primary">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                        </svg>
+                        Descargar PDF
+                    </button>
+                    <button onclick="descargarXMLAdmin()" class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Descargar XML
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        mostrarCargandoReporteAdmin(false);
+        document.getElementById('contenidoReporteAdmin').innerHTML = contenidoSimulado;
+        document.getElementById('contenidoReporteAdmin').classList.remove('hidden');
+        document.getElementById('configuracionReporteAdmin').classList.add('hidden');
+        
+        parametrosUltimoReporteAdmin = requestData;
+        reporteAdminGenerado = true;
+        
+        agregarBotonVolverAdmin();
+    }, 2000);
+}
+
+function mostrarCargandoReporteAdmin(mostrar) {
+    const btnGenerar = document.getElementById('btnGenerarAdmin');
+    const loadingIcon = document.getElementById('loadingReporteAdmin');
+    const normalIcon = document.getElementById('iconGenerarAdmin');
+    const texto = document.getElementById('textoGenerarAdmin');
+    
+    if (mostrar) {
+        btnGenerar.disabled = true;
+        loadingIcon.classList.remove('hidden');
+        normalIcon.classList.add('hidden');
+        texto.textContent = 'Generando...';
+    } else {
+        btnGenerar.disabled = false;
+        loadingIcon.classList.add('hidden');
+        normalIcon.classList.remove('hidden');
+        texto.textContent = 'Generar Reporte';
+    }
+}
+
+function mostrarErrorReporteAdmin(mensaje) {
+    document.getElementById('mensajeErrorAdmin').textContent = mensaje;
+    document.getElementById('errorReporteAdmin').classList.remove('hidden');
+}
+
+function ocultarErrorReporteAdmin() {
+    document.getElementById('errorReporteAdmin').classList.add('hidden');
+}
+
+function agregarBotonVolverAdmin() {
+    const contenido = document.getElementById('contenidoReporteAdmin');
+    const btnVolver = document.createElement('div');
+    btnVolver.className = 'text-center mt-6 pt-4 border-t border-gray-200';
+    btnVolver.innerHTML = `
+        <button onclick="volverAConfiguracionAdmin()" class="btn btn-outline btn-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Generar Otro Reporte
+        </button>
+    `;
+    contenido.appendChild(btnVolver);
+}
+
+function volverAConfiguracionAdmin() {
+    document.getElementById('contenidoReporteAdmin').classList.add('hidden');
+    document.getElementById('configuracionReporteAdmin').classList.remove('hidden');
+    ocultarErrorReporteAdmin();
+}
+
+function descargarPDFAdmin() {
+    if (!parametrosUltimoReporteAdmin) {
+        alert('No hay reporte generado para descargar.');
+        return;
+    }
+    
+    const params = new URLSearchParams();
+    params.append('fecha_inicio', parametrosUltimoReporteAdmin.fecha_inicio);
+    params.append('fecha_fin', parametrosUltimoReporteAdmin.fecha_fin);
+    params.append('divisa_filtro', parametrosUltimoReporteAdmin.divisa_filtro);
+    
+    window.open(`/reportes/ganancias/pdf/?${params}`, '_blank');
+}
+
+function descargarXMLAdmin() {
+    if (!parametrosUltimoReporteAdmin) {
+        alert('No hay reporte generado para descargar.');
+        return;
+    }
+    const params = new URLSearchParams();
+    params.append('fecha_inicio', parametrosUltimoReporteAdmin.fecha_inicio);
+    params.append('fecha_fin', parametrosUltimoReporteAdmin.fecha_fin);
+    params.append('divisa_filtro', parametrosUltimoReporteAdmin.divisa_filtro);
+    window.open(`/reportes/ganancias/xml/?${params}`, '_blank');
+    }
     </script>
 {% endblock %}

@@ -207,7 +207,10 @@ class ReporteTransaccionesService:
                     "divisa_destino__codigo": transaccion.divisa_destino.codigo
                     if transaccion.divisa_destino
                     else "N/A",
-                    "metodo_pago": getattr(transaccion, "medio_pago", "No especificado"),
+                    "metodo_pago": getattr(
+                        transaccion, "metodo_pago", getattr(transaccion, "medio_pago", "No especificado")
+                    ),
+                    "medio_cobro": getattr(transaccion, "medio_cobro", "No especificado"),
                 }
             )
 
