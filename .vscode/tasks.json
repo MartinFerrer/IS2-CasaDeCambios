@@ -446,5 +446,149 @@
       ],
       "problemMatcher": []
     },
+    // ==== DATA POPULATION ====
+    {
+      "label": "dev: populate-data (docker - basic)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "exec",
+        "web",
+        "python",
+        "manage.py",
+        "populate_sample_data"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "dev: populate-data (docker - full)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "exec",
+        "web",
+        "python",
+        "manage.py",
+        "populate_sample_data",
+        "--full"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "dev: populate-data (docker - clear)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "exec",
+        "web",
+        "python",
+        "manage.py",
+        "populate_sample_data",
+        "--clear"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "dev: populate-data (docker - historical-180)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "exec",
+        "web",
+        "python",
+        "manage.py",
+        "populate_sample_data",
+        "--historical-days",
+        "180"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "dev: populate-data (docker - full-365)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "exec",
+        "web",
+        "python",
+        "manage.py",
+        "populate_sample_data",
+        "--full",
+        "--historical-days",
+        "365"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "dev: populate-data (docker - clear-full-180)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-p",
+        "casadecambios-dev",
+        "-f",
+        "docker-compose.dev.yml",
+        "exec",
+        "web",
+        "python",
+        "manage.py",
+        "populate_sample_data",
+        "--clear",
+        "--full",
+        "--historical-days",
+        "180"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
   ]
 }

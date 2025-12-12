@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Configuración de Usuario - Global Exchange{% endblock %}
 {% block content %}
+    {% csrf_token %}
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-6xl mx-auto">
-            <!-- Header -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                 <h1 class="text-3xl font-bold text-gray-800 mb-2">Configuración de Usuario</h1>
                 <p class="text-gray-600">Gestiona tu perfil y configuraciones de la cuenta.</p>
             </div>
-            <!-- Tarjetas de configuración -->
             <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <!-- Perfil de Usuario -->
                 <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
@@ -50,16 +49,18 @@
                             </div>
                         </div>
                         <div class="card-actions justify-end">
-                            <a href="{% url 'usuarios:editar_perfil' %}" class="btn btn-outline btn-sm">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414
-                                            a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            <a href="{% url 'usuarios:editar_perfil' %}"
+                               class="btn btn-outline btn-sm">
+                                <svg class="w-4 h-4 mr-1"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414 a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                                    </path>
                                 </svg>
                                 Editar
                             </a>
                         </div>
-
                     </div>
                 </div>
                 <!-- Seguridad (MFA) -->
@@ -124,8 +125,137 @@
                         </div>
                     </div>
                 </div>
+                {% if es_administrador %}
+                    <!-- Tarjeta de Reportes de Ganancias (solo ADMINISTRADORES) -->
+                    <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
+                        <div class="card-body">
+                            <div class="flex items-center mb-4">
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                    <svg class="w-6 h-6 text-green-600"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="card-title text-lg">Reportes de Ganancias</h2>
+                                    <p class="text-sm text-gray-600">Ganancias del sistema</p>
+                                </div>
+                            </div>
+                            <div class="space-y-3 mb-4">
+                                <p class="text-sm text-gray-600">Genera reportes de ganancias del sistema con datos del dashboard administrativo.</p>
+                                <!-- Información sobre reportes de ganancias -->
+                                <div class="text-xs text-gray-500 mt-2">
+                                    <div class="flex items-center space-x-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                            </path>
+                                        </svg>
+                                        <span>Incluye ganancias brutas y netas del sistema</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"></path>
+                                        </svg>
+                                        <span>Descarga disponible en PDF y XML</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                            </path>
+                                        </svg>
+                                        <span>Filtros por período y divisa</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-actions justify-end">
+                                <button onclick="abrirModalReporteAdmin()" class="btn btn-accent btn-sm">
+                                    <svg class="w-4 h-4 mr-1"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                        </path>
+                                    </svg>
+                                    Generar Reporte de Ganancias
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <!-- Tarjeta de Reportes de Transacciones (siempre visible, en gris si no hay clientes) -->
+                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow {% if not user_has_clients %}opacity-60{% endif %}">
+                    <div class="card-body">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 {% if user_has_clients %}bg-teal-100{% else %}bg-gray-100{% endif %} rounded-lg flex items-center justify-center mr-4">
+                                <svg class="w-6 h-6 {% if user_has_clients %}text-teal-600{% else %}text-gray-400{% endif %}"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="card-title text-lg {% if not user_has_clients %}text-gray-500{% endif %}">Reportes de Transacciones</h2>
+                                <p class="text-sm {% if user_has_clients %}text-gray-600{% else %}text-gray-400{% endif %}">
+                                    Historial de transacciones
+                                </p>
+                            </div>
+                        </div>
+                        <div class="space-y-3 mb-4">
+                            {% if user_has_clients %}
+                                <label class="text-sm font-medium text-gray-700 block">Generar reporte para:</label>
+                                <select id="clienteReporte"
+                                        class="select select-bordered w-full text-black text-sm">
+                                    <option value="">Seleccionar cliente...</option>
+                                    {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}">{{ cliente.nombre }} ({{ cliente.ruc }})</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <p class="text-sm text-gray-500">
+                                    No tienes clientes asociados. Debes tener al menos un cliente para generar reportes de transacciones.
+                                </p>
+                            {% endif %}
+                            <!-- Información sobre reportes -->
+                            <div class="text-xs {% if user_has_clients %}text-gray-500{% else %}text-gray-400{% endif %} mt-2">
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                        </path>
+                                    </svg>
+                                    <span>Incluye transacciones de todos los estados</span>
+                                </div>
+                                <div class="flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3"></path>
+                                    </svg>
+                                    <span>Descarga disponible en PDF y XML</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-actions justify-end">
+                            <button onclick="{% if user_has_clients %}abrirModalReporte(){% else %}mostrarMensajeSinClientes(){% endif %}"
+                                    class="btn btn-accent btn-sm {% if not user_has_clients %}btn-disabled{% endif %}"
+                                    id="btnGenerarReporte"
+                                    {% if not user_has_clients %}disabled{% endif %}>
+                                <svg class="w-4 h-4 mr-1"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                    </path>
+                                </svg>
+                                Generar Reporte
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <!-- Medios de Pago -->
-                {% if user_has_clients %}
+                {% if user_has_clients and not es_administrador %}
                     <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
                         <div class="card-body">
                             <div class="flex items-center mb-4">
@@ -176,7 +306,7 @@
                     </div>
                 {% endif %}
                 <!-- Listado de Clientes -->
-                {% if user_has_clients %}
+                {% if user_has_clients and not es_administrador %}
                     <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow lg:col-span-3">
                         <div class="card-body">
                             <div class="flex items-center mb-4">
@@ -225,7 +355,6 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <!-- Nota informativa -->
                             <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <div class="flex items-start space-x-3">
                                     <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0"
@@ -246,45 +375,7 @@
                         </div>
                     </div>
                 {% endif %}
-                <!-- Notificaciones (futuro) -->
-                <div class="card bg-base-100 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow opacity-60">
-                    <div class="card-body">
-                        <div class="flex items-center mb-4">
-                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-orange-600"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.343 12.344l1.414 1.414L9.878 9.636M6.343 8.343l1.414-1.414 4.242 4.243m3.535-2.828L18.364 5.5l-2.828 2.828L9.878 14.978">
-                                    </path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h2 class="card-title text-lg">Notificaciones</h2>
-                                <p class="text-sm text-gray-600">Preferencias de notificación</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2 mb-4">
-                            <p class="text-sm text-gray-600">Configura cómo y cuándo recibir notificaciones sobre tus transacciones.</p>
-                            <div class="badge badge-ghost badge-sm">Próximamente</div>
-                        </div>
-                        <div class="card-actions justify-end">
-                            <button class="btn btn-outline btn-sm" disabled>
-                                <svg class="w-4 h-4 mr-1"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                                    </path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                                Configurar
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
-            <!-- Botón de regreso -->
             <div class="mt-8 text-center">
                 <a href="{% url 'presentacion:home' %}"
                    class="inline-flex items-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
@@ -299,7 +390,6 @@
             </div>
         </div>
     </div>
-    <!-- Modal para editar perfil (placeholder) -->
     <div id="editProfileModal" class="modal">
         <div class="modal-box">
             <form method="dialog">
@@ -314,7 +404,274 @@
             </div>
         </div>
     </div>
+    <div id="reporteModal" class="modal">
+        <div class="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+            <form method="dialog">
+                <button type="button"
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                        onclick="cerrarModalReporte()">✕</button>
+            </form>
+            <h3 class="font-bold text-xl mb-6 text-gray-800">
+                <svg class="w-6 h-6 inline mr-2"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                Generar Reporte de Transacciones
+            </h3>
+            <div id="configuracionReporte" class="space-y-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Cliente seleccionado:</span>
+                        </label>
+                        <input type="text"
+                               id="clienteSeleccionadoDisplay"
+                               class="input input-bordered w-full bg-gray-50"
+                               readonly>
+                        <input type="hidden" id="clienteSeleccionadoId">
+                    </div>
+                    <div>
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Período del reporte:</span>
+                        </label>
+                        <select id="periodoReporte" class="select select-bordered w-full">
+                            <option value="ultimos_30">Últimos 30 días</option>
+                            <option value="ultimo_mes">Último mes</option>
+                            <option value="ultimos_3_meses">Últimos 3 meses</option>
+                            <option value="este_año">Este año</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    <div id="fechasPersonalizadas" class="hidden md:col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Fecha inicio:</span>
+                                </label>
+                                <input type="date" id="fechaInicio" class="input input-bordered w-full">
+                            </div>
+                            <div>
+                                <label class="label">
+                                    <span class="label-text">Fecha fin:</span>
+                                </label>
+                                <input type="date" id="fechaFin" class="input input-bordered w-full">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="label font-medium text-gray-700">
+                            <span class="label-text">Estados a incluir en el reporte:</span>
+                        </label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox"
+                                           id="estadoCompletada"
+                                           class="toggle toggle-success toggle-sm"
+                                           checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Completadas</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox"
+                                           id="estadoPendiente"
+                                           class="toggle toggle-warning toggle-sm"
+                                           checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Pendientes</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox"
+                                           id="estadoCancelada"
+                                           class="toggle toggle-error toggle-sm"
+                                           checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Canceladas</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start space-x-2 py-2">
+                                    <input type="checkbox"
+                                           id="estadoRechazada"
+                                           class="toggle toggle-neutral toggle-sm"
+                                           checked>
+                                    <span class="label-text flex items-center">
+                                        <span class="w-2 h-2 bg-gray-500 rounded-full mr-2"></span>
+                                        <span class="font-medium">Rechazadas</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                            <span class="text-blue-700">
+                                💡 <strong>Tip:</strong> Las transacciones completadas muestran datos finales.
+                                Las pendientes pueden cambiar al procesarse completamente.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-center space-x-3">
+                    <button onclick="generarReporte()" class="btn btn-primary" id="btnGenerar">
+                        <span class="loading loading-spinner loading-sm hidden" id="loadingReporte"></span>
+                        <svg class="w-4 h-4 mr-2"
+                             id="iconGenerar"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        <span id="textoGenerar">Generar Reporte</span>
+                    </button>
+                    <button onclick="cerrarModalReporte()" class="btn btn-outline">Cancelar</button>
+                </div>
+            </div>
+            <div id="contenidoReporte" class="hidden"></div>
+            <div id="errorReporte" class="hidden alert alert-error mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     class="stroke-current shrink-0 h-6 w-6"
+                     fill="none"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="mensajeError"></span>
+            </div>
+        </div>
+    </div>
+    <!-- Modal para reportes de ADMINISTRADORES -->
+    {% if es_administrador %}
+        <div id="reporteAdminModal" class="modal">
+            <div class="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+                <form method="dialog">
+                    <button type="button"
+                            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+                            onclick="cerrarModalReporteAdmin()">✕</button>
+                </form>
+                <h3 class="font-bold text-xl mb-6 text-gray-800">
+                    <svg class="w-6 h-6 inline mr-2"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    Generar Reporte de Ganancias
+                </h3>
+                <div id="configuracionReporteAdmin" class="space-y-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="label font-medium text-gray-700">
+                                <span class="label-text">Período del reporte:</span>
+                            </label>
+                            <select id="periodoReporteAdmin" class="select select-bordered w-full">
+                                <option value="ultimos_30">Últimos 30 días</option>
+                                <option value="ultimo_mes">Último mes</option>
+                                <option value="ultimos_3_meses">Últimos 3 meses</option>
+                                <option value="este_año">Este año</option>
+                                <option value="personalizado">Personalizado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label font-medium text-gray-700">
+                                <span class="label-text">Filtrar por divisa:</span>
+                            </label>
+                            <select id="divisaFiltro" class="select select-bordered w-full">
+                                <option value="all">Todas las divisas</option>
+                                {% for divisa in divisas %}
+                                    <option value="{{ divisa.codigo }}">{{ divisa.nombre }} ({{ divisa.codigo }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div id="fechasPersonalizadasAdmin" class="hidden md:col-span-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text">Fecha inicio:</span>
+                                    </label>
+                                    <input type="date" id="fechaInicioAdmin" class="input input-bordered w-full">
+                                </div>
+                                <div>
+                                    <label class="label">
+                                        <span class="label-text">Fecha fin:</span>
+                                    </label>
+                                    <input type="date" id="fechaFinAdmin" class="input input-bordered w-full">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-center space-x-3">
+                        <button onclick="generarReporteAdmin()"
+                                class="btn btn-primary"
+                                id="btnGenerarAdmin">
+                            <span class="loading loading-spinner loading-sm hidden"
+                                  id="loadingReporteAdmin"></span>
+                            <svg class="w-4 h-4 mr-2"
+                                 id="iconGenerarAdmin"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                </path>
+                            </svg>
+                            <span id="textoGenerarAdmin">Generar Reporte</span>
+                        </button>
+                        <button onclick="cerrarModalReporteAdmin()" class="btn btn-outline">Cancelar</button>
+                    </div>
+                </div>
+                <div id="contenidoReporteAdmin" class="hidden"></div>
+                <div id="errorReporteAdmin" class="hidden alert alert-error mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="stroke-current shrink-0 h-6 w-6"
+                         fill="none"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="mensajeErrorAdmin"></span>
+                </div>
+            </div>
+        </div>
+    {% endif %}
     <script>
+        let reporteGenerado = false;
+        let parametrosUltimoReporte = null;
+
+        function getCsrfToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            
+            if (!cookieValue) {
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfInput) {
+                    cookieValue = csrfInput.value;
+                }
+            }
+            
+            return cookieValue;
+        }
+
         function editProfile() {
             const modal = document.getElementById('editProfileModal');
             modal.classList.add('modal-open');
@@ -334,11 +691,289 @@
                 return;
             }
             
-            // Redirigir a la página de medios de pago del cliente seleccionado
             window.location.href = `/transacciones/configuracion/cliente/${clienteId}/`;
         }
 
-        // Actualizar estado del botón según la selección
+        function mostrarMensajeSinClientes() {
+            alert('No tienes clientes asociados. Debes tener al menos un cliente para generar reportes de transacciones.');
+        }
+
+        function abrirModalReporte() {
+            const clienteSelect = document.getElementById('clienteReporte');
+            const clienteId = clienteSelect.value;
+            
+            if (!clienteId) {
+                alert('Por favor, selecciona un cliente primero.');
+                return;
+            }
+            
+            const clienteTexto = clienteSelect.options[clienteSelect.selectedIndex].text;
+            document.getElementById('clienteSeleccionadoDisplay').value = clienteTexto;
+            document.getElementById('clienteSeleccionadoId').value = clienteId;
+            
+            resetearModalReporte();
+            
+            document.getElementById('reporteModal').classList.add('modal-open');
+        }
+
+        function cerrarModalReporte() {
+            document.getElementById('reporteModal').classList.remove('modal-open');
+            resetearModalReporte();
+        }
+
+        function resetearModalReporte() {
+            document.getElementById('contenidoReporte').classList.add('hidden');
+            document.getElementById('errorReporte').classList.add('hidden');
+            document.getElementById('configuracionReporte').classList.remove('hidden');
+            
+            document.getElementById('btnGenerar').disabled = false;
+            document.getElementById('loadingReporte').classList.add('hidden');
+            document.getElementById('iconGenerar').classList.remove('hidden');
+            document.getElementById('textoGenerar').textContent = 'Generar Reporte';
+            
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            document.getElementById('fechasPersonalizadas').classList.add('hidden');
+            document.getElementById('periodoReporte').value = 'ultimos_30';
+            
+            document.getElementById('estadoCompletada').checked = true;
+            document.getElementById('estadoPendiente').checked = true;
+            document.getElementById('estadoCancelada').checked = true;
+            document.getElementById('estadoRechazada').checked = true;
+            
+            reporteGenerado = false;
+        }
+
+        function obtenerEstadosSeleccionados() {
+            const estados = [];
+            if (document.getElementById('estadoCompletada').checked) estados.push('completada');
+            if (document.getElementById('estadoPendiente').checked) estados.push('pendiente');
+            if (document.getElementById('estadoCancelada').checked) estados.push('cancelada');
+            if (document.getElementById('estadoRechazada').checked) estados.push('rechazada');
+            return estados;
+        }
+
+        function generarReporte() {
+            console.log('=== INICIANDO GENERACIÓN DE REPORTE ===');
+            
+            const clienteId = document.getElementById('clienteSeleccionadoId').value;
+            const periodo = document.getElementById('periodoReporte').value;
+            
+            console.log('Cliente ID:', clienteId);
+            console.log('Período:', periodo);
+            
+            const estadosSeleccionados = obtenerEstadosSeleccionados();
+            console.log('Estados seleccionados:', estadosSeleccionados);
+            
+            if (estadosSeleccionados.length === 0) {
+                mostrarErrorReporte('Por favor, selecciona al menos un estado para incluir en el reporte.');
+                return;
+            }
+            
+            let fechaInicio, fechaFin;
+            
+            const hoy = new Date();
+            const fechaFinDate = new Date(hoy);
+            let fechaInicioDate;
+            
+            switch (periodo) {
+                case 'ultimos_30':
+                    fechaInicioDate = new Date(hoy);
+                    fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+                    break;
+                case 'ultimo_mes':
+                    fechaInicioDate = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+                    fechaFinDate.setDate(0);
+                    break;
+                case 'ultimos_3_meses':
+                    fechaInicioDate = new Date(hoy);
+                    fechaInicioDate.setMonth(fechaInicioDate.getMonth() - 3);
+                    break;
+                case 'este_año':
+                    fechaInicioDate = new Date(hoy.getFullYear(), 0, 1);
+                    break;
+                case 'personalizado':
+                    const inputInicio = document.getElementById('fechaInicio').value;
+                    const inputFin = document.getElementById('fechaFin').value;
+                    
+                    if (!inputInicio || !inputFin) {
+                        mostrarErrorReporte('Por favor, selecciona las fechas de inicio y fin.');
+                        return;
+                    }
+                    
+                    fechaInicioDate = new Date(inputInicio);
+                    fechaFinDate = new Date(inputFin);
+                    break;
+                default:
+                    fechaInicioDate = new Date(hoy);
+                    fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+            }
+            
+            if (fechaInicioDate > fechaFinDate) {
+                mostrarErrorReporte('La fecha de inicio no puede ser mayor a la fecha de fin.');
+                return;
+            }
+
+            fechaInicio = fechaInicioDate.toISOString().split('T')[0];
+            fechaFin = fechaFinDate.toISOString().split('T')[0];
+            
+            const csrfToken = getCsrfToken();
+            console.log('CSRF Token encontrado:', csrfToken ? 'SÍ' : 'NO');
+            
+            if (!csrfToken) {
+                mostrarCargandoReporte(false);
+                mostrarErrorReporte('Error de seguridad: Token CSRF no encontrado. Recarga la página e inténtalo de nuevo.');
+                return;
+            }
+            
+            const requestData = {
+                cliente_id: clienteId,
+                fecha_inicio: fechaInicio,
+                fecha_fin: fechaFin,
+                estados: estadosSeleccionados
+            };
+            
+            console.log('Datos a enviar:', requestData);
+            
+            mostrarCargandoReporte(true);
+            ocultarErrorReporte();
+            
+            fetch('/reportes/transacciones/generar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                console.log('Respuesta recibida:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                mostrarCargandoReporte(false);
+                
+                if (data.success) {
+                    document.getElementById('contenidoReporte').innerHTML = data.html_content;
+                    document.getElementById('contenidoReporte').classList.remove('hidden');
+                    document.getElementById('configuracionReporte').classList.add('hidden');
+                    reporteGenerado = true;
+                    
+                    parametrosUltimoReporte = requestData;
+                    
+                    agregarBotonVolver();
+                } else {
+                    mostrarErrorReporte(data.error || 'Error al generar el reporte.');
+                }
+            })
+            .catch(error => {
+                console.error('Error completo:', error);
+                mostrarCargandoReporte(false);
+                
+                let mensajeError = 'Error de conexión. ';
+                if (error.message.includes('404')) {
+                    mensajeError += 'La URL del reporte no fue encontrada. Verifica que las URLs estén configuradas.';
+                } else if (error.message.includes('403')) {
+                    mensajeError += 'No tienes permisos para generar este reporte.';
+                } else if (error.message.includes('500')) {
+                    mensajeError += 'Error interno del servidor. Revisa los logs.';
+                } else {
+                    mensajeError += 'Por favor, revisa tu conexión e inténtalo de nuevo.';
+                }
+                
+                mostrarErrorReporte(mensajeError);
+            });
+        }
+
+        function mostrarCargandoReporte(mostrar) {
+            const btnGenerar = document.getElementById('btnGenerar');
+            const loadingIcon = document.getElementById('loadingReporte');
+            const normalIcon = document.getElementById('iconGenerar');
+            const texto = document.getElementById('textoGenerar');
+            
+            if (mostrar) {
+                btnGenerar.disabled = true;
+                loadingIcon.classList.remove('hidden');
+                normalIcon.classList.add('hidden');
+                texto.textContent = 'Generando...';
+            } else {
+                btnGenerar.disabled = false;
+                loadingIcon.classList.add('hidden');
+                normalIcon.classList.remove('hidden');
+                texto.textContent = 'Generar Reporte';
+            }
+        }
+
+        function mostrarErrorReporte(mensaje) {
+            document.getElementById('mensajeError').textContent = mensaje;
+            document.getElementById('errorReporte').classList.remove('hidden');
+        }
+
+        function ocultarErrorReporte() {
+            document.getElementById('errorReporte').classList.add('hidden');
+        }
+
+        function agregarBotonVolver() {
+            const contenido = document.getElementById('contenidoReporte');
+            const btnVolver = document.createElement('div');
+            btnVolver.className = 'text-center mt-6 pt-4 border-t border-gray-200';
+            btnVolver.innerHTML = `
+                <button onclick="volverAConfiguracion()" class="btn btn-outline btn-sm">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Generar Otro Reporte
+                </button>
+            `;
+            contenido.appendChild(btnVolver);
+        }
+
+        function volverAConfiguracion() {
+            document.getElementById('contenidoReporte').classList.add('hidden');
+            document.getElementById('configuracionReporte').classList.remove('hidden');
+            ocultarErrorReporte();
+        }
+
+        function descargarPDF() {
+            if (!parametrosUltimoReporte) {
+                alert('No hay reporte generado para descargar.');
+                return;
+            }
+            
+            const params = new URLSearchParams();
+            params.append('cliente_id', parametrosUltimoReporte.cliente_id);
+            params.append('fecha_inicio', parametrosUltimoReporte.fecha_inicio);
+            params.append('fecha_fin', parametrosUltimoReporte.fecha_fin);
+            
+            parametrosUltimoReporte.estados.forEach(estado => {
+                params.append('estados[]', estado);
+            });
+            
+            window.open(`/reportes/transacciones/descargar/pdf/?${params}`, '_blank');
+        }
+
+        function descargarXML() {
+            if (!parametrosUltimoReporte) {
+                alert('No hay reporte generado para descargar.');
+                return;
+            }
+            
+            const params = new URLSearchParams();
+            params.append('cliente_id', parametrosUltimoReporte.cliente_id);
+            params.append('fecha_inicio', parametrosUltimoReporte.fecha_inicio);
+            params.append('fecha_fin', parametrosUltimoReporte.fecha_fin);
+            
+            parametrosUltimoReporte.estados.forEach(estado => {
+                params.append('estados[]', estado);
+            });
+            
+            window.open(`/reportes/transacciones/descargar/xml/?${params}`, '_blank');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const clienteSelect = document.getElementById('clienteMediosPago');
             const btnGestionar = document.getElementById('btnGestionarMedios');
@@ -355,15 +990,308 @@
                 }
                 
                 clienteSelect.addEventListener('change', updateButtonState);
-                updateButtonState(); // Inicializar estado
+                updateButtonState();
+            }
+
+            const clienteReporteSelect = document.getElementById('clienteReporte');
+            const btnGenerarReporte = document.getElementById('btnGenerarReporte');
+            
+            // Solo configurar si hay select de cliente (es decir, si user_has_clients es true)
+            if (clienteReporteSelect && btnGenerarReporte) {
+                function updateReportButtonState() {
+                    if (clienteReporteSelect.value) {
+                        btnGenerarReporte.disabled = false;
+                        btnGenerarReporte.classList.remove('btn-disabled');
+                    } else {
+                        btnGenerarReporte.disabled = true;
+                        btnGenerarReporte.classList.add('btn-disabled');
+                    }
+                }
+                
+                clienteReporteSelect.addEventListener('change', updateReportButtonState);
+                updateReportButtonState();
+            }
+
+            const periodoSelect = document.getElementById('periodoReporte');
+            const fechasPersonalizadas = document.getElementById('fechasPersonalizadas');
+            
+            if (periodoSelect && fechasPersonalizadas) {
+                periodoSelect.addEventListener('change', function() {
+                    if (this.value === 'personalizado') {
+                        fechasPersonalizadas.classList.remove('hidden');
+                    } else {
+                        fechasPersonalizadas.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Agregar para administradores
+            const periodoSelectAdmin = document.getElementById('periodoReporteAdmin');
+            const fechasPersonalizadasAdmin = document.getElementById('fechasPersonalizadasAdmin');
+            
+            if (periodoSelectAdmin && fechasPersonalizadasAdmin) {
+                periodoSelectAdmin.addEventListener('change', function() {
+                    if (this.value === 'personalizado') {
+                        fechasPersonalizadasAdmin.classList.remove('hidden');
+                    } else {
+                        fechasPersonalizadasAdmin.classList.add('hidden');
+                    }
+                });
             }
         });
 
-        // Cerrar modal al hacer clic fuera de él
         document.getElementById('editProfileModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeEditProfileModal();
             }
         });
+
+        document.getElementById('reporteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModalReporte();
+            }
+        });
+
+        document.getElementById('reporteAdminModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModalReporteAdmin();
+            }
+        });
+    </script>
+    <script>
+// Variables para reporte de admin
+let reporteAdminGenerado = false;
+let parametrosUltimoReporteAdmin = null;
+
+// Funciones para modal de reportes de ADMINISTRADOR
+function abrirModalReporteAdmin() {
+    resetearModalReporteAdmin();
+    document.getElementById('reporteAdminModal').classList.add('modal-open');
+}
+
+function cerrarModalReporteAdmin() {
+    document.getElementById('reporteAdminModal').classList.remove('modal-open');
+    resetearModalReporteAdmin();
+}
+
+function resetearModalReporteAdmin() {
+    document.getElementById('contenidoReporteAdmin').classList.add('hidden');
+    document.getElementById('errorReporteAdmin').classList.add('hidden');
+    document.getElementById('configuracionReporteAdmin').classList.remove('hidden');
+    
+    document.getElementById('btnGenerarAdmin').disabled = false;
+    document.getElementById('loadingReporteAdmin').classList.add('hidden');
+    document.getElementById('iconGenerarAdmin').classList.remove('hidden');
+    document.getElementById('textoGenerarAdmin').textContent = 'Generar Reporte';
+    
+    document.getElementById('fechaInicioAdmin').value = '';
+    document.getElementById('fechaFinAdmin').value = '';
+    document.getElementById('fechasPersonalizadasAdmin').classList.add('hidden');
+    document.getElementById('periodoReporteAdmin').value = 'ultimos_30';
+    document.getElementById('divisaFiltro').value = 'all';
+    
+    reporteAdminGenerado = false;
+}
+
+function generarReporteAdmin() {
+    console.log('=== GENERANDO REPORTE DE GANANCIAS ===');
+    
+    const periodo = document.getElementById('periodoReporteAdmin').value;
+    const divisaFiltro = document.getElementById('divisaFiltro').value;
+    
+    let fechaInicio, fechaFin;
+    
+    const hoy = new Date();
+    const fechaFinDate = new Date(hoy);
+    let fechaInicioDate;
+    
+    switch (periodo) {
+        case 'ultimos_30':
+            fechaInicioDate = new Date(hoy);
+            fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+            break;
+        case 'ultimo_mes':
+            fechaInicioDate = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+            fechaFinDate.setDate(0);
+            break;
+        case 'ultimos_3_meses':
+            fechaInicioDate = new Date(hoy);
+            fechaInicioDate.setMonth(fechaInicioDate.getMonth() - 3);
+            break;
+        case 'este_año':
+            fechaInicioDate = new Date(hoy.getFullYear(), 0, 1);
+            break;
+        case 'personalizado':
+            const inputInicio = document.getElementById('fechaInicioAdmin').value;
+            const inputFin = document.getElementById('fechaFinAdmin').value;
+            
+            if (!inputInicio || !inputFin) {
+                mostrarErrorReporteAdmin('Por favor, selecciona las fechas de inicio y fin.');
+                return;
+            }
+            
+            fechaInicioDate = new Date(inputInicio);
+            fechaFinDate = new Date(inputFin);
+            break;
+        default:
+            fechaInicioDate = new Date(hoy);
+            fechaInicioDate.setDate(fechaInicioDate.getDate() - 30);
+    }
+    
+    if (fechaInicioDate > fechaFinDate) {
+        mostrarErrorReporteAdmin('La fecha de inicio no puede ser mayor a la fecha de fin.');
+        return;
+    }
+
+    fechaInicio = fechaInicioDate.toISOString().split('T')[0];
+    fechaFin = fechaFinDate.toISOString().split('T')[0];
+    
+    const requestData = {
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin,
+        divisa_filtro: divisaFiltro
+    };
+    
+    console.log('Datos para reporte admin:', requestData);
+    
+    mostrarCargandoReporteAdmin(true);
+    ocultarErrorReporteAdmin();
+    
+    // Simular contenido del reporte (ya que no tienes endpoint específico todavía)
+    setTimeout(() => {
+        const contenidoSimulado = `
+            <div class="space-y-6">
+                <div class="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-6 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-2">Reporte de Ganancias del Sistema</h2>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div><span class="opacity-80">Período:</span> <span class="font-medium">${fechaInicio} - ${fechaFin}</span></div>
+                        <div><span class="opacity-80">Divisa:</span> <span class="font-medium">${divisaFiltro === 'all' ? 'Todas' : divisaFiltro}</span></div>
+                        <div><span class="opacity-80">Generado por:</span> <span class="font-medium">{{ user.email }}</span></div>
+                        <div><span class="opacity-80">Fecha:</span> <span class="font-medium">${new Date().toLocaleString('es-PY')}</span></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-green-600">150</div>
+                        <div class="text-sm text-gray-600">Total Transacciones</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-emerald-600">₲ 15,750,000</div>
+                        <div class="text-sm text-gray-600">Ganancias Brutas</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-orange-600">₲ 8,250,000</div>
+                        <div class="text-sm text-gray-600">Comisiones Totales</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                        <div class="text-2xl font-bold text-purple-600">₲ 7,500,000</div>
+                        <div class="text-sm text-gray-600">Ganancias Netas</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center space-x-4 pt-4">
+                    <button onclick="descargarPDFAdmin()" class="btn btn-primary">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        </svg>
+                        Descargar PDF
+                    </button>
+                    <button onclick="descargarXMLAdmin()" class="btn btn-outline">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Descargar XML
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        mostrarCargandoReporteAdmin(false);
+        document.getElementById('contenidoReporteAdmin').innerHTML = contenidoSimulado;
+        document.getElementById('contenidoReporteAdmin').classList.remove('hidden');
+        document.getElementById('configuracionReporteAdmin').classList.add('hidden');
+        
+        parametrosUltimoReporteAdmin = requestData;
+        reporteAdminGenerado = true;
+        
+        agregarBotonVolverAdmin();
+    }, 2000);
+}
+
+function mostrarCargandoReporteAdmin(mostrar) {
+    const btnGenerar = document.getElementById('btnGenerarAdmin');
+    const loadingIcon = document.getElementById('loadingReporteAdmin');
+    const normalIcon = document.getElementById('iconGenerarAdmin');
+    const texto = document.getElementById('textoGenerarAdmin');
+    
+    if (mostrar) {
+        btnGenerar.disabled = true;
+        loadingIcon.classList.remove('hidden');
+        normalIcon.classList.add('hidden');
+        texto.textContent = 'Generando...';
+    } else {
+        btnGenerar.disabled = false;
+        loadingIcon.classList.add('hidden');
+        normalIcon.classList.remove('hidden');
+        texto.textContent = 'Generar Reporte';
+    }
+}
+
+function mostrarErrorReporteAdmin(mensaje) {
+    document.getElementById('mensajeErrorAdmin').textContent = mensaje;
+    document.getElementById('errorReporteAdmin').classList.remove('hidden');
+}
+
+function ocultarErrorReporteAdmin() {
+    document.getElementById('errorReporteAdmin').classList.add('hidden');
+}
+
+function agregarBotonVolverAdmin() {
+    const contenido = document.getElementById('contenidoReporteAdmin');
+    const btnVolver = document.createElement('div');
+    btnVolver.className = 'text-center mt-6 pt-4 border-t border-gray-200';
+    btnVolver.innerHTML = `
+        <button onclick="volverAConfiguracionAdmin()" class="btn btn-outline btn-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Generar Otro Reporte
+        </button>
+    `;
+    contenido.appendChild(btnVolver);
+}
+
+function volverAConfiguracionAdmin() {
+    document.getElementById('contenidoReporteAdmin').classList.add('hidden');
+    document.getElementById('configuracionReporteAdmin').classList.remove('hidden');
+    ocultarErrorReporteAdmin();
+}
+
+function descargarPDFAdmin() {
+    if (!parametrosUltimoReporteAdmin) {
+        alert('No hay reporte generado para descargar.');
+        return;
+    }
+    
+    const params = new URLSearchParams();
+    params.append('fecha_inicio', parametrosUltimoReporteAdmin.fecha_inicio);
+    params.append('fecha_fin', parametrosUltimoReporteAdmin.fecha_fin);
+    params.append('divisa_filtro', parametrosUltimoReporteAdmin.divisa_filtro);
+    
+    window.open(`/reportes/ganancias/pdf/?${params}`, '_blank');
+}
+
+function descargarXMLAdmin() {
+    if (!parametrosUltimoReporteAdmin) {
+        alert('No hay reporte generado para descargar.');
+        return;
+    }
+    const params = new URLSearchParams();
+    params.append('fecha_inicio', parametrosUltimoReporteAdmin.fecha_inicio);
+    params.append('fecha_fin', parametrosUltimoReporteAdmin.fecha_fin);
+    params.append('divisa_filtro', parametrosUltimoReporteAdmin.divisa_filtro);
+    window.open(`/reportes/ganancias/xml/?${params}`, '_blank');
+    }
     </script>
 {% endblock %}

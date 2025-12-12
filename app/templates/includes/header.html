@@ -48,6 +48,21 @@
                                 <a href="{% url 'transacciones:simular_cambio' %}"
                                    class="hover:bg-neutral-200">Simulador</a>
                             </li>
+                            <!-- Dashboard link for Administrators -->
+                            {% if "Administrador" in user_groups %}
+                                <li>
+                                    <a href="{% url 'dashboard_ganancias' %}"
+                                       class="hover:bg-neutral-200">
+                                        <svg class="w-4 h-4 inline mr-1"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                        </svg>
+                                        Dashboard de Ganancias
+                                    </a>
+                                </li>
+                            {% endif %}
                             <li>
                                 <a href="{% url 'usuarios:configuracion_usuario' %}"
                                    class="hover:bg-neutral-200">

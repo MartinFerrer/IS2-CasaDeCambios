@@ -441,7 +441,6 @@ class Command(BaseCommand):
             BilleteraElectronica,
             Cliente,
             User,
-            TipoCliente,
             EntidadFinanciera,
             Divisa,
             LimiteTransacciones,
