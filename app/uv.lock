@@ -30,6 +30,7 @@ dependencies = [
     { name = "pycountry" },
     { name = "pyotp" },
     { name = "qrcode", extra = ["pil"] },
+    { name = "reportlab" },
     { name = "sqlparse" },
     { name = "stripe" },
     { name = "whitenoise" },
@@ -72,6 +73,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4.1" },
     { name = "pytest-django", marker = "extra == 'dev'", specifier = ">=4.11.1" },
     { name = "qrcode", extras = ["pil"], specifier = ">=7.4.2" },
+    { name = "reportlab", specifier = ">=4.0.0" },
     { name = "requests", marker = "extra == 'dev'", specifier = ">=2.32.5" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.9" },
     { name = "sphinx", marker = "extra == 'dev'", specifier = ">=8.2.3" },
@@ -803,6 +805,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/be/6c/d51204e28e7bc54f9a03bb799b04730d7e54ff2718862b8d4e09e7110a6a/regex-2025.7.34-cp314-cp314-win32.whl", hash = "sha256:f978ddfb6216028c8f1d6b0f7ef779949498b64117fc35a939022f67f810bdcb", size = 269730, upload-time = "2025-07-31T00:20:42.253Z" },
     { url = "https://files.pythonhosted.org/packages/74/52/a7e92d02fa1fdef59d113098cb9f02c5d03289a0e9f9e5d4d6acccd10677/regex-2025.7.34-cp314-cp314-win_amd64.whl", hash = "sha256:4b7dc33b9b48fb37ead12ffc7bdb846ac72f99a80373c4da48f64b373a7abeae", size = 278640, upload-time = "2025-07-31T00:20:44.42Z" },
     { url = "https://files.pythonhosted.org/packages/d1/78/a815529b559b1771080faa90c3ab401730661f99d495ab0071649f139ebd/regex-2025.7.34-cp314-cp314-win_arm64.whl", hash = "sha256:4b8c4d39f451e64809912c82392933d80fe2e4a87eeef8859fcc5380d0173c64", size = 271757, upload-time = "2025-07-31T00:20:46.355Z" },
+]
+
+[[package]]
+name = "reportlab"
+version = "4.4.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "charset-normalizer" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/80/dfa85941e3c3800aa5cd2f940c1903358c1fb61149f5f91b62efa61e7d03/reportlab-4.4.5.tar.gz", hash = "sha256:0457d642aa76df7b36b0235349904c58d8f9c606a872456ed04436aafadc1510", size = 3910836, upload-time = "2025-11-18T11:43:10.242Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/16/0c26a7bdfd20cba49a011b1095461be120c53df3926e9843fccfb9530e72/reportlab-4.4.5-py3-none-any.whl", hash = "sha256:849773d7cd5dde2072fedbac18c8bc909506c8befba8f088ba7b09243c6684cc", size = 1954256, upload-time = "2025-11-17T12:03:05.214Z" },
 ]
 
 [[package]]
