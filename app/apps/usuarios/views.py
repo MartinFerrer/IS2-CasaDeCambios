@@ -20,13 +20,9 @@ def configuracion_usuario(request):
     # Obtener información del usuario
     usuario = request.user
 
-    # Obtener todos los clientes del usuario (solo si NO es administrador)
-    if not usuario.is_staff:
-        clientes = usuario.clientes.all().select_related("tipo_cliente")
-        user_has_clients = bool(clientes)
-    else:
-        clientes = []
-        user_has_clients = False
+    # Obtener todos los clientes del usuario (tanto para usuarios normales como administradores)
+    clientes = usuario.clientes.all().select_related("tipo_cliente")
+    user_has_clients = clientes.exists()
 
     # Obtener perfil MFA si existe
     perfil_mfa = None
